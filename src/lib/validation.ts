@@ -87,7 +87,7 @@ export const topicSchema = z.object({
 export const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/
 
 export const videoSchema = z.object({
-  topicId: z.string().min(1),
+  topicId: z.string().min(1).optional(),
   title: z.string().min(2).max(200),
   description: z.string().max(5000).optional(),
   youtubeUrl: z.string().optional(),

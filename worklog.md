@@ -49,3 +49,39 @@ Stage Summary:
 - Test attempt submit works correctly (server-side scoring verified — Aarav scored 80%)
 - Visual design upgraded to modern, attractive aesthetic: mesh gradients, glassmorphism, entrance animations, hover micro-interactions, gradient accents
 - Project is deploy-ready: lint clean, dev server healthy, all key flows browser-verified
+
+---
+Task ID: 12
+Agent: main
+Task: Fix dashboard visibility, fix Add Video bug, comprehensive security audit + bug sweep
+
+Work Log:
+- **Fixed Add Video bug**: videoSchema required `topicId` in body but it comes from URL path → made topicId optional in schema. Verified: admin can now add videos to topics (201 Created)
+- **Fixed dashboard visibility**: dark mode caused invisible chart text (white text on white chart backgrounds). Root cause: `enableSystem` on ThemeProvider applied `.dark` class when OS was in dark mode, but all components use hardcoded light colors. Fix: set `enableSystem={false}` + `forcedTheme="light"` to force light mode always
+- **Fixed Prisma relation bug**: Material model was missing `course`, `chapter`, `topic` relations (only had `batch`, `uploader`). Admin/student materials routes tried to `include: { course: ... }` → PrismaClientValidationError. Added missing relations to schema + back-relations on Course/Chapter/Topic + db:push
+- **Fixed duplicate OR key bug**: student dashboard + student announcements routes had two `OR` keys in same Prisma `where` object (second overwrote first) → expired announcements not filtered. Fixed with `AND: [{ OR: [...] }, { OR: [...] }]`
+- **Fixed 401 silent failure**: when access token expired (15-min TTL), API calls returned 401 but frontend showed empty states instead of redirecting to login. Added global 401 handler in api-client.ts that clears stale token + reloads page (triggers bootstrap → login redirect). Applied to both `request()` and `raw()` functions
+
+Security Audit Results:
+- ✅ All admin routes use `requireAdmin(req)` — verified via grep
+- ✅ All student routes use `requireActiveStudent` or `requireStudent` — verified via grep
+- ✅ IDOR protection: all student [id] routes verify ownership (attempt.userId, batch enrollment, course access)
+- ✅ No passwordHash leaked in responses — all queries use `select` to exclude sensitive fields
+- ✅ No SQL injection — zero raw queries, all Prisma parameterized
+- ✅ No XSS — only `dangerouslySetInnerHTML` is in shadcn chart.tsx (CSS theming, no user content)
+- ✅ File upload security: MIME validation, extension whitelist, magic-byte check, size limit, filename sanitization, path traversal guard
+- ✅ Rate limiting on login/register/change-password/contact endpoints
+- ✅ MCQ answers never exposed before submission (start route strips isCorrect)
+- ✅ Score calculated server-side only (finalizeAttempt with $transaction)
+- ✅ Attempt limit enforced server-side (maxAttempts check in start route)
+- ✅ Timer enforced server-side (authoritative expiresAt, auto-timeout on expiry)
+- ✅ Duplicate scoring prevented (idempotent finalizeAttempt checks status === SUBMITTED)
+- ✅ Content-Disposition filenames sanitized (replace non-word chars with _)
+- ✅ CSV/Excel exports escape formula injection (prefix =,+,-,@ with quote)
+
+Stage Summary:
+- 5 bugs fixed: videoSchema topicId, dark mode visibility, Material Prisma relations, duplicate OR keys, 401 silent failure
+- Security audit passed: auth on all routes, IDOR protected, no sensitive data leaks, no SQL injection, no XSS, file uploads secured, rate limiting on critical endpoints, test engine enforces all spec rules server-side
+- Lint: 0 errors, 4 warnings (cosmetic only)
+- Dev server: healthy, all routes returning 200
+- Browser-verified: admin login, student login, Add Video flow, materials page, dashboard visibility

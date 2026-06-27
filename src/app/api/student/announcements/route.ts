@@ -12,16 +12,20 @@ export async function GET(req: NextRequest) {
     where: {
       status: 'PUBLISHED',
       publishAt: { lte: now },
-      OR: [{ expireAt: null }, { expireAt: { gt: now } }],
-      OR: [
-        { audience: 'ALL_STUDENTS' },
+      AND: [
+        { OR: [{ expireAt: null }, { expireAt: { gt: now } }] },
         {
-          audience: 'BATCH',
-          batches: {
-            some: {
-              batch: { enrollments: { some: { userId: ctx.user.id } } },
+          OR: [
+            { audience: 'ALL_STUDENTS' },
+            {
+              audience: 'BATCH',
+              batches: {
+                some: {
+                  batch: { enrollments: { some: { userId: ctx.user.id } } },
+                },
+              },
             },
-          },
+          ],
         },
       ],
     },

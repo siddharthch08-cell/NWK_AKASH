@@ -61,6 +61,15 @@ async function request<T>(
     throw new ApiError('NETWORK_ERROR', 'Network request failed. Please check your connection.', 0)
   }
 
+  // Global 401 handler — clear stale token and force re-login
+  if (res.status === 401 && typeof window !== 'undefined') {
+    setToken(null)
+    // Avoid redirect loops on auth endpoints themselves
+    if (!url.includes('/api/auth/')) {
+      window.location.reload()
+    }
+  }
+
   let envelope: ApiEnvelope<T>
   try {
     envelope = await res.json()
@@ -97,6 +106,12 @@ export const api = {
     }
     const token = getToken()
     if (token) headers.Authorization = `Bearer ${token}`
-    return fetch(url, { ...options, headers, credentials: 'include' })
+    const res = await fetch(url, { ...options, headers, credentials: 'include' })
+    // Global 401 handler for raw downloads
+    if (res.status === 401 && typeof window !== 'undefined') {
+      setToken(null)
+      window.location.reload()
+    }
+    return res
   },
 }

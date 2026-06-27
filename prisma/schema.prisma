@@ -144,6 +144,7 @@ model Course {
 
   batches     BatchCourse[]
   chapters    Chapter[]
+  materials   Material[]
   creator     User     @relation("CourseCreator", fields: [createdBy], references: [id])
 }
 
@@ -167,6 +168,7 @@ model Chapter {
 
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   topics    Topic[]
+  materials Material[]
 }
 
 model Topic {
@@ -179,6 +181,7 @@ model Topic {
 
   chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   videos    Video[]
+  materials Material[]
 }
 
 model Video {
@@ -245,6 +248,9 @@ model Material {
   updatedAt   DateTime @updatedAt @default(now())
 
   batch       Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  chapter     Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  topic       Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
   uploader    User     @relation("MaterialUploader", fields: [uploadedBy], references: [id])
 }
 
