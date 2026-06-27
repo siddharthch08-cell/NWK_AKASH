@@ -1,0 +1,87 @@
+# =============================================================================
+# EDULEARN PRO — Docker Compose (app + PostgreSQL)
+# =============================================================================
+# Usage:
+#   export JWT_ACCESS_SECRET=$(openssl rand -base64 32)
+#   export JWT_REFRESH_SECRET=$(openssl rand -base64 32)
+#   docker-compose up -d --build
+#
+# Run seed (first time only):
+#   docker-compose exec app bun run scripts/seed.ts
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---- PostgreSQL Database ----
+  db:
+    image: postgres:16-alpine
+    container_name: edulearn-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: edulearn
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-edulearn_dev_password}
+      POSTGRES_DB: edulearn_pro
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edulearn -d edulearn_pro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Next.js Application ----
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edulearn-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      # Database (uses the db service)
+      DATABASE_URL: postgresql://edulearn:${DB_PASSWORD:-edulearn_dev_password}@db:5432/edulearn_pro?sslmode=disable
+
+      # Auth secrets (set in .env or shell environment)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+
+      # App config
+      NODE_ENV: production
+      APP_URL: ${APP_URL:-http://localhost:3000}
+
+      # Admin bootstrap
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@edulearn.pro}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-Admin@12345}
+      ADMIN_NAME: ${ADMIN_NAME:-System Administrator}
+
+      # Upload config
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-20}
+
+      # Rate limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+
+      # Feature flags
+      FEATURE_CERTIFICATES: ${FEATURE_CERTIFICATES:-false}
+      FEATURE_REVENUE: ${FEATURE_REVENUE:-false}
+    volumes:
+      - uploads:/app/private-uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata:
+    driver: local
+  uploads:
+    driver: local

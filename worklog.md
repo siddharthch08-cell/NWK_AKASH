@@ -102,3 +102,36 @@ Stage Summary:
 - Hero section, login branding panel, and boot screen now render with correct dark blue mesh gradient backgrounds
 - All white text on these backgrounds is fully visible
 - Lint: 0 errors, 4 warnings (cosmetic)
+
+---
+Task ID: 14
+Agent: main
+Task: Arrange the whole source code systematically
+
+Work Log:
+- Created `src/types/index.ts` — centralized TypeScript domain types (30+ interfaces: User, Student, Batch, Course, Test, Attempt, Material, Announcement, AuditLog, Settings, Dashboard data, API envelope). Single source of truth for all shared types.
+- Created `src/lib/constants.ts` — all status enums (USER_ROLES, STUDENT_STATUS, BATCH_STATUS, TEST_STATUS, etc.), config values (TEST_LIMITS, AUTH_CONFIG, RATE_LIMITS, UPLOAD_CONFIG, YOUTUBE_CONFIG, PAGINATION, VIDEO_PROGRESS), audit action types, and app metadata. Replaces scattered string literals.
+- Created `src/config/index.ts` — centralized app configuration reading from environment variables with sensible dev defaults. Covers app, database, auth, storage, redis, email, youtube, admin, rateLimit, and features sections.
+- Created project meta files:
+  - `README.md` — comprehensive project documentation (features, tech stack, quick start, demo accounts, project structure, security features, scripts, deployment)
+  - `.env.example` — environment variable template with all config keys documented
+  - `LICENSE` — MIT license
+  - `.editorconfig` — consistent editor formatting (2-space indent, UTF-8, LF line endings)
+- Created `docs/` folder with 3 architecture documents:
+  - `ARCHITECTURE.md` — high-level diagram, key architectural decisions, data model overview, security architecture, test engine security, file upload security, audit logging
+  - `API.md` — complete API reference for all 50+ endpoints (auth, public, admin, student), error codes table
+  - `DEPLOYMENT.md` — 4 deployment options (Vercel, Railway, VPS, Docker) with step-by-step instructions, pre-deployment checklist, post-deployment steps, troubleshooting
+- Created Docker deployment files:
+  - `Dockerfile` — multi-stage build (builder + runner), non-root user, healthcheck, auto-migration on start
+  - `docker-compose.yml` — app + PostgreSQL with health checks, volumes, env vars
+  - `.dockerignore` — keeps build context small
+
+Stage Summary:
+- Source code now systematically organized into clear modules:
+  - `src/types/` — shared domain types
+  - `src/lib/constants.ts` — all enums and config values
+  - `src/config/` — environment-based app configuration
+  - `docs/` — architecture, API, and deployment documentation
+- Project is now fully documented and deploy-ready with Docker, Vercel, Railway, or VPS
+- Lint: 0 errors, 4 warnings (cosmetic)
+- Dev server: healthy

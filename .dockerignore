@@ -1,0 +1,26 @@
+# Docker ignore — keeps the build context small
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+dev.log
+server.log
+db
+private-uploads
+tool-results
+upload
+download
+skills
+examples
+.zscripts
+worklog.md
+docs
+*.md
+!README.md
+Dockerfile
+docker-compose.yml
+.dockerignore
