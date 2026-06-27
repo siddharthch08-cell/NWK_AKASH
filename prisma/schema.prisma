@@ -1,0 +1,492 @@
+// EDULEARN PRO — Prisma schema (SQLite-adapted)
+// Enums are stored as String; app layer enforces valid values.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// USERS & AUTH
+// ---------------------------------------------------------------------------
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  role              String   @default("STUDENT") // ADMIN | STUDENT
+  name              String
+  phone             String?
+  photo             String?
+  // student-specific status: PENDING | APPROVED | ACTIVE | INACTIVE | BLOCKED | REJECTED
+  // admin always ACTIVE
+  status            String   @default("PENDING")
+  rejectionReason   String?
+  preferredBatchId  String?
+  termsAccepted     Boolean  @default(false)
+  lastLoginAt       DateTime?
+  failedLoginCount  Int      @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt @default(now())
+  deletedAt         DateTime?
+
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordResetToken[]
+  enrollments       BatchEnrollment[]
+  videoProgress     VideoProgress[]
+  testAttempts      TestAttempt[]
+  feedback          Feedback[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  sessions          UserSession[]
+  uploadedMaterials Material[]  @relation("MaterialUploader")
+  createdBatches    Batch[]     @relation("BatchCreator")
+  createdCourses    Course[]    @relation("CourseCreator")
+  createdVideos     Video[]     @relation("VideoCreator")
+  createdTests      Test[]      @relation("TestCreator")
+  createdAnnouncements Announcement[]
+  settingsUpdates   InstituteSetting[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  userAgent String?
+  ip        String?
+  rotatedFrom String?
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  userAgent String?
+  ip        String?
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// BATCHES & COURSES
+// ---------------------------------------------------------------------------
+
+model Batch {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  thumbnail   String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String   @default("DRAFT") // DRAFT | UPCOMING | ACTIVE | COMPLETED | ARCHIVED | INACTIVE
+  capacity    Int?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  enrollments BatchEnrollment[]
+  courses     BatchCourse[]
+  tests       TestBatch[]
+  materials   Material[]
+  announcements AnnouncementBatch[]
+  creator     User     @relation("BatchCreator", fields: [createdBy], references: [id])
+}
+
+model BatchEnrollment {
+  id        String   @id @default(cuid())
+  batchId   String
+  userId    String
+  enrolledAt DateTime @default(now())
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, userId])
+  @@index([userId])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  thumbnail   String?
+  category    String?
+  status      String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  batches     BatchCourse[]
+  chapters    Chapter[]
+  creator     User     @relation("CourseCreator", fields: [createdBy], references: [id])
+}
+
+model BatchCourse {
+  id        String   @id @default(cuid())
+  batchId   String
+  courseId  String
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, courseId])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topics    Topic[]
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  chapterId String
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  videos    Video[]
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  topicId     String
+  title       String
+  description String?
+  youtubeId   String
+  thumbnail   String?
+  duration    Int? // seconds
+  order       Int      @default(0)
+  status      String   @default("DRAFT") // DRAFT | SCHEDULED | PUBLISHED | UNPUBLISHED | ARCHIVED
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  creator     User     @relation("VideoCreator", fields: [createdBy], references: [id])
+  progress    VideoProgress[]
+}
+
+model VideoProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  videoId       String
+  position      Int      @default(0) // seconds
+  percent       Int      @default(0)
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+  lastWatchedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video         Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// MATERIALS
+// ---------------------------------------------------------------------------
+
+model Material {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  fileName    String
+  fileType    String
+  fileSize    Int
+  storageKey  String
+  visibility  String   @default("BATCH") // BATCH | COURSE | BATCH_AND_COURSE
+  batchId     String?
+  courseId    String?
+  chapterId   String?
+  topicId     String?
+  materialType String  @default("NOTES") // NOTES | ASSIGNMENT | TEST_PAPER | REFERENCE
+  uploadedBy  String
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  batch       Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  uploader    User     @relation("MaterialUploader", fields: [uploadedBy], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// ANNOUNCEMENTS
+// ---------------------------------------------------------------------------
+
+model Announcement {
+  id         String   @id @default(cuid())
+  title      String
+  message    String
+  audience   String   @default("PUBLIC") // PUBLIC | ALL_STUDENTS | BATCH
+  priority   String   @default("NORMAL") // LOW | NORMAL | HIGH | CRITICAL
+  pinned     Boolean  @default(false)
+  status     String   @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+  publishAt  DateTime @default(now())
+  expireAt   DateTime?
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt @default(now())
+
+  batches    AnnouncementBatch[]
+  creator    User     @relation(fields: [createdBy], references: [id])
+}
+
+model AnnouncementBatch {
+  id             String   @id @default(cuid())
+  announcementId String
+  batchId        String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, batchId])
+}
+
+// ---------------------------------------------------------------------------
+// TESTS & ATTEMPTS
+// ---------------------------------------------------------------------------
+
+model Test {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  instructions    String?
+  durationMins    Int      @default(30)
+  maxAttempts     Int      @default(2)
+  maxQuestions    Int      @default(20)
+  startAt         DateTime?
+  endAt           DateTime?
+  status          String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  passingPct      Int?
+  shuffleQuestions Boolean  @default(false)
+  shuffleOptions  Boolean  @default(false)
+  showAnswerKey   Boolean  @default(true)
+  showResultImmediately Boolean @default(true)
+  paperFileKey    String?
+  createdBy       String
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt @default(now())
+
+  batches         TestBatch[]
+  questions       Question[]
+  attempts        TestAttempt[]
+  creator         User     @relation("TestCreator", fields: [createdBy], references: [id])
+}
+
+model TestBatch {
+  id      String @id @default(cuid())
+  testId  String
+  batchId String
+  test    Test    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  batch   Batch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, batchId])
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  testId      String
+  text        String
+  explanation String?
+  marks       Int      @default(1)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  test        Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  options     QuestionOption[]
+  answers     AttemptAnswer[]
+}
+
+model QuestionOption {
+  id          String   @id @default(cuid())
+  questionId  String
+  text        String
+  isCorrect   Boolean  @default(false)
+  order       Int      @default(0)
+
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers     AttemptAnswer[]
+}
+
+model TestAttempt {
+  id              String   @id @default(cuid())
+  testId          String
+  userId          String
+  attemptNumber   Int
+  startedAt       DateTime @default(now())
+  expiresAt       DateTime
+  submittedAt     DateTime?
+  score           Int      @default(0)
+  totalMarks      Int      @default(0)
+  percentage      Int      @default(0)
+  timeTakenSecs   Int      @default(0)
+  submissionType  String? // MANUAL | AUTO_TIMEOUT | ADMIN_FINALIZED
+  status          String   @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | ABANDONED
+  createdAt       DateTime @default(now())
+
+  test            Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers         AttemptAnswer[]
+
+  @@unique([testId, userId, attemptNumber])
+  @@index([userId])
+  @@index([testId])
+}
+
+model AttemptAnswer {
+  id              String   @id @default(cuid())
+  attemptId       String
+  questionId      String
+  selectedOptionId String?
+  isCorrect       Boolean  @default(false)
+  marksAwarded    Int      @default(0)
+  attempt         TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption  QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// FEEDBACK & CONTACT
+// ---------------------------------------------------------------------------
+
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String
+  category   String   @default("GENERAL") // COURSE_CONTENT | VIDEO_ISSUE | TEST_ISSUE | TECHNICAL | GENERAL
+  subject    String
+  message    String
+  rating     Int?
+  status     String   @default("NEW") // NEW | REVIEWING | RESOLVED | CLOSED
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ContactMessage {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  subject    String
+  message    String
+  status     String   @default("NEW") // NEW | READ | REPLIED | ARCHIVED
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// AUDIT & SETTINGS
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actorRole   String?
+  action      String
+  entityType  String?
+  entityId    String?
+  before      String? // JSON
+  after       String? // JSON
+  ip          String?
+  userAgent   String?
+  requestId   String?
+  timestamp   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model InstituteSetting {
+  id              String   @id @default("singleton")
+  instituteName   String   @default("EDULEARN PRO")
+  tagline         String   @default("Advanced Learning Management System")
+  logo            String?
+  favicon         String?
+  primaryEmail    String?
+  primaryPhone    String?
+  address         String?
+  mapsEmbedUrl    String?
+  heroTitle       String   @default("Unlock Your Potential with EDULEARN PRO")
+  heroSubtitle    String   @default("Industry-leading courses, expert faculty, and a learning experience designed for your success.")
+  heroImage       String?
+  aboutMission    String?
+  aboutVision     String?
+  aboutText       String?
+  statStudents    Int      @default(0)
+  statCourses     Int      @default(0)
+  statPassRate    Int      @default(0)
+  statExperience  Int      @default(0)
+  socialFacebook  String?
+  socialTwitter   String?
+  socialLinkedin  String?
+  socialYoutube   String?
+  socialInstagram String?
+  videoCompletionThreshold Int @default(90)
+  defaultMaxAttempts Int    @default(2)
+  maxUploadMb     Int      @default(20)
+  maintenanceMode Boolean  @default(false)
+  revenueEnabled  Boolean  @default(false)
+  certificatesEnabled Boolean @default(false)
+  updatedBy       String?
+  updatedAt       DateTime @updatedAt @default(now())
+
+  updater         User?    @relation(fields: [updatedBy], references: [id])
+}

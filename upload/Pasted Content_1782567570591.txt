@@ -1,0 +1,2230 @@
+You are acting as a complete senior software engineering team consisting of:
+
+- Product Manager
+- Business Analyst
+- Solution Architect
+- Senior React Developer
+- Senior Node.js Developer
+- PostgreSQL Database Architect
+- UI/UX Designer
+- DevOps Engineer
+- Security Engineer
+- QA Automation Engineer
+- Technical Documentation Writer
+
+Your task is to design, develop, test, document, secure, and deploy a complete production-ready Learning Management System named:
+
+EDULEARN PRO
+Advanced Learning Management System
+
+The platform must be a real, fully functional web application. Do not create a static prototype, fake dashboard, frontend-only demonstration, placeholder buttons, mock-only APIs, hardcoded business data, or incomplete workflows.
+
+Every visible action must connect to a working backend, validated database operation, authorization rule, success/error response, and user-facing feedback.
+
+======================================================================
+1. PRIMARY PROJECT OBJECTIVE
+======================================================================
+
+Build a complete web-based education platform that allows an educational institute to:
+
+1. Publish a professional public website.
+2. register students.
+3. Approve or reject student registrations.
+4. Create and manage batches.
+5. Assign students to one or multiple batches.
+6. Organize courses, chapters, topics, and video lectures.
+7. Deliver YouTube unlisted video content inside the application.
+8. Upload batch-specific notes, assignments, test papers, and PDFs.
+9. Create timed MCQ tests.
+10. Restrict test attempts.
+11. Automatically evaluate tests.
+12. Track student results and learning progress.
+13. Generate leaderboards and reports.
+14. Display announcements.
+15. Track admin activities and system events.
+16. Operate securely on mobile, tablet, laptop, and desktop.
+17. Scale to support a growing number of students and batches.
+
+The application will initially support two primary roles:
+
+- ADMIN
+- STUDENT
+
+Use strict role-based access control throughout the frontend, backend, API, and database workflows.
+
+======================================================================
+2. NON-NEGOTIABLE IMPLEMENTATION RULES
+======================================================================
+
+Follow these rules throughout the development process:
+
+1. Do not build the complete application in a single file.
+2. Do not mix frontend, backend, database, and configuration logic.
+3. Do not hardcode admin passwords, JWT secrets, database credentials,
+   storage keys, email credentials, or production URLs.
+4. Do not expose sensitive data in frontend bundles or API responses.
+5. Do not rely only on frontend validation.
+6. Every sensitive rule must also be enforced by the backend.
+7. Never trust user-provided role, user ID, score, test duration,
+   batch assignment, attempt count, or video completion values.
+8. Do not expose correct MCQ answers before an attempt is submitted.
+9. Do not calculate final test scores on the client.
+10. Do not allow blocked, rejected, pending, or inactive students to
+    access protected learning content.
+11. Do not allow a student to access another student's profile,
+    results, batches, materials, attempts, or activity.
+12. Do not allow deleted or unpublished content to remain accessible
+    through direct API requests.
+13. All destructive actions must require confirmation.
+14. All asynchronous actions must display loading, success, and error states.
+15. Prevent duplicate form submission and duplicate database records.
+16. Use reusable components, services, validation schemas, and error handlers.
+17. Use database transactions for critical multi-step operations.
+18. Create database migrations and seed scripts.
+19. Include automated tests for critical workflows.
+20. Do not claim that an embedded YouTube URL is impossible to discover.
+    Browser-based video URLs may still be inspected by technically skilled
+    users. Reduce exposure through server-controlled video IDs,
+    privacy-enhanced embeds, referrer policies, access validation, and UI
+    restrictions, but do not make technically false security claims.
+
+======================================================================
+3. REQUIRED TECHNOLOGY STACK
+======================================================================
+
+Use the following production-grade stack.
+
+Frontend:
+- React.js with TypeScript
+- Vite
+- Tailwind CSS
+- Redux Toolkit and RTK Query
+- React Router
+- React Hook Form
+- Zod validation
+- Recharts for analytics
+- Accessible component primitives
+- Toast notification system
+
+Backend:
+- Node.js with TypeScript
+- Express.js
+- RESTful API architecture
+- Prisma ORM
+- Zod request validation
+- Centralized error handling
+- Structured logging
+
+Database:
+- PostgreSQL as the primary database
+- Redis for caching, rate-limiting support, leaderboard caching,
+  refresh-token/session support where appropriate, and frequently used data
+
+Authentication:
+- Short-lived JWT access tokens
+- Rotating refresh tokens
+- bcrypt password hashing with 12 salt rounds
+- Secure HTTP-only cookies for refresh tokens
+- CSRF protection where cookie-based authentication requires it
+- Role-based authorization middleware
+- Session/device tracking
+
+File Storage:
+- AWS S3 or Cloudinary-compatible object storage
+- Signed or protected file access where required
+- Local development storage adapter
+- Production cloud storage adapter
+
+Video:
+- YouTube unlisted videos
+- YouTube iFrame Player API
+- Privacy-enhanced embed mode when possible
+- Store video IDs rather than complete arbitrary iframe HTML
+
+Email:
+- Nodemailer with SMTP configuration or an interchangeable email provider
+- Email templates for approval, rejection, password reset, and contact forms
+
+Deployment:
+- Docker
+- Docker Compose for local development
+- Nginx reverse proxy
+- AWS EC2, Railway, Render, or equivalent production environment
+- SSL/HTTPS
+- GitHub Actions CI/CD
+
+Testing:
+- Vitest or Jest
+- Supertest for API testing
+- React Testing Library
+- Playwright for end-to-end testing
+
+Code quality:
+- ESLint
+- Prettier
+- TypeScript strict mode
+- Husky and lint-staged where appropriate
+
+Use a monorepo or clearly separated repository structure such as:
+
+edulearn-pro/
+  apps/
+    web/
+    api/
+  packages/
+    shared/
+    ui/
+    config/
+  prisma/
+  docs/
+  scripts/
+  docker/
+  tests/
+
+======================================================================
+4. ENVIRONMENT CONFIGURATION
+======================================================================
+
+Create a complete `.env.example` without real secrets.
+
+Include configuration such as:
+
+NODE_ENV=
+PORT=
+APP_URL=
+API_URL=
+DATABASE_URL=
+REDIS_URL=
+
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+JWT_ACCESS_EXPIRES_IN=
+JWT_REFRESH_EXPIRES_IN=
+
+ADMIN_EMAIL=
+ADMIN_INITIAL_PASSWORD=
+ADMIN_NAME=
+
+STORAGE_PROVIDER=
+AWS_REGION=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_S3_BUCKET=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_FROM_NAME=
+
+GOOGLE_MAPS_EMBED_URL=
+YOUTUBE_API_KEY=
+
+MAX_UPLOAD_SIZE_MB=
+RATE_LIMIT_WINDOW_MS=
+RATE_LIMIT_MAX_REQUESTS=
+
+Never commit actual secrets.
+
+The initial admin account must be created securely through a database seed
+or controlled bootstrap process. The plaintext password must not be stored.
+
+======================================================================
+5. SYSTEM ARCHITECTURE
+======================================================================
+
+Use a clean modular architecture.
+
+Backend modules should include:
+
+- auth
+- users
+- students
+- admins
+- institute-settings
+- batches
+- courses
+- chapters
+- videos
+- video-progress
+- materials
+- announcements
+- tests
+- questions
+- attempts
+- results
+- leaderboards
+- analytics
+- reports
+- contact-messages
+- feedback
+- notifications
+- audit-logs
+- uploads
+- certificates
+- system-health
+
+Within each backend module, separate:
+
+- routes
+- controllers
+- services
+- repositories/data-access
+- validation schemas
+- authorization policies
+- types
+- tests
+
+Use:
+
+- Controllers for HTTP request and response handling.
+- Services for business logic.
+- Repositories or Prisma access layers for database operations.
+- Middleware for authentication, authorization, validation, rate limiting,
+  request IDs, logging, and error handling.
+- DTOs or schemas for request and response contracts.
+
+Frontend architecture should separate:
+
+- Public website
+- Authentication
+- Admin application
+- Student application
+- Shared UI components
+- API layer
+- State management
+- Form schemas
+- Route guards
+- Layouts
+- Error boundaries
+- Analytics charts
+- File upload components
+- Responsive navigation
+
+======================================================================
+6. PUBLIC LANDING PAGE
+======================================================================
+
+Create a professional, responsive, SEO-optimized public website.
+
+The public website must work from approximately 320px mobile width to
+large desktop and 4K screens.
+
+Required sections:
+
+6.1 Header and Navigation
+- Institute logo
+- Institute name
+- Home
+- About
+- Courses/Batches
+- Announcements
+- Contact
+- Login
+- Register
+- Mobile navigation drawer
+- Sticky header behavior where appropriate
+
+6.2 Hero/Banner Section
+- Institute name
+- Strong value proposition
+- Supporting description
+- “Enroll Now” call-to-action
+- “Explore Courses” call-to-action
+- Configurable background image or illustration
+- Responsive layout
+- Proper image optimization
+
+6.3 Announcement Section
+- Admin-controlled announcements
+- Scrolling ticker or accessible card-based layout
+- Announcement title
+- Description
+- Publication date
+- Optional expiry date
+- Priority level
+- Important/pinned status
+- Automatic removal from the public feed after expiry
+- No inaccessible continuously moving ticker without pause controls
+
+6.4 About Section
+- Mission
+- Vision
+- Faculty/institute introduction
+- Statistics such as:
+  - Students enrolled
+  - Courses or batches
+  - Pass rate
+  - Teaching experience
+- Values and differentiators
+
+6.5 Course and Batch Preview
+- Publicly visible active batches or courses
+- Name
+- Thumbnail
+- Short description
+- Start date
+- Duration
+- Enrollment status
+- “Login to Enroll” or “Register” action
+- Do not expose protected learning material publicly
+
+6.6 Contact Section
+- Name
+- Email
+- Phone
+- Subject
+- Message
+- Backend validation
+- Spam protection
+- Rate limiting
+- Email notification to admin
+- Store contact requests in the database
+- Admin-readable contact-message list
+- Configurable address and phone number
+- Optional Google Maps embed
+
+6.7 Login and Registration
+- Separate or clearly differentiated admin and student login flow
+- Student registration form
+- Password strength feedback
+- Terms acceptance
+- Email uniqueness validation
+- Registration success screen
+- Clearly communicate that student access requires admin approval
+
+6.8 Footer
+- Institute information
+- Quick links
+- Contact details
+- Copyright
+- Privacy policy
+- Terms
+- Social media links configurable from admin settings
+
+6.9 SEO
+Implement:
+
+- Unique page titles
+- Meta descriptions
+- Open Graph metadata
+- Twitter metadata
+- Canonical URLs
+- robots.txt
+- sitemap.xml
+- Structured data for educational organization
+- Semantic HTML
+- Optimized image alt text
+- Fast page-loading performance
+
+======================================================================
+7. AUTHENTICATION AND USER ACCESS
+======================================================================
+
+7.1 Student Registration
+
+Student fields should include:
+
+- Full name
+- Email
+- Phone number
+- Password
+- Confirm password
+- Optional profile photo
+- Optional preferred course/batch
+- Terms acceptance
+- Registration timestamp
+- Approval status
+
+Possible student statuses:
+
+- PENDING
+- APPROVED
+- ACTIVE
+- INACTIVE
+- BLOCKED
+- REJECTED
+
+Define exact meaning and valid status transitions.
+
+New students must not gain course access until approved by an admin.
+
+7.2 Login
+
+Implement:
+
+- Email and password authentication
+- Role-aware login response
+- Secure access and refresh tokens
+- Rate limiting
+- Account status checks
+- Generic invalid-credentials response
+- Login audit trail
+- Last-login timestamp
+- Failed-attempt tracking
+- Temporary lockout where appropriate
+
+Routing:
+
+- Admin → Admin Dashboard
+- Approved Student → Student Dashboard
+- Pending Student → Pending Approval screen
+- Rejected Student → Rejection status screen
+- Blocked Student → Access blocked screen
+
+7.3 Password Workflows
+
+Implement:
+
+- Forgot password
+- Secure reset token
+- Reset-token expiry
+- One-time reset token
+- Change password
+- Current-password verification
+- Password history or reuse prevention where practical
+- Email notification after password change
+
+7.4 Logout
+
+- Revoke the current refresh token/session
+- Support logout from current device
+- Support logout from all devices
+- Clear secure cookies
+- Redirect safely
+
+======================================================================
+8. ADMIN PANEL
+======================================================================
+
+Create a secure admin interface with:
+
+- Desktop sidebar
+- Mobile drawer
+- Header
+- Breadcrumbs
+- Search
+- Notifications
+- Profile menu
+- Logout
+- Consistent responsive layout
+- Route-level authorization
+- Permission validation on every backend endpoint
+
+Admin navigation should include:
+
+1. Dashboard
+2. Students
+3. Batches
+4. Courses and Content
+5. Study Material
+6. Tests and Assessments
+7. Results
+8. Analytics
+9. Leaderboard
+10. Announcements
+11. Contact Messages
+12. Feedback
+13. Reports
+14. Audit Logs
+15. Settings
+16. Certificates when enabled
+
+======================================================================
+9. ADMIN DASHBOARD
+======================================================================
+
+Create a real analytics dashboard connected to live database data.
+
+Required dashboard cards:
+
+- Total registered students
+- Pending students
+- Approved students
+- Active students
+- Inactive students
+- Blocked students
+- Total batches
+- Active batches
+- Total courses
+- Total videos
+- Total tests
+- Tests attempted
+- Average test score
+- Total learning/watch time
+
+Required analytics:
+
+9.1 Student Growth Chart
+- Student test score over time
+- Course completion percentage
+- Video completion percentage
+- Test participation
+
+9.2 Batch Enrollment Visualization
+- Batch-wise enrollment chart
+- Enrollment heatmap
+- Active versus inactive enrollment
+- Most popular batches
+
+9.3 Content Analytics
+- Most watched videos
+- Total views
+- Average video completion percentage
+- Students who started/completed a video
+- Approximate watch duration
+
+9.4 Recent Activity Feed
+Include:
+
+- Recent registrations
+- Approvals
+- Blocks
+- Logins
+- Test submissions
+- Content uploads
+- Batch assignments
+- Announcement publication
+
+9.5 Quick Actions
+Provide working shortcuts for:
+
+- Approve pending students
+- Create batch
+- Upload content
+- Upload PDF
+- Create test
+- Publish announcement
+
+9.6 Revenue Placeholder
+
+The proposal requires future payment readiness.
+
+- Create a feature-flagged revenue widget.
+- Hide or clearly label it when payment integration is disabled.
+- Do not display fake revenue data.
+- Prepare a future interface for payment providers.
+
+======================================================================
+10. STUDENT APPROVAL AND MANAGEMENT
+======================================================================
+
+Admin must be able to:
+
+- View pending registrations
+- View all students
+- Search by name, email, phone, batch, or status
+- Filter by registration date
+- Filter by approval status
+- Sort results
+- Use server-side pagination
+- Open complete student profile
+- View assigned batches
+- View registration date
+- View last login
+- View test history
+- View video progress
+- View activity history
+- Approve a student
+- Reject a student
+- Block a student
+- Unblock a student
+- Activate or deactivate a student
+- Bulk approve selected students
+- Assign one or multiple batches
+- Remove batch assignment
+- Send approval email
+- Send rejection email
+- Export filtered student list to CSV or Excel
+
+Bulk operations must:
+
+- Validate every selected student
+- Avoid partial silent failures
+- Return a summary of successful and failed records
+- Use a database transaction where appropriate
+- Create audit-log records
+
+Prevent an admin from accidentally deleting academic history.
+
+Prefer soft deletion or archival for users with test attempts or progress data.
+
+======================================================================
+11. BATCH MANAGEMENT
+======================================================================
+
+Admin must be able to:
+
+- Create unlimited batches
+- Edit batches
+- Archive batches
+- Activate/deactivate batches
+- Search batches
+- Filter batches by status
+- View batch detail
+- Assign students
+- Remove students
+- Assign courses
+- Assign tests
+- Upload batch materials
+- Publish batch announcements
+- Export enrolled-student list
+
+Batch fields:
+
+- Batch ID
+- Batch name
+- Slug
+- Description
+- Thumbnail
+- Start date
+- End date
+- Status
+- Enrollment capacity, optional
+- Created by
+- Created timestamp
+- Updated timestamp
+
+Batch statuses:
+
+- DRAFT
+- UPCOMING
+- ACTIVE
+- COMPLETED
+- ARCHIVED
+- INACTIVE
+
+Business rules:
+
+- Students can only see active or otherwise permitted assigned batches.
+- A student may belong to multiple batches.
+- Duplicate batch enrollment must be prevented.
+- Removing a batch assignment must not delete historical attempts.
+- Archived batches remain visible to admins.
+- Material and test access must follow batch assignment rules.
+
+Batch announcement fields:
+
+- Title
+- Message
+- Priority
+- Published date
+- Expiry date
+- Pinned status
+- Visible batches
+
+======================================================================
+12. COURSE, CHAPTER, TOPIC, AND VIDEO CONTENT MANAGEMENT
+======================================================================
+
+Create a structured content hierarchy:
+
+Course
+  → Chapter
+      → Topic or Lesson
+          → Video
+
+Admin must be able to:
+
+- Create courses
+- Edit courses
+- Archive courses
+- Assign courses to batches
+- Add chapters
+- Add topics
+- Add video lectures
+- Reorder chapters
+- Reorder topics
+- Reorder videos through drag-and-drop
+- Publish or unpublish content
+- Schedule content publication
+- Preview content as a student
+- View content analytics
+
+Course fields:
+
+- Title
+- Slug
+- Description
+- Thumbnail
+- Category
+- Status
+- Assigned batches
+- Created by
+- Created at
+- Updated at
+
+Video fields:
+
+- Title
+- Description
+- YouTube video ID or validated unlisted URL
+- Thumbnail
+- Duration, when available
+- Chapter
+- Topic
+- Display order
+- Status
+- Scheduled publication time
+- Created by
+- Published at
+
+Video statuses:
+
+- DRAFT
+- SCHEDULED
+- PUBLISHED
+- UNPUBLISHED
+- ARCHIVED
+
+Validate YouTube URLs and extract the video ID safely.
+
+Do not store arbitrary iframe HTML from the admin.
+
+Video analytics:
+
+- Unique student viewers
+- Total play events
+- Approximate watch time
+- Last watched position
+- Completion percentage
+- Completed-student count
+- Average completion percentage
+
+Use the YouTube iFrame API to detect:
+
+- Player ready
+- Play
+- Pause
+- End
+- Current playback position
+
+Send progress heartbeats periodically, for example every 15–30 seconds.
+
+Backend requirements:
+
+- Deduplicate excessive heartbeat events
+- Never reduce saved progress accidentally
+- Store last valid position
+- Mark completed using a configurable threshold, such as 90%
+- Validate that the student has batch access
+- Prevent students from posting progress for another user
+- Treat client-reported analytics as approximate, not tamper-proof evidence
+
+======================================================================
+13. STUDY MATERIAL AND PDF MANAGEMENT
+======================================================================
+
+Admin must be able to upload:
+
+- PDF notes
+- Assignments
+- Test papers
+- Study material
+- Reference files
+
+Material fields:
+
+- Title
+- Description
+- File
+- File type
+- File size
+- Batch
+- Course
+- Chapter/topic, optional
+- Upload date
+- Visibility
+- Uploaded by
+
+Required functionality:
+
+- Drag-and-drop upload
+- Upload progress
+- File-type validation
+- Maximum file-size validation
+- Malware-scanning integration point
+- Duplicate-file handling
+- Replace existing file
+- Archive material
+- Preview PDF where browser support is available
+- Download file
+- Search by title
+- Filter by batch, course, chapter, type, or date
+- Sort by newest or oldest
+
+Security:
+
+- Do not trust file extensions alone.
+- Validate MIME type and file signature where practical.
+- Sanitize filenames.
+- Store generated storage keys.
+- Do not expose local server filesystem paths.
+- Verify student batch access before issuing a download URL.
+- Use signed URLs or protected download endpoints for private files.
+
+======================================================================
+14. TEST AND ASSESSMENT ENGINE
+======================================================================
+
+Build a complete timed MCQ assessment system.
+
+14.1 Test Creation
+
+Admin must be able to:
+
+- Create a test
+- Add up to 20 MCQ questions per test
+- Edit draft tests
+- Duplicate a test
+- Delete unused draft tests
+- Archive completed tests
+- Assign tests to one or multiple batches
+- Schedule availability
+- Configure timer
+- Configure maximum attempts
+- Upload an optional PDF test paper
+- Publish/unpublish tests
+- Preview test before publication
+
+Test fields:
+
+- Title
+- Description
+- Instructions
+- Duration in minutes
+- Maximum attempts
+- Start date and time
+- End date and time
+- Status
+- Assigned batches
+- Passing percentage, optional
+- Shuffle questions setting
+- Shuffle options setting
+- Show answer key setting
+- Show result immediately setting
+- Optional PDF file
+- Created by
+- Created date
+- Published date
+
+Default rule:
+
+- Maximum 20 questions
+- Maximum 2 attempts per student
+
+These limits must be validated in the backend, not only the UI.
+
+14.2 Question Management
+
+Each question must include:
+
+- Question text
+- Four or configurable answer options
+- Exactly one correct answer for single-choice mode
+- Optional explanation
+- Marks
+- Display order
+
+Validate:
+
+- Required question text
+- Minimum two options
+- Exactly one correct option
+- No blank options
+- No duplicate display order
+- Total questions within limit
+
+Do not send `isCorrect` fields to the student before submission.
+
+14.3 Student Test Attempt Workflow
+
+Before starting an attempt, validate:
+
+- Student account is approved and active
+- Student is assigned to an authorized batch
+- Test is published
+- Test is within the availability window
+- Attempt limit is not exhausted
+- No invalid active attempt exists
+- Test contains valid questions
+
+When a student starts:
+
+- Create an attempt server-side
+- Save authoritative start time
+- Calculate authoritative expiry time
+- Return questions without correct-answer metadata
+- Display countdown timer
+- Save selected answers during the attempt
+- Restore an active attempt after refresh
+- Prevent creation of multiple simultaneous attempts for the same test
+
+When time expires:
+
+- Client must auto-submit
+- Server must independently enforce expiry
+- Late submissions must be finalized according to server time
+- The timer must not reset after browser refresh
+- Closing and reopening the browser must not create additional time
+
+On submission:
+
+- Use a database transaction
+- Lock or atomically update the attempt
+- Prevent duplicate scoring
+- Calculate score on the backend
+- Store selected answers
+- Store correct/incorrect status
+- Store marks
+- Store percentage
+- Store time taken
+- Store submission type:
+  - MANUAL
+  - AUTO_TIMEOUT
+  - ADMIN_FINALIZED
+- Increment attempt count only through valid attempt records
+- Return result according to configured visibility rules
+
+After the second valid attempt:
+
+- Lock further attempts
+- Continue showing previous results
+- Clearly display “Attempt limit reached”
+
+14.4 Result Display
+
+Student result should include:
+
+- Test name
+- Attempt number
+- Score
+- Total marks
+- Percentage
+- Grade
+- Pass/fail status where enabled
+- Time taken
+- Submission time
+- Correct answers
+- Incorrect answers
+- Unanswered questions
+- Student answer versus correct answer
+- Explanation, if configured and allowed
+
+Answer keys must only be displayed according to admin settings and
+after the appropriate attempt/submission condition.
+
+14.5 Admin Test Analytics
+
+Admin must be able to:
+
+- View all test attempts
+- Filter by test
+- Filter by batch
+- Filter by student
+- Filter by date
+- View score
+- View percentage
+- View time taken
+- View attempt number
+- View submission type
+- View complete answer detail
+- Export results
+- View question-level accuracy
+- Identify most difficult questions
+- View average batch score
+- View participation rate
+- View pass/fail distribution
+
+======================================================================
+15. STUDENT PORTAL
+======================================================================
+
+Create a clean, focused, distraction-free student interface.
+
+The student should be able to find primary learning content within
+three clicks from the dashboard.
+
+Student navigation:
+
+1. Dashboard
+2. My Batches
+3. My Courses
+4. Video Lectures
+5. Study Material
+6. Tests
+7. Results
+8. Leaderboard
+9. Announcements
+10. Feedback
+11. Profile and Settings
+12. Logout
+
+======================================================================
+16. STUDENT DASHBOARD
+======================================================================
+
+Display:
+
+- Personalized greeting
+- Student profile summary
+- Approval/account status
+- Courses in progress
+- Assigned batches
+- Videos completed
+- Overall course progress
+- Tests attempted
+- Tests remaining
+- Average score
+- Best score
+- Upcoming tests
+- Test countdowns
+- Recent announcements
+- Recently watched videos
+- Continue-learning action
+- Recent results
+- Leaderboard position
+
+Do not expose data from other batches or students.
+
+======================================================================
+17. MY BATCHES AND COURSES
+======================================================================
+
+Students must only see batches assigned by an admin.
+
+Each batch page should show:
+
+- Batch name
+- Description
+- Start/end date
+- Batch status
+- Batch announcement
+- Assigned courses
+- Course progress
+- Study material
+- Active tests
+
+Each course should show:
+
+- Course overview
+- Chapter list
+- Topic list
+- Video list
+- Completed/incomplete status
+- Progress percentage
+- Continue from last watched position
+
+Prevent access through modified URLs by validating authorization in the API.
+
+======================================================================
+18. VIDEO LEARNING EXPERIENCE
+======================================================================
+
+Create a responsive embedded video player.
+
+Required functionality:
+
+- Play video inside the platform
+- Responsive player ratio
+- Resume from last valid saved position where supported
+- Previous lesson
+- Next lesson
+- Mark completion automatically at threshold
+- Manual “Mark as complete” only if product rules permit
+- Chapter progress
+- Course progress
+- Recently watched list
+- Video title and description
+- Lesson list sidebar
+- Mobile-friendly player and controls
+- Loading and error states
+
+Reduce unnecessary URL exposure by:
+
+- Saving video IDs rather than raw iframe HTML
+- Returning video data only to authorized students
+- Using privacy-enhanced YouTube embed mode
+- Applying appropriate referrer policies
+- Avoiding visible direct-video links
+
+Do not make false claims that a browser-delivered YouTube video can be
+made completely undiscoverable.
+
+======================================================================
+19. STUDY MATERIAL FOR STUDENTS
+======================================================================
+
+Students must be able to:
+
+- View assigned material
+- Search by title
+- Filter by batch
+- Filter by course/topic
+- View upload date
+- View file size
+- Preview supported PDFs
+- Download authorized files
+
+Every material API and download endpoint must verify student access.
+
+======================================================================
+20. STUDENT TESTS AND RESULTS
+======================================================================
+
+Student tests page should categorize:
+
+- Upcoming
+- Active
+- Completed
+- Attempt limit reached
+- Expired
+
+Each test card should show:
+
+- Test name
+- Assigned batch
+- Duration
+- Number of questions
+- Available-from time
+- Deadline
+- Attempts used
+- Attempts remaining
+- Start or Continue action
+- Result action where available
+- PDF test-paper download where uploaded
+
+Results page should include:
+
+- All attempted tests
+- Score
+- Percentage
+- Grade
+- Attempt number
+- Test date
+- Time taken
+- Result details
+- Progress line chart
+- Average score
+- Best score
+- Batch rank
+
+======================================================================
+21. LEADERBOARD
+======================================================================
+
+Build a batch-specific leaderboard.
+
+Leaderboard functionality:
+
+- Rank students by configured score rule
+- Filter by batch
+- Filter by time range where appropriate
+- Display rank
+- Student name or privacy-safe display name
+- Average score
+- Total tests
+- Highest score
+- Updated timestamp
+- Highlight the logged-in student
+
+Leaderboard rules must be deterministic.
+
+Define tie-breaking rules, for example:
+
+1. Higher average score
+2. Higher total score
+3. More completed tests
+4. Lower total completion time
+5. Earlier achievement timestamp
+
+Use Redis caching and invalidate or refresh the cache after relevant
+test submissions.
+
+Do not leak private information such as phone numbers or email addresses.
+
+======================================================================
+22. ANNOUNCEMENTS AND NOTIFICATIONS
+======================================================================
+
+Admin must be able to create:
+
+- Public announcements
+- Batch-specific announcements
+- System-wide student announcements
+- Scheduled announcements
+- Expiring announcements
+- Pinned announcements
+
+Fields:
+
+- Title
+- Message
+- Audience
+- Assigned batches
+- Priority
+- Publish time
+- Expiry time
+- Pinned status
+- Status
+- Created by
+
+Students should see only announcements relevant to them.
+
+The public website should show only public, published, non-expired announcements.
+
+======================================================================
+23. ANALYTICS AND REPORTING
+======================================================================
+
+Admin analytics should include:
+
+- Student registration trend
+- Approval trend
+- Active student trend
+- Batch enrollment
+- Course progress
+- Video engagement
+- Test participation
+- Average score
+- Score distribution
+- Pass/fail ratio
+- Leaderboard
+- Student activity
+- Content popularity
+
+Reports must support:
+
+- CSV export
+- Excel export
+- Date filters
+- Batch filters
+- Student filters
+- Test filters
+- Course filters
+- Status filters
+
+Use a proper Excel generation library such as ExcelJS.
+
+Exported reports must:
+
+- Have readable headers
+- Include generation date
+- Include applied filters
+- Use stable column ordering
+- Escape spreadsheet formula-injection values
+- Preserve dates and numeric formats
+- Avoid exporting sensitive password or token data
+
+Reports include:
+
+- Student list
+- Batch enrollment
+- Student performance
+- Test attempts
+- Video progress
+- Course completion
+- Leaderboard
+- Activity summary
+
+======================================================================
+24. FEEDBACK MANAGEMENT
+======================================================================
+
+Students must be able to submit feedback.
+
+Feedback fields:
+
+- Category
+- Subject
+- Message
+- Optional rating
+- Submitted date
+- Student ID
+- Status
+
+Feedback categories may include:
+
+- Course content
+- Video issue
+- Test issue
+- Technical problem
+- General suggestion
+
+Admin must be able to:
+
+- View feedback
+- Search and filter
+- Change status
+- Add internal notes
+- Mark resolved
+- Archive feedback
+
+Statuses:
+
+- NEW
+- REVIEWING
+- RESOLVED
+- CLOSED
+
+======================================================================
+25. CONTACT MESSAGE MANAGEMENT
+======================================================================
+
+Admin must be able to:
+
+- View public contact submissions
+- Search by name/email/subject
+- Filter by date/status
+- Mark as read
+- Mark as replied
+- Archive
+- Add internal notes
+
+Protect contact forms using:
+
+- Validation
+- Rate limiting
+- Honeypot or CAPTCHA integration point
+- Input sanitization
+- Email-header injection protection
+
+======================================================================
+26. PROFILE AND SETTINGS
+======================================================================
+
+Student profile functionality:
+
+- View profile
+- Update profile photo
+- Update full name where allowed
+- Update phone number
+- Update contact details
+- Change password
+- View account status
+- View assigned batches
+- View registration date
+- View active sessions
+- Logout from other devices
+
+Admin settings should include:
+
+- Institute name
+- Logo
+- Favicon
+- Tagline
+- Contact details
+- Address
+- Social links
+- Landing-page content
+- Hero content
+- About content
+- Statistics
+- Google Maps embed
+- Announcement settings
+- Email sender settings where safe
+- Upload limits
+- Video completion threshold
+- Default maximum test attempts
+- Result visibility defaults
+- Maintenance mode
+- Feature flags
+
+Sensitive provider credentials must remain environment-managed, not editable
+as plaintext through the browser.
+
+======================================================================
+27. CERTIFICATE GENERATOR — PHASE 2 READY
+======================================================================
+
+Prepare a modular certificate system.
+
+It should support future functionality for:
+
+- Course completion certificates
+- Student name
+- Course name
+- Batch
+- Completion date
+- Certificate number
+- QR verification
+- Admin signature image
+- Institute logo
+- PDF download
+- Public verification page
+
+For the initial release:
+
+- Create the database-ready structure
+- Create service interfaces
+- Add a feature flag
+- Do not show incomplete certificate buttons when disabled
+- Do not generate fake certificates
+
+Implement the complete module only when the feature is enabled in scope.
+
+======================================================================
+28. FUTURE-READY INTEGRATIONS
+======================================================================
+
+Architect extension points for:
+
+- Live classes
+- Razorpay
+- Stripe
+- Student payments
+- Revenue dashboard
+- AI course recommendations
+- AI-generated quizzes
+- Certificate generation
+- Push notifications
+- SMS notifications
+- Mobile application
+- Microservices
+- Database read replicas
+- Webhooks
+
+Do not implement these as fake active features.
+
+Use feature flags and clean service interfaces.
+
+======================================================================
+29. DATABASE DESIGN
+======================================================================
+
+Design a normalized PostgreSQL schema.
+
+At minimum, include tables or equivalent entities for:
+
+- users
+- student_profiles
+- admin_profiles, if needed
+- refresh_tokens
+- user_sessions
+- password_reset_tokens
+- email_verification_tokens
+- batches
+- batch_enrollments
+- courses
+- batch_courses
+- chapters
+- topics
+- videos
+- video_progress
+- learning_activity
+- materials
+- announcements
+- announcement_batches
+- tests
+- test_batches
+- questions
+- question_options
+- test_attempts
+- attempt_answers
+- results, if separate from attempts
+- feedback
+- contact_messages
+- audit_logs
+- notifications
+- institute_settings
+- uploaded_files
+- certificates
+- feature_flags
+
+Use appropriate:
+
+- Primary keys
+- Foreign keys
+- Unique constraints
+- Composite unique constraints
+- Database indexes
+- Check constraints
+- Cascading rules
+- Soft-deletion fields
+- Created and updated timestamps
+- Status enums
+
+Important constraints:
+
+- Unique user email
+- Unique batch slug
+- Unique course slug
+- Unique enrollment per student and batch
+- Maximum question count enforced by service and validation
+- No duplicate active attempt for the same student/test
+- No duplicate final submission
+- Attempt number unique per student and test
+- Valid start/end date relationships
+- Valid publication states
+
+Create an entity relationship diagram in the documentation.
+
+======================================================================
+30. API DESIGN
+======================================================================
+
+Use versioned routes such as:
+
+/api/v1/auth
+/api/v1/public
+/api/v1/admin
+/api/v1/students
+/api/v1/batches
+/api/v1/courses
+/api/v1/videos
+/api/v1/materials
+/api/v1/tests
+/api/v1/attempts
+/api/v1/results
+/api/v1/analytics
+/api/v1/reports
+/api/v1/announcements
+/api/v1/feedback
+/api/v1/contact
+/api/v1/settings
+
+API standards:
+
+- Consistent response structure
+- Proper HTTP status codes
+- Request ID
+- Pagination metadata
+- Structured validation errors
+- No stack traces in production
+- No database internals in responses
+- Typed request and response contracts
+- Idempotency for important operations where appropriate
+
+Example success response:
+
+{
+  "success": true,
+  "data": {},
+  "message": "Operation completed successfully",
+  "meta": {}
+}
+
+Example error response:
+
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "The request contains invalid fields",
+    "fields": {}
+  },
+  "requestId": "..."
+}
+
+Create OpenAPI/Swagger documentation and a Postman collection.
+
+======================================================================
+31. SECURITY REQUIREMENTS
+======================================================================
+
+Implement the following security controls:
+
+Authentication and sessions:
+- bcrypt with 12 rounds
+- Short-lived access tokens
+- Rotating refresh tokens
+- Refresh-token reuse detection
+- Session revocation
+- Secure HTTP-only cookies
+- SameSite cookie policy
+- Secure cookies in production
+
+Authorization:
+- Central role middleware
+- Resource ownership checks
+- Batch membership checks
+- Account status checks
+- Route-level and service-level authorization
+
+Application security:
+- Helmet security headers
+- Strict CORS allowlist
+- Rate limiting
+- Login-specific rate limiting
+- Request-size limits
+- Input validation
+- Input sanitization
+- SQL injection protection through ORM and safe queries
+- XSS prevention
+- CSRF protection where required
+- Secure file upload
+- MIME checking
+- Filename sanitization
+- Open-redirect prevention
+- Error-message sanitization
+
+Infrastructure:
+- HTTPS only in production
+- Nginx security configuration
+- Environment-managed secrets
+- Database backups
+- Redis authentication where supported
+- Least-privilege cloud credentials
+- Dependency vulnerability scanning
+- Production logging without sensitive data
+
+Sensitive values that must never appear in logs:
+
+- Passwords
+- Access tokens
+- Refresh tokens
+- Password reset tokens
+- Storage secret keys
+- Database URLs
+- SMTP passwords
+- Complete authorization headers
+
+======================================================================
+32. AUDIT LOGS
+======================================================================
+
+Track important admin and security actions.
+
+Audit events should include:
+
+- Admin login
+- Failed admin login
+- Student approval
+- Student rejection
+- Student block/unblock
+- Batch creation/update/archive
+- Enrollment assignment/removal
+- Course creation/update
+- Video creation/publication
+- Material upload/removal
+- Test creation/publication
+- Announcement publication
+- Report export
+- Setting changes
+
+Audit log fields:
+
+- Actor user ID
+- Actor role
+- Action
+- Entity type
+- Entity ID
+- Before summary
+- After summary
+- IP address
+- User agent
+- Request ID
+- Timestamp
+
+Do not store password or token values in audit logs.
+
+Audit records should be append-only for normal admin users.
+
+======================================================================
+33. PERFORMANCE REQUIREMENTS
+======================================================================
+
+Implement:
+
+- Server-side pagination
+- Database indexes
+- Optimized joins
+- Avoid N+1 queries
+- Redis caching
+- Cache invalidation
+- Lazy-loaded pages
+- Lazy-loaded images
+- Code splitting
+- Compressed API responses
+- CDN-ready assets
+- Optimized thumbnails
+- Skeleton loading states
+- Debounced search
+- Request cancellation
+- Efficient charts
+- Background jobs for large exports where necessary
+
+Target reasonable performance:
+
+- Fast initial public-page loading
+- Responsive dashboard interactions
+- Paginated large lists
+- No loading of complete student/test datasets into the browser
+- No blocking report generation for extremely large datasets
+
+Use Lighthouse and browser performance auditing.
+
+======================================================================
+34. RESPONSIVE UI/UX REQUIREMENTS
+======================================================================
+
+Visual style:
+
+- Professional educational platform
+- Deep blue primary branding
+- Teal or green secondary accents
+- Clean white or neutral backgrounds
+- Clear typography
+- Consistent spacing
+- Modern cards and data tables
+- Minimal visual clutter
+- High readability
+
+Required responsive behavior:
+
+- Mobile navigation drawer
+- Collapsible admin sidebar
+- Scroll-safe data tables
+- Card layouts on small screens
+- Responsive charts
+- Responsive video player
+- Touch-friendly controls
+- Forms that work on narrow screens
+- No horizontal page overflow
+
+Accessibility:
+
+- WCAG 2.1 AA target
+- Keyboard navigation
+- Visible focus states
+- Proper labels
+- Semantic headings
+- ARIA only where needed
+- Accessible dialogs
+- Accessible error messages
+- Color contrast compliance
+- Do not communicate status through color alone
+- Reduced-motion support
+
+======================================================================
+35. VALIDATION AND ERROR HANDLING
+======================================================================
+
+Implement shared validation rules where practical.
+
+Handle:
+
+- Invalid email
+- Weak password
+- Duplicate email
+- Invalid dates
+- End date before start date
+- Invalid YouTube URL
+- Unsupported file format
+- Oversized upload
+- Empty test
+- More than 20 questions
+- Invalid correct answer
+- Unauthorized batch access
+- Expired test
+- Attempt limit reached
+- Duplicate submission
+- Expired session
+- Network failure
+- Storage failure
+- Email failure
+- Database conflict
+- Redis unavailability
+
+The application must fail gracefully.
+
+Non-critical email or cache failures should not corrupt successful primary
+database operations.
+
+Display actionable user messages without exposing implementation details.
+
+======================================================================
+36. TESTING REQUIREMENTS
+======================================================================
+
+Create:
+
+- Unit tests
+- Service tests
+- API integration tests
+- Component tests
+- End-to-end tests
+- Authorization tests
+- Validation tests
+- Security-focused tests
+
+Critical test cases:
+
+Authentication:
+- Valid login
+- Invalid login
+- Blocked user login
+- Pending user login
+- Token refresh
+- Refresh-token rotation
+- Logout
+- Password reset
+- Expired token
+
+Authorization:
+- Student cannot access admin API
+- Student cannot access another student's data
+- Student cannot access unassigned batch
+- Student cannot access unpublished content
+- Blocked student loses protected access
+- Admin-only routes reject student tokens
+
+Batch management:
+- Duplicate enrollment prevention
+- Student assignment
+- Student removal
+- Archived batch behavior
+
+Video progress:
+- Unauthorized progress rejected
+- Valid progress saved
+- Completion threshold applied
+- Progress cannot be posted for another user
+
+Assessment:
+- More than 20 questions rejected
+- Test outside availability rejected
+- Third attempt rejected
+- Timer survives refresh
+- Expired attempt auto-finalized
+- Correct answer not exposed before submission
+- Duplicate submission rejected
+- Score calculated correctly
+- Answer key follows visibility rule
+- Concurrent submission handled safely
+
+Uploads:
+- Invalid MIME rejected
+- Oversized file rejected
+- Unauthorized download rejected
+- Authorized download allowed
+
+Reports:
+- Correct filters
+- Correct exported columns
+- No spreadsheet formula injection
+- No sensitive information exported
+
+Create a minimum quality threshold for important services and workflows.
+Do not chase meaningless coverage numbers while leaving critical logic untested.
+
+======================================================================
+37. DEVOPS AND DEPLOYMENT
+======================================================================
+
+Provide:
+
+- Frontend Dockerfile
+- Backend Dockerfile
+- Production multi-stage builds
+- Docker Compose for local development
+- PostgreSQL service
+- Redis service
+- Nginx configuration
+- Health-check endpoints
+- Readiness checks
+- Environment-based configuration
+- Database migration startup procedure
+- Backup and restore documentation
+- SSL setup documentation
+- CI/CD workflow
+
+GitHub Actions should perform:
+
+- Install dependencies
+- Lint
+- Type-check
+- Unit tests
+- Integration tests where available
+- Build frontend
+- Build backend
+- Security audit
+- Docker build
+- Controlled deployment
+
+Create endpoints such as:
+
+- GET /health
+- GET /health/ready
+- GET /health/live
+
+Do not expose confidential environment information through health endpoints.
+
+======================================================================
+38. DOCUMENTATION AND DELIVERABLES
+======================================================================
+
+Deliver:
+
+1. Complete source code
+2. Clean repository structure
+3. README
+4. Setup guide
+5. Local-development guide
+6. Production-deployment guide
+7. `.env.example`
+8. Database schema documentation
+9. Entity relationship diagram
+10. API documentation
+11. Swagger/OpenAPI specification
+12. Postman collection
+13. Admin user guide
+14. Student user guide
+15. Testing guide
+16. Backup and recovery guide
+17. Security configuration guide
+18. Architecture decision records
+19. Known limitations document
+20. Change log
+21. Seed/demo data script
+22. Database migrations
+23. Docker configuration
+24. CI/CD workflow
+
+The admin user manual should explain:
+
+- Login
+- Dashboard
+- Approving students
+- Creating batches
+- Assigning students
+- Creating courses
+- Adding videos
+- Uploading PDFs
+- Creating tests
+- Publishing announcements
+- Viewing results
+- Exporting reports
+- Reviewing feedback
+- Viewing logs
+- Updating institute settings
+
+======================================================================
+39. DEVELOPMENT PHASES
+======================================================================
+
+Implement the project in controlled phases.
+
+PHASE 1 — FOUNDATION AND SETUP
+Estimated duration: 2 weeks
+
+Deliver:
+
+- Repository structure
+- Frontend and backend scaffolding
+- PostgreSQL schema
+- Prisma migrations
+- Redis integration
+- Authentication
+- Authorization
+- Admin bootstrap
+- Student registration
+- Public landing page
+- Login flows
+- Basic institute settings
+- Docker development setup
+
+PHASE 2 — ADMIN CORE
+Estimated duration: 3 weeks
+
+Deliver:
+
+- Admin layout
+- Dashboard
+- Student approval
+- Student management
+- Batch management
+- Course management
+- Chapter/topic/video management
+- PDF/material upload
+- Announcement management
+- Audit logs
+
+PHASE 3 — TEST ENGINE AND RESULTS
+Estimated duration: 2 weeks
+
+Deliver:
+
+- Test creator
+- Maximum 20-question validation
+- Timer
+- Maximum two-attempt enforcement
+- Auto-submit
+- Server-side scoring
+- Results
+- Answer review
+- Admin attempt analytics
+- Optional PDF test upload
+
+PHASE 4 — STUDENT PORTAL
+Estimated duration: 2 weeks
+
+Deliver:
+
+- Student dashboard
+- My batches
+- My courses
+- Video player
+- Video progress
+- Study material
+- Tests
+- Results
+- Progress charts
+- Leaderboard
+- Feedback
+- Profile settings
+
+PHASE 5 — QA, SECURITY, POLISH, AND DEPLOYMENT
+Estimated duration: 2–5 weeks depending on review cycles
+
+Deliver:
+
+- UI refinement
+- Responsive validation
+- Accessibility review
+- Security audit
+- Performance optimization
+- Automated test completion
+- Cloud deployment
+- SSL
+- Documentation
+- Admin walkthrough material
+- Production acceptance testing
+
+Total expected project duration: approximately 10–14 weeks.
+
+At the end of every phase:
+
+- Run automated tests
+- Perform manual QA
+- Demonstrate completed workflows
+- Record known issues
+- Update documentation
+- Obtain review before proceeding
+
+======================================================================
+40. ACCEPTANCE CRITERIA
+======================================================================
+
+The application is not considered complete until all of the following are true:
+
+1. A student can register successfully.
+2. The registration appears in the admin panel.
+3. The admin can approve the student.
+4. The student receives the correct status/email notification.
+5. The approved student can log in.
+6. A pending, blocked, inactive, or rejected student cannot access learning content.
+7. The admin can create a batch.
+8. The admin can assign the student to the batch.
+9. The admin can create a course and assign it to the batch.
+10. The admin can create chapters/topics.
+11. The admin can add and publish a YouTube video.
+12. The student can view only authorized content.
+13. Video progress is saved and restored.
+14. The admin can upload a PDF material.
+15. The student can download only authorized material.
+16. The admin can create a timed MCQ test.
+17. The test rejects more than 20 questions.
+18. The student can attempt the test only during the allowed window.
+19. The timer remains valid after page refresh.
+20. The test auto-submits when time expires.
+21. Scoring occurs only on the backend.
+22. The student cannot attempt the test more than twice.
+23. The result displays correct score and answer comparison.
+24. The admin can view all attempts and analytics.
+25. Leaderboard updates after valid results.
+26. Reports export successfully.
+27. Announcements appear for the correct audience.
+28. Contact messages reach the admin system.
+29. Feedback appears in the admin panel.
+30. Admin actions create audit-log entries.
+31. Mobile and desktop interfaces work correctly.
+32. Unauthorized direct API calls are rejected.
+33. Upload validation works.
+34. Rate limiting works.
+35. Refresh-token rotation and logout work.
+36. No secrets appear in the frontend or repository.
+37. Database migrations work on a clean environment.
+38. Docker-based local setup works.
+39. Production build completes without type or lint errors.
+40. Documentation allows another developer to run the system.
+
+======================================================================
+41. OUT-OF-SCOPE OR FEATURE-FLAGGED ITEMS
+======================================================================
+
+The following are future-ready unless explicitly enabled:
+
+- Live video classes
+- Payment gateway
+- Paid enrollment
+- Revenue collection
+- AI recommendations
+- AI-generated tests
+- Native Android/iOS app
+- Full microservice separation
+- SMS gateway
+- Push notifications
+- Public certificate verification
+
+Prepare interfaces for these features but do not show non-functional buttons.
+
+======================================================================
+42. FINAL OUTPUT INSTRUCTIONS
+======================================================================
+
+Work systematically.
+
+Before writing the complete implementation:
+
+1. Produce the final architecture.
+2. Produce the repository structure.
+3. Produce the database schema.
+4. Produce the role and authorization matrix.
+5. Produce the API endpoint plan.
+6. Produce the page and route map.
+7. Produce the test strategy.
+8. Identify technical assumptions.
+9. Identify conflicts or unrealistic requirements.
+10. Then implement phase by phase.
+
+For every phase, provide:
+
+- Files created
+- Files modified
+- Database migrations
+- APIs implemented
+- UI screens implemented
+- Validation rules
+- Security rules
+- Tests created
+- Commands to run
+- Verification checklist
+- Remaining work
+
+Do not replace working code with pseudocode.
+
+Do not write “implement later” for an in-scope feature.
+
+Do not silently omit requirements.
+
+Do not use fake analytics or fake records in production mode.
+
+Do not leave buttons disconnected.
+
+Do not create duplicate implementations of the same service.
+
+Do not add multiple conflicting CSS systems.
+
+Do not duplicate business logic across controllers and components.
+
+Do not allow frontend state to become the source of truth for security,
+test attempts, scores, permissions, or enrollment.
+
+The final result must be a maintainable, secure, scalable, properly tested,
+professional Learning Management System that can be deployed and operated
+by a real educational institute.

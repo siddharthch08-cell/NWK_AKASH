@@ -1,0 +1,2002 @@
+     1→You are acting as a complete senior software engineering team consisting of:
+     2→
+     3→- Product Manager
+     4→- Business Analyst
+     5→- Solution Architect
+     6→- Senior React Developer
+     7→- Senior Node.js Developer
+     8→- PostgreSQL Database Architect
+     9→- UI/UX Designer
+    10→- DevOps Engineer
+    11→- Security Engineer
+    12→- QA Automation Engineer
+    13→- Technical Documentation Writer
+    14→
+    15→Your task is to design, develop, test, document, secure, and deploy a complete production-ready Learning Management System named:
+    16→
+    17→EDULEARN PRO
+    18→Advanced Learning Management System
+    19→
+    20→The platform must be a real, fully functional web application. Do not create a static prototype, fake dashboard, frontend-only demonstration, placeholder buttons, mock-only APIs, hardcoded business data, or incomplete workflows.
+    21→
+    22→Every visible action must connect to a working backend, validated database operation, authorization rule, success/error response, and user-facing feedback.
+    23→
+    24→======================================================================
+    25→1. PRIMARY PROJECT OBJECTIVE
+    26→======================================================================
+    27→
+    28→Build a complete web-based education platform that allows an educational institute to:
+    29→
+    30→1. Publish a professional public website.
+    31→2. register students.
+    32→3. Approve or reject student registrations.
+    33→4. Create and manage batches.
+    34→5. Assign students to one or multiple batches.
+    35→6. Organize courses, chapters, topics, and video lectures.
+    36→7. Deliver YouTube unlisted video content inside the application.
+    37→8. Upload batch-specific notes, assignments, test papers, and PDFs.
+    38→9. Create timed MCQ tests.
+    39→10. Restrict test attempts.
+    40→11. Automatically evaluate tests.
+    41→12. Track student results and learning progress.
+    42→13. Generate leaderboards and reports.
+    43→14. Display announcements.
+    44→15. Track admin activities and system events.
+    45→16. Operate securely on mobile, tablet, laptop, and desktop.
+    46→17. Scale to support a growing number of students and batches.
+    47→
+    48→The application will initially support two primary roles:
+    49→
+    50→- ADMIN
+    51→- STUDENT
+    52→
+    53→Use strict role-based access control throughout the frontend, backend, API, and database workflows.
+    54→
+    55→======================================================================
+    56→2. NON-NEGOTIABLE IMPLEMENTATION RULES
+    57→======================================================================
+    58→
+    59→Follow these rules throughout the development process:
+    60→
+    61→1. Do not build the complete application in a single file.
+    62→2. Do not mix frontend, backend, database, and configuration logic.
+    63→3. Do not hardcode admin passwords, JWT secrets, database credentials,
+    64→   storage keys, email credentials, or production URLs.
+    65→4. Do not expose sensitive data in frontend bundles or API responses.
+    66→5. Do not rely only on frontend validation.
+    67→6. Every sensitive rule must also be enforced by the backend.
+    68→7. Never trust user-provided role, user ID, score, test duration,
+    69→   batch assignment, attempt count, or video completion values.
+    70→8. Do not expose correct MCQ answers before an attempt is submitted.
+    71→9. Do not calculate final test scores on the client.
+    72→10. Do not allow blocked, rejected, pending, or inactive students to
+    73→    access protected learning content.
+    74→11. Do not allow a student to access another student's profile,
+    75→    results, batches, materials, attempts, or activity.
+    76→12. Do not allow deleted or unpublished content to remain accessible
+    77→    through direct API requests.
+    78→13. All destructive actions must require confirmation.
+    79→14. All asynchronous actions must display loading, success, and error states.
+    80→15. Prevent duplicate form submission and duplicate database records.
+    81→16. Use reusable components, services, validation schemas, and error handlers.
+    82→17. Use database transactions for critical multi-step operations.
+    83→18. Create database migrations and seed scripts.
+    84→19. Include automated tests for critical workflows.
+    85→20. Do not claim that an embedded YouTube URL is impossible to discover.
+    86→    Browser-based video URLs may still be inspected by technically skilled
+    87→    users. Reduce exposure through server-controlled video IDs,
+    88→    privacy-enhanced embeds, referrer policies, access validation, and UI
+    89→    restrictions, but do not make technically false security claims.
+    90→
+    91→======================================================================
+    92→3. REQUIRED TECHNOLOGY STACK
+    93→======================================================================
+    94→
+    95→Use the following production-grade stack.
+    96→
+    97→Frontend:
+    98→- React.js with TypeScript
+    99→- Vite
+   100→- Tailwind CSS
+   101→- Redux Toolkit and RTK Query
+   102→- React Router
+   103→- React Hook Form
+   104→- Zod validation
+   105→- Recharts for analytics
+   106→- Accessible component primitives
+   107→- Toast notification system
+   108→
+   109→Backend:
+   110→- Node.js with TypeScript
+   111→- Express.js
+   112→- RESTful API architecture
+   113→- Prisma ORM
+   114→- Zod request validation
+   115→- Centralized error handling
+   116→- Structured logging
+   117→
+   118→Database:
+   119→- PostgreSQL as the primary database
+   120→- Redis for caching, rate-limiting support, leaderboard caching,
+   121→  refresh-token/session support where appropriate, and frequently used data
+   122→
+   123→Authentication:
+   124→- Short-lived JWT access tokens
+   125→- Rotating refresh tokens
+   126→- bcrypt password hashing with 12 salt rounds
+   127→- Secure HTTP-only cookies for refresh tokens
+   128→- CSRF protection where cookie-based authentication requires it
+   129→- Role-based authorization middleware
+   130→- Session/device tracking
+   131→
+   132→File Storage:
+   133→- AWS S3 or Cloudinary-compatible object storage
+   134→- Signed or protected file access where required
+   135→- Local development storage adapter
+   136→- Production cloud storage adapter
+   137→
+   138→Video:
+   139→- YouTube unlisted videos
+   140→- YouTube iFrame Player API
+   141→- Privacy-enhanced embed mode when possible
+   142→- Store video IDs rather than complete arbitrary iframe HTML
+   143→
+   144→Email:
+   145→- Nodemailer with SMTP configuration or an interchangeable email provider
+   146→- Email templates for approval, rejection, password reset, and contact forms
+   147→
+   148→Deployment:
+   149→- Docker
+   150→- Docker Compose for local development
+   151→- Nginx reverse proxy
+   152→- AWS EC2, Railway, Render, or equivalent production environment
+   153→- SSL/HTTPS
+   154→- GitHub Actions CI/CD
+   155→
+   156→Testing:
+   157→- Vitest or Jest
+   158→- Supertest for API testing
+   159→- React Testing Library
+   160→- Playwright for end-to-end testing
+   161→
+   162→Code quality:
+   163→- ESLint
+   164→- Prettier
+   165→- TypeScript strict mode
+   166→- Husky and lint-staged where appropriate
+   167→
+   168→Use a monorepo or clearly separated repository structure such as:
+   169→
+   170→edulearn-pro/
+   171→  apps/
+   172→    web/
+   173→    api/
+   174→  packages/
+   175→    shared/
+   176→    ui/
+   177→    config/
+   178→  prisma/
+   179→  docs/
+   180→  scripts/
+   181→  docker/
+   182→  tests/
+   183→
+   184→======================================================================
+   185→4. ENVIRONMENT CONFIGURATION
+   186→======================================================================
+   187→
+   188→Create a complete `.env.example` without real secrets.
+   189→
+   190→Include configuration such as:
+   191→
+   192→NODE_ENV=
+   193→PORT=
+   194→APP_URL=
+   195→API_URL=
+   196→DATABASE_URL=
+   197→REDIS_URL=
+   198→
+   199→JWT_ACCESS_SECRET=
+   200→JWT_REFRESH_SECRET=
+   201→JWT_ACCESS_EXPIRES_IN=
+   202→JWT_REFRESH_EXPIRES_IN=
+   203→
+   204→ADMIN_EMAIL=
+   205→ADMIN_INITIAL_PASSWORD=
+   206→ADMIN_NAME=
+   207→
+   208→STORAGE_PROVIDER=
+   209→AWS_REGION=
+   210→AWS_ACCESS_KEY_ID=
+   211→AWS_SECRET_ACCESS_KEY=
+   212→AWS_S3_BUCKET=
+   213→CLOUDINARY_CLOUD_NAME=
+   214→CLOUDINARY_API_KEY=
+   215→CLOUDINARY_API_SECRET=
+   216→
+   217→SMTP_HOST=
+   218→SMTP_PORT=
+   219→SMTP_USER=
+   220→SMTP_PASSWORD=
+   221→SMTP_FROM_EMAIL=
+   222→SMTP_FROM_NAME=
+   223→
+   224→GOOGLE_MAPS_EMBED_URL=
+   225→YOUTUBE_API_KEY=
+   226→
+   227→MAX_UPLOAD_SIZE_MB=
+   228→RATE_LIMIT_WINDOW_MS=
+   229→RATE_LIMIT_MAX_REQUESTS=
+   230→
+   231→Never commit actual secrets.
+   232→
+   233→The initial admin account must be created securely through a database seed
+   234→or controlled bootstrap process. The plaintext password must not be stored.
+   235→
+   236→======================================================================
+   237→5. SYSTEM ARCHITECTURE
+   238→======================================================================
+   239→
+   240→Use a clean modular architecture.
+   241→
+   242→Backend modules should include:
+   243→
+   244→- auth
+   245→- users
+   246→- students
+   247→- admins
+   248→- institute-settings
+   249→- batches
+   250→- courses
+   251→- chapters
+   252→- videos
+   253→- video-progress
+   254→- materials
+   255→- announcements
+   256→- tests
+   257→- questions
+   258→- attempts
+   259→- results
+   260→- leaderboards
+   261→- analytics
+   262→- reports
+   263→- contact-messages
+   264→- feedback
+   265→- notifications
+   266→- audit-logs
+   267→- uploads
+   268→- certificates
+   269→- system-health
+   270→
+   271→Within each backend module, separate:
+   272→
+   273→- routes
+   274→- controllers
+   275→- services
+   276→- repositories/data-access
+   277→- validation schemas
+   278→- authorization policies
+   279→- types
+   280→- tests
+   281→
+   282→Use:
+   283→
+   284→- Controllers for HTTP request and response handling.
+   285→- Services for business logic.
+   286→- Repositories or Prisma access layers for database operations.
+   287→- Middleware for authentication, authorization, validation, rate limiting,
+   288→  request IDs, logging, and error handling.
+   289→- DTOs or schemas for request and response contracts.
+   290→
+   291→Frontend architecture should separate:
+   292→
+   293→- Public website
+   294→- Authentication
+   295→- Admin application
+   296→- Student application
+   297→- Shared UI components
+   298→- API layer
+   299→- State management
+   300→- Form schemas
+   301→- Route guards
+   302→- Layouts
+   303→- Error boundaries
+   304→- Analytics charts
+   305→- File upload components
+   306→- Responsive navigation
+   307→
+   308→======================================================================
+   309→6. PUBLIC LANDING PAGE
+   310→======================================================================
+   311→
+   312→Create a professional, responsive, SEO-optimized public website.
+   313→
+   314→The public website must work from approximately 320px mobile width to
+   315→large desktop and 4K screens.
+   316→
+   317→Required sections:
+   318→
+   319→6.1 Header and Navigation
+   320→- Institute logo
+   321→- Institute name
+   322→- Home
+   323→- About
+   324→- Courses/Batches
+   325→- Announcements
+   326→- Contact
+   327→- Login
+   328→- Register
+   329→- Mobile navigation drawer
+   330→- Sticky header behavior where appropriate
+   331→
+   332→6.2 Hero/Banner Section
+   333→- Institute name
+   334→- Strong value proposition
+   335→- Supporting description
+   336→- “Enroll Now” call-to-action
+   337→- “Explore Courses” call-to-action
+   338→- Configurable background image or illustration
+   339→- Responsive layout
+   340→- Proper image optimization
+   341→
+   342→6.3 Announcement Section
+   343→- Admin-controlled announcements
+   344→- Scrolling ticker or accessible card-based layout
+   345→- Announcement title
+   346→- Description
+   347→- Publication date
+   348→- Optional expiry date
+   349→- Priority level
+   350→- Important/pinned status
+   351→- Automatic removal from the public feed after expiry
+   352→- No inaccessible continuously moving ticker without pause controls
+   353→
+   354→6.4 About Section
+   355→- Mission
+   356→- Vision
+   357→- Faculty/institute introduction
+   358→- Statistics such as:
+   359→  - Students enrolled
+   360→  - Courses or batches
+   361→  - Pass rate
+   362→  - Teaching experience
+   363→- Values and differentiators
+   364→
+   365→6.5 Course and Batch Preview
+   366→- Publicly visible active batches or courses
+   367→- Name
+   368→- Thumbnail
+   369→- Short description
+   370→- Start date
+   371→- Duration
+   372→- Enrollment status
+   373→- “Login to Enroll” or “Register” action
+   374→- Do not expose protected learning material publicly
+   375→
+   376→6.6 Contact Section
+   377→- Name
+   378→- Email
+   379→- Phone
+   380→- Subject
+   381→- Message
+   382→- Backend validation
+   383→- Spam protection
+   384→- Rate limiting
+   385→- Email notification to admin
+   386→- Store contact requests in the database
+   387→- Admin-readable contact-message list
+   388→- Configurable address and phone number
+   389→- Optional Google Maps embed
+   390→
+   391→6.7 Login and Registration
+   392→- Separate or clearly differentiated admin and student login flow
+   393→- Student registration form
+   394→- Password strength feedback
+   395→- Terms acceptance
+   396→- Email uniqueness validation
+   397→- Registration success screen
+   398→- Clearly communicate that student access requires admin approval
+   399→
+   400→6.8 Footer
+   401→- Institute information
+   402→- Quick links
+   403→- Contact details
+   404→- Copyright
+   405→- Privacy policy
+   406→- Terms
+   407→- Social media links configurable from admin settings
+   408→
+   409→6.9 SEO
+   410→Implement:
+   411→
+   412→- Unique page titles
+   413→- Meta descriptions
+   414→- Open Graph metadata
+   415→- Twitter metadata
+   416→- Canonical URLs
+   417→- robots.txt
+   418→- sitemap.xml
+   419→- Structured data for educational organization
+   420→- Semantic HTML
+   421→- Optimized image alt text
+   422→- Fast page-loading performance
+   423→
+   424→======================================================================
+   425→7. AUTHENTICATION AND USER ACCESS
+   426→======================================================================
+   427→
+   428→7.1 Student Registration
+   429→
+   430→Student fields should include:
+   431→
+   432→- Full name
+   433→- Email
+   434→- Phone number
+   435→- Password
+   436→- Confirm password
+   437→- Optional profile photo
+   438→- Optional preferred course/batch
+   439→- Terms acceptance
+   440→- Registration timestamp
+   441→- Approval status
+   442→
+   443→Possible student statuses:
+   444→
+   445→- PENDING
+   446→- APPROVED
+   447→- ACTIVE
+   448→- INACTIVE
+   449→- BLOCKED
+   450→- REJECTED
+   451→
+   452→Define exact meaning and valid status transitions.
+   453→
+   454→New students must not gain course access until approved by an admin.
+   455→
+   456→7.2 Login
+   457→
+   458→Implement:
+   459→
+   460→- Email and password authentication
+   461→- Role-aware login response
+   462→- Secure access and refresh tokens
+   463→- Rate limiting
+   464→- Account status checks
+   465→- Generic invalid-credentials response
+   466→- Login audit trail
+   467→- Last-login timestamp
+   468→- Failed-attempt tracking
+   469→- Temporary lockout where appropriate
+   470→
+   471→Routing:
+   472→
+   473→- Admin → Admin Dashboard
+   474→- Approved Student → Student Dashboard
+   475→- Pending Student → Pending Approval screen
+   476→- Rejected Student → Rejection status screen
+   477→- Blocked Student → Access blocked screen
+   478→
+   479→7.3 Password Workflows
+   480→
+   481→Implement:
+   482→
+   483→- Forgot password
+   484→- Secure reset token
+   485→- Reset-token expiry
+   486→- One-time reset token
+   487→- Change password
+   488→- Current-password verification
+   489→- Password history or reuse prevention where practical
+   490→- Email notification after password change
+   491→
+   492→7.4 Logout
+   493→
+   494→- Revoke the current refresh token/session
+   495→- Support logout from current device
+   496→- Support logout from all devices
+   497→- Clear secure cookies
+   498→- Redirect safely
+   499→
+   500→======================================================================
+   501→8. ADMIN PANEL
+   502→======================================================================
+   503→
+   504→Create a secure admin interface with:
+   505→
+   506→- Desktop sidebar
+   507→- Mobile drawer
+   508→- Header
+   509→- Breadcrumbs
+   510→- Search
+   511→- Notifications
+   512→- Profile menu
+   513→- Logout
+   514→- Consistent responsive layout
+   515→- Route-level authorization
+   516→- Permission validation on every backend endpoint
+   517→
+   518→Admin navigation should include:
+   519→
+   520→1. Dashboard
+   521→2. Students
+   522→3. Batches
+   523→4. Courses and Content
+   524→5. Study Material
+   525→6. Tests and Assessments
+   526→7. Results
+   527→8. Analytics
+   528→9. Leaderboard
+   529→10. Announcements
+   530→11. Contact Messages
+   531→12. Feedback
+   532→13. Reports
+   533→14. Audit Logs
+   534→15. Settings
+   535→16. Certificates when enabled
+   536→
+   537→======================================================================
+   538→9. ADMIN DASHBOARD
+   539→======================================================================
+   540→
+   541→Create a real analytics dashboard connected to live database data.
+   542→
+   543→Required dashboard cards:
+   544→
+   545→- Total registered students
+   546→- Pending students
+   547→- Approved students
+   548→- Active students
+   549→- Inactive students
+   550→- Blocked students
+   551→- Total batches
+   552→- Active batches
+   553→- Total courses
+   554→- Total videos
+   555→- Total tests
+   556→- Tests attempted
+   557→- Average test score
+   558→- Total learning/watch time
+   559→
+   560→Required analytics:
+   561→
+   562→9.1 Student Growth Chart
+   563→- Student test score over time
+   564→- Course completion percentage
+   565→- Video completion percentage
+   566→- Test participation
+   567→
+   568→9.2 Batch Enrollment Visualization
+   569→- Batch-wise enrollment chart
+   570→- Enrollment heatmap
+   571→- Active versus inactive enrollment
+   572→- Most popular batches
+   573→
+   574→9.3 Content Analytics
+   575→- Most watched videos
+   576→- Total views
+   577→- Average video completion percentage
+   578→- Students who started/completed a video
+   579→- Approximate watch duration
+   580→
+   581→9.4 Recent Activity Feed
+   582→Include:
+   583→
+   584→- Recent registrations
+   585→- Approvals
+   586→- Blocks
+   587→- Logins
+   588→- Test submissions
+   589→- Content uploads
+   590→- Batch assignments
+   591→- Announcement publication
+   592→
+   593→9.5 Quick Actions
+   594→Provide working shortcuts for:
+   595→
+   596→- Approve pending students
+   597→- Create batch
+   598→- Upload content
+   599→- Upload PDF
+   600→- Create test
+   601→- Publish announcement
+   602→
+   603→9.6 Revenue Placeholder
+   604→
+   605→The proposal requires future payment readiness.
+   606→
+   607→- Create a feature-flagged revenue widget.
+   608→- Hide or clearly label it when payment integration is disabled.
+   609→- Do not display fake revenue data.
+   610→- Prepare a future interface for payment providers.
+   611→
+   612→======================================================================
+   613→10. STUDENT APPROVAL AND MANAGEMENT
+   614→======================================================================
+   615→
+   616→Admin must be able to:
+   617→
+   618→- View pending registrations
+   619→- View all students
+   620→- Search by name, email, phone, batch, or status
+   621→- Filter by registration date
+   622→- Filter by approval status
+   623→- Sort results
+   624→- Use server-side pagination
+   625→- Open complete student profile
+   626→- View assigned batches
+   627→- View registration date
+   628→- View last login
+   629→- View test history
+   630→- View video progress
+   631→- View activity history
+   632→- Approve a student
+   633→- Reject a student
+   634→- Block a student
+   635→- Unblock a student
+   636→- Activate or deactivate a student
+   637→- Bulk approve selected students
+   638→- Assign one or multiple batches
+   639→- Remove batch assignment
+   640→- Send approval email
+   641→- Send rejection email
+   642→- Export filtered student list to CSV or Excel
+   643→
+   644→Bulk operations must:
+   645→
+   646→- Validate every selected student
+   647→- Avoid partial silent failures
+   648→- Return a summary of successful and failed records
+   649→- Use a database transaction where appropriate
+   650→- Create audit-log records
+   651→
+   652→Prevent an admin from accidentally deleting academic history.
+   653→
+   654→Prefer soft deletion or archival for users with test attempts or progress data.
+   655→
+   656→======================================================================
+   657→11. BATCH MANAGEMENT
+   658→======================================================================
+   659→
+   660→Admin must be able to:
+   661→
+   662→- Create unlimited batches
+   663→- Edit batches
+   664→- Archive batches
+   665→- Activate/deactivate batches
+   666→- Search batches
+   667→- Filter batches by status
+   668→- View batch detail
+   669→- Assign students
+   670→- Remove students
+   671→- Assign courses
+   672→- Assign tests
+   673→- Upload batch materials
+   674→- Publish batch announcements
+   675→- Export enrolled-student list
+   676→
+   677→Batch fields:
+   678→
+   679→- Batch ID
+   680→- Batch name
+   681→- Slug
+   682→- Description
+   683→- Thumbnail
+   684→- Start date
+   685→- End date
+   686→- Status
+   687→- Enrollment capacity, optional
+   688→- Created by
+   689→- Created timestamp
+   690→- Updated timestamp
+   691→
+   692→Batch statuses:
+   693→
+   694→- DRAFT
+   695→- UPCOMING
+   696→- ACTIVE
+   697→- COMPLETED
+   698→- ARCHIVED
+   699→- INACTIVE
+   700→
+   701→Business rules:
+   702→
+   703→- Students can only see active or otherwise permitted assigned batches.
+   704→- A student may belong to multiple batches.
+   705→- Duplicate batch enrollment must be prevented.
+   706→- Removing a batch assignment must not delete historical attempts.
+   707→- Archived batches remain visible to admins.
+   708→- Material and test access must follow batch assignment rules.
+   709→
+   710→Batch announcement fields:
+   711→
+   712→- Title
+   713→- Message
+   714→- Priority
+   715→- Published date
+   716→- Expiry date
+   717→- Pinned status
+   718→- Visible batches
+   719→
+   720→======================================================================
+   721→12. COURSE, CHAPTER, TOPIC, AND VIDEO CONTENT MANAGEMENT
+   722→======================================================================
+   723→
+   724→Create a structured content hierarchy:
+   725→
+   726→Course
+   727→  → Chapter
+   728→      → Topic or Lesson
+   729→          → Video
+   730→
+   731→Admin must be able to:
+   732→
+   733→- Create courses
+   734→- Edit courses
+   735→- Archive courses
+   736→- Assign courses to batches
+   737→- Add chapters
+   738→- Add topics
+   739→- Add video lectures
+   740→- Reorder chapters
+   741→- Reorder topics
+   742→- Reorder videos through drag-and-drop
+   743→- Publish or unpublish content
+   744→- Schedule content publication
+   745→- Preview content as a student
+   746→- View content analytics
+   747→
+   748→Course fields:
+   749→
+   750→- Title
+   751→- Slug
+   752→- Description
+   753→- Thumbnail
+   754→- Category
+   755→- Status
+   756→- Assigned batches
+   757→- Created by
+   758→- Created at
+   759→- Updated at
+   760→
+   761→Video fields:
+   762→
+   763→- Title
+   764→- Description
+   765→- YouTube video ID or validated unlisted URL
+   766→- Thumbnail
+   767→- Duration, when available
+   768→- Chapter
+   769→- Topic
+   770→- Display order
+   771→- Status
+   772→- Scheduled publication time
+   773→- Created by
+   774→- Published at
+   775→
+   776→Video statuses:
+   777→
+   778→- DRAFT
+   779→- SCHEDULED
+   780→- PUBLISHED
+   781→- UNPUBLISHED
+   782→- ARCHIVED
+   783→
+   784→Validate YouTube URLs and extract the video ID safely.
+   785→
+   786→Do not store arbitrary iframe HTML from the admin.
+   787→
+   788→Video analytics:
+   789→
+   790→- Unique student viewers
+   791→- Total play events
+   792→- Approximate watch time
+   793→- Last watched position
+   794→- Completion percentage
+   795→- Completed-student count
+   796→- Average completion percentage
+   797→
+   798→Use the YouTube iFrame API to detect:
+   799→
+   800→- Player ready
+   801→- Play
+   802→- Pause
+   803→- End
+   804→- Current playback position
+   805→
+   806→Send progress heartbeats periodically, for example every 15–30 seconds.
+   807→
+   808→Backend requirements:
+   809→
+   810→- Deduplicate excessive heartbeat events
+   811→- Never reduce saved progress accidentally
+   812→- Store last valid position
+   813→- Mark completed using a configurable threshold, such as 90%
+   814→- Validate that the student has batch access
+   815→- Prevent students from posting progress for another user
+   816→- Treat client-reported analytics as approximate, not tamper-proof evidence
+   817→
+   818→======================================================================
+   819→13. STUDY MATERIAL AND PDF MANAGEMENT
+   820→======================================================================
+   821→
+   822→Admin must be able to upload:
+   823→
+   824→- PDF notes
+   825→- Assignments
+   826→- Test papers
+   827→- Study material
+   828→- Reference files
+   829→
+   830→Material fields:
+   831→
+   832→- Title
+   833→- Description
+   834→- File
+   835→- File type
+   836→- File size
+   837→- Batch
+   838→- Course
+   839→- Chapter/topic, optional
+   840→- Upload date
+   841→- Visibility
+   842→- Uploaded by
+   843→
+   844→Required functionality:
+   845→
+   846→- Drag-and-drop upload
+   847→- Upload progress
+   848→- File-type validation
+   849→- Maximum file-size validation
+   850→- Malware-scanning integration point
+   851→- Duplicate-file handling
+   852→- Replace existing file
+   853→- Archive material
+   854→- Preview PDF where browser support is available
+   855→- Download file
+   856→- Search by title
+   857→- Filter by batch, course, chapter, type, or date
+   858→- Sort by newest or oldest
+   859→
+   860→Security:
+   861→
+   862→- Do not trust file extensions alone.
+   863→- Validate MIME type and file signature where practical.
+   864→- Sanitize filenames.
+   865→- Store generated storage keys.
+   866→- Do not expose local server filesystem paths.
+   867→- Verify student batch access before issuing a download URL.
+   868→- Use signed URLs or protected download endpoints for private files.
+   869→
+   870→======================================================================
+   871→14. TEST AND ASSESSMENT ENGINE
+   872→======================================================================
+   873→
+   874→Build a complete timed MCQ assessment system.
+   875→
+   876→14.1 Test Creation
+   877→
+   878→Admin must be able to:
+   879→
+   880→- Create a test
+   881→- Add up to 20 MCQ questions per test
+   882→- Edit draft tests
+   883→- Duplicate a test
+   884→- Delete unused draft tests
+   885→- Archive completed tests
+   886→- Assign tests to one or multiple batches
+   887→- Schedule availability
+   888→- Configure timer
+   889→- Configure maximum attempts
+   890→- Upload an optional PDF test paper
+   891→- Publish/unpublish tests
+   892→- Preview test before publication
+   893→
+   894→Test fields:
+   895→
+   896→- Title
+   897→- Description
+   898→- Instructions
+   899→- Duration in minutes
+   900→- Maximum attempts
+   901→- Start date and time
+   902→- End date and time
+   903→- Status
+   904→- Assigned batches
+   905→- Passing percentage, optional
+   906→- Shuffle questions setting
+   907→- Shuffle options setting
+   908→- Show answer key setting
+   909→- Show result immediately setting
+   910→- Optional PDF file
+   911→- Created by
+   912→- Created date
+   913→- Published date
+   914→
+   915→Default rule:
+   916→
+   917→- Maximum 20 questions
+   918→- Maximum 2 attempts per student
+   919→
+   920→These limits must be validated in the backend, not only the UI.
+   921→
+   922→14.2 Question Management
+   923→
+   924→Each question must include:
+   925→
+   926→- Question text
+   927→- Four or configurable answer options
+   928→- Exactly one correct answer for single-choice mode
+   929→- Optional explanation
+   930→- Marks
+   931→- Display order
+   932→
+   933→Validate:
+   934→
+   935→- Required question text
+   936→- Minimum two options
+   937→- Exactly one correct option
+   938→- No blank options
+   939→- No duplicate display order
+   940→- Total questions within limit
+   941→
+   942→Do not send `isCorrect` fields to the student before submission.
+   943→
+   944→14.3 Student Test Attempt Workflow
+   945→
+   946→Before starting an attempt, validate:
+   947→
+   948→- Student account is approved and active
+   949→- Student is assigned to an authorized batch
+   950→- Test is published
+   951→- Test is within the availability window
+   952→- Attempt limit is not exhausted
+   953→- No invalid active attempt exists
+   954→- Test contains valid questions
+   955→
+   956→When a student starts:
+   957→
+   958→- Create an attempt server-side
+   959→- Save authoritative start time
+   960→- Calculate authoritative expiry time
+   961→- Return questions without correct-answer metadata
+   962→- Display countdown timer
+   963→- Save selected answers during the attempt
+   964→- Restore an active attempt after refresh
+   965→- Prevent creation of multiple simultaneous attempts for the same test
+   966→
+   967→When time expires:
+   968→
+   969→- Client must auto-submit
+   970→- Server must independently enforce expiry
+   971→- Late submissions must be finalized according to server time
+   972→- The timer must not reset after browser refresh
+   973→- Closing and reopening the browser must not create additional time
+   974→
+   975→On submission:
+   976→
+   977→- Use a database transaction
+   978→- Lock or atomically update the attempt
+   979→- Prevent duplicate scoring
+   980→- Calculate score on the backend
+   981→- Store selected answers
+   982→- Store correct/incorrect status
+   983→- Store marks
+   984→- Store percentage
+   985→- Store time taken
+   986→- Store submission type:
+   987→  - MANUAL
+   988→  - AUTO_TIMEOUT
+   989→  - ADMIN_FINALIZED
+   990→- Increment attempt count only through valid attempt records
+   991→- Return result according to configured visibility rules
+   992→
+   993→After the second valid attempt:
+   994→
+   995→- Lock further attempts
+   996→- Continue showing previous results
+   997→- Clearly display “Attempt limit reached”
+   998→
+   999→14.4 Result Display
+  1000→
+  1001→Student result should include:
+  1002→
+  1003→- Test name
+  1004→- Attempt number
+  1005→- Score
+  1006→- Total marks
+  1007→- Percentage
+  1008→- Grade
+  1009→- Pass/fail status where enabled
+  1010→- Time taken
+  1011→- Submission time
+  1012→- Correct answers
+  1013→- Incorrect answers
+  1014→- Unanswered questions
+  1015→- Student answer versus correct answer
+  1016→- Explanation, if configured and allowed
+  1017→
+  1018→Answer keys must only be displayed according to admin settings and
+  1019→after the appropriate attempt/submission condition.
+  1020→
+  1021→14.5 Admin Test Analytics
+  1022→
+  1023→Admin must be able to:
+  1024→
+  1025→- View all test attempts
+  1026→- Filter by test
+  1027→- Filter by batch
+  1028→- Filter by student
+  1029→- Filter by date
+  1030→- View score
+  1031→- View percentage
+  1032→- View time taken
+  1033→- View attempt number
+  1034→- View submission type
+  1035→- View complete answer detail
+  1036→- Export results
+  1037→- View question-level accuracy
+  1038→- Identify most difficult questions
+  1039→- View average batch score
+  1040→- View participation rate
+  1041→- View pass/fail distribution
+  1042→
+  1043→======================================================================
+  1044→15. STUDENT PORTAL
+  1045→======================================================================
+  1046→
+  1047→Create a clean, focused, distraction-free student interface.
+  1048→
+  1049→The student should be able to find primary learning content within
+  1050→three clicks from the dashboard.
+  1051→
+  1052→Student navigation:
+  1053→
+  1054→1. Dashboard
+  1055→2. My Batches
+  1056→3. My Courses
+  1057→4. Video Lectures
+  1058→5. Study Material
+  1059→6. Tests
+  1060→7. Results
+  1061→8. Leaderboard
+  1062→9. Announcements
+  1063→10. Feedback
+  1064→11. Profile and Settings
+  1065→12. Logout
+  1066→
+  1067→======================================================================
+  1068→16. STUDENT DASHBOARD
+  1069→======================================================================
+  1070→
+  1071→Display:
+  1072→
+  1073→- Personalized greeting
+  1074→- Student profile summary
+  1075→- Approval/account status
+  1076→- Courses in progress
+  1077→- Assigned batches
+  1078→- Videos completed
+  1079→- Overall course progress
+  1080→- Tests attempted
+  1081→- Tests remaining
+  1082→- Average score
+  1083→- Best score
+  1084→- Upcoming tests
+  1085→- Test countdowns
+  1086→- Recent announcements
+  1087→- Recently watched videos
+  1088→- Continue-learning action
+  1089→- Recent results
+  1090→- Leaderboard position
+  1091→
+  1092→Do not expose data from other batches or students.
+  1093→
+  1094→======================================================================
+  1095→17. MY BATCHES AND COURSES
+  1096→======================================================================
+  1097→
+  1098→Students must only see batches assigned by an admin.
+  1099→
+  1100→Each batch page should show:
+  1101→
+  1102→- Batch name
+  1103→- Description
+  1104→- Start/end date
+  1105→- Batch status
+  1106→- Batch announcement
+  1107→- Assigned courses
+  1108→- Course progress
+  1109→- Study material
+  1110→- Active tests
+  1111→
+  1112→Each course should show:
+  1113→
+  1114→- Course overview
+  1115→- Chapter list
+  1116→- Topic list
+  1117→- Video list
+  1118→- Completed/incomplete status
+  1119→- Progress percentage
+  1120→- Continue from last watched position
+  1121→
+  1122→Prevent access through modified URLs by validating authorization in the API.
+  1123→
+  1124→======================================================================
+  1125→18. VIDEO LEARNING EXPERIENCE
+  1126→======================================================================
+  1127→
+  1128→Create a responsive embedded video player.
+  1129→
+  1130→Required functionality:
+  1131→
+  1132→- Play video inside the platform
+  1133→- Responsive player ratio
+  1134→- Resume from last valid saved position where supported
+  1135→- Previous lesson
+  1136→- Next lesson
+  1137→- Mark completion automatically at threshold
+  1138→- Manual “Mark as complete” only if product rules permit
+  1139→- Chapter progress
+  1140→- Course progress
+  1141→- Recently watched list
+  1142→- Video title and description
+  1143→- Lesson list sidebar
+  1144→- Mobile-friendly player and controls
+  1145→- Loading and error states
+  1146→
+  1147→Reduce unnecessary URL exposure by:
+  1148→
+  1149→- Saving video IDs rather than raw iframe HTML
+  1150→- Returning video data only to authorized students
+  1151→- Using privacy-enhanced YouTube embed mode
+  1152→- Applying appropriate referrer policies
+  1153→- Avoiding visible direct-video links
+  1154→
+  1155→Do not make false claims that a browser-delivered YouTube video can be
+  1156→made completely undiscoverable.
+  1157→
+  1158→======================================================================
+  1159→19. STUDY MATERIAL FOR STUDENTS
+  1160→======================================================================
+  1161→
+  1162→Students must be able to:
+  1163→
+  1164→- View assigned material
+  1165→- Search by title
+  1166→- Filter by batch
+  1167→- Filter by course/topic
+  1168→- View upload date
+  1169→- View file size
+  1170→- Preview supported PDFs
+  1171→- Download authorized files
+  1172→
+  1173→Every material API and download endpoint must verify student access.
+  1174→
+  1175→======================================================================
+  1176→20. STUDENT TESTS AND RESULTS
+  1177→======================================================================
+  1178→
+  1179→Student tests page should categorize:
+  1180→
+  1181→- Upcoming
+  1182→- Active
+  1183→- Completed
+  1184→- Attempt limit reached
+  1185→- Expired
+  1186→
+  1187→Each test card should show:
+  1188→
+  1189→- Test name
+  1190→- Assigned batch
+  1191→- Duration
+  1192→- Number of questions
+  1193→- Available-from time
+  1194→- Deadline
+  1195→- Attempts used
+  1196→- Attempts remaining
+  1197→- Start or Continue action
+  1198→- Result action where available
+  1199→- PDF test-paper download where uploaded
+  1200→
+  1201→Results page should include:
+  1202→
+  1203→- All attempted tests
+  1204→- Score
+  1205→- Percentage
+  1206→- Grade
+  1207→- Attempt number
+  1208→- Test date
+  1209→- Time taken
+  1210→- Result details
+  1211→- Progress line chart
+  1212→- Average score
+  1213→- Best score
+  1214→- Batch rank
+  1215→
+  1216→======================================================================
+  1217→21. LEADERBOARD
+  1218→======================================================================
+  1219→
+  1220→Build a batch-specific leaderboard.
+  1221→
+  1222→Leaderboard functionality:
+  1223→
+  1224→- Rank students by configured score rule
+  1225→- Filter by batch
+  1226→- Filter by time range where appropriate
+  1227→- Display rank
+  1228→- Student name or privacy-safe display name
+  1229→- Average score
+  1230→- Total tests
+  1231→- Highest score
+  1232→- Updated timestamp
+  1233→- Highlight the logged-in student
+  1234→
+  1235→Leaderboard rules must be deterministic.
+  1236→
+  1237→Define tie-breaking rules, for example:
+  1238→
+  1239→1. Higher average score
+  1240→2. Higher total score
+  1241→3. More completed tests
+  1242→4. Lower total completion time
+  1243→5. Earlier achievement timestamp
+  1244→
+  1245→Use Redis caching and invalidate or refresh the cache after relevant
+  1246→test submissions.
+  1247→
+  1248→Do not leak private information such as phone numbers or email addresses.
+  1249→
+  1250→======================================================================
+  1251→22. ANNOUNCEMENTS AND NOTIFICATIONS
+  1252→======================================================================
+  1253→
+  1254→Admin must be able to create:
+  1255→
+  1256→- Public announcements
+  1257→- Batch-specific announcements
+  1258→- System-wide student announcements
+  1259→- Scheduled announcements
+  1260→- Expiring announcements
+  1261→- Pinned announcements
+  1262→
+  1263→Fields:
+  1264→
+  1265→- Title
+  1266→- Message
+  1267→- Audience
+  1268→- Assigned batches
+  1269→- Priority
+  1270→- Publish time
+  1271→- Expiry time
+  1272→- Pinned status
+  1273→- Status
+  1274→- Created by
+  1275→
+  1276→Students should see only announcements relevant to them.
+  1277→
+  1278→The public website should show only public, published, non-expired announcements.
+  1279→
+  1280→======================================================================
+  1281→23. ANALYTICS AND REPORTING
+  1282→======================================================================
+  1283→
+  1284→Admin analytics should include:
+  1285→
+  1286→- Student registration trend
+  1287→- Approval trend
+  1288→- Active student trend
+  1289→- Batch enrollment
+  1290→- Course progress
+  1291→- Video engagement
+  1292→- Test participation
+  1293→- Average score
+  1294→- Score distribution
+  1295→- Pass/fail ratio
+  1296→- Leaderboard
+  1297→- Student activity
+  1298→- Content popularity
+  1299→
+  1300→Reports must support:
+  1301→
+  1302→- CSV export
+  1303→- Excel export
+  1304→- Date filters
+  1305→- Batch filters
+  1306→- Student filters
+  1307→- Test filters
+  1308→- Course filters
+  1309→- Status filters
+  1310→
+  1311→Use a proper Excel generation library such as ExcelJS.
+  1312→
+  1313→Exported reports must:
+  1314→
+  1315→- Have readable headers
+  1316→- Include generation date
+  1317→- Include applied filters
+  1318→- Use stable column ordering
+  1319→- Escape spreadsheet formula-injection values
+  1320→- Preserve dates and numeric formats
+  1321→- Avoid exporting sensitive password or token data
+  1322→
+  1323→Reports include:
+  1324→
+  1325→- Student list
+  1326→- Batch enrollment
+  1327→- Student performance
+  1328→- Test attempts
+  1329→- Video progress
+  1330→- Course completion
+  1331→- Leaderboard
+  1332→- Activity summary
+  1333→
+  1334→======================================================================
+  1335→24. FEEDBACK MANAGEMENT
+  1336→======================================================================
+  1337→
+  1338→Students must be able to submit feedback.
+  1339→
+  1340→Feedback fields:
+  1341→
+  1342→- Category
+  1343→- Subject
+  1344→- Message
+  1345→- Optional rating
+  1346→- Submitted date
+  1347→- Student ID
+  1348→- Status
+  1349→
+  1350→Feedback categories may include:
+  1351→
+  1352→- Course content
+  1353→- Video issue
+  1354→- Test issue
+  1355→- Technical problem
+  1356→- General suggestion
+  1357→
+  1358→Admin must be able to:
+  1359→
+  1360→- View feedback
+  1361→- Search and filter
+  1362→- Change status
+  1363→- Add internal notes
+  1364→- Mark resolved
+  1365→- Archive feedback
+  1366→
+  1367→Statuses:
+  1368→
+  1369→- NEW
+  1370→- REVIEWING
+  1371→- RESOLVED
+  1372→- CLOSED
+  1373→
+  1374→======================================================================
+  1375→25. CONTACT MESSAGE MANAGEMENT
+  1376→======================================================================
+  1377→
+  1378→Admin must be able to:
+  1379→
+  1380→- View public contact submissions
+  1381→- Search by name/email/subject
+  1382→- Filter by date/status
+  1383→- Mark as read
+  1384→- Mark as replied
+  1385→- Archive
+  1386→- Add internal notes
+  1387→
+  1388→Protect contact forms using:
+  1389→
+  1390→- Validation
+  1391→- Rate limiting
+  1392→- Honeypot or CAPTCHA integration point
+  1393→- Input sanitization
+  1394→- Email-header injection protection
+  1395→
+  1396→======================================================================
+  1397→26. PROFILE AND SETTINGS
+  1398→======================================================================
+  1399→
+  1400→Student profile functionality:
+  1401→
+  1402→- View profile
+  1403→- Update profile photo
+  1404→- Update full name where allowed
+  1405→- Update phone number
+  1406→- Update contact details
+  1407→- Change password
+  1408→- View account status
+  1409→- View assigned batches
+  1410→- View registration date
+  1411→- View active sessions
+  1412→- Logout from other devices
+  1413→
+  1414→Admin settings should include:
+  1415→
+  1416→- Institute name
+  1417→- Logo
+  1418→- Favicon
+  1419→- Tagline
+  1420→- Contact details
+  1421→- Address
+  1422→- Social links
+  1423→- Landing-page content
+  1424→- Hero content
+  1425→- About content
+  1426→- Statistics
+  1427→- Google Maps embed
+  1428→- Announcement settings
+  1429→- Email sender settings where safe
+  1430→- Upload limits
+  1431→- Video completion threshold
+  1432→- Default maximum test attempts
+  1433→- Result visibility defaults
+  1434→- Maintenance mode
+  1435→- Feature flags
+  1436→
+  1437→Sensitive provider credentials must remain environment-managed, not editable
+  1438→as plaintext through the browser.
+  1439→
+  1440→======================================================================
+  1441→27. CERTIFICATE GENERATOR — PHASE 2 READY
+  1442→======================================================================
+  1443→
+  1444→Prepare a modular certificate system.
+  1445→
+  1446→It should support future functionality for:
+  1447→
+  1448→- Course completion certificates
+  1449→- Student name
+  1450→- Course name
+  1451→- Batch
+  1452→- Completion date
+  1453→- Certificate number
+  1454→- QR verification
+  1455→- Admin signature image
+  1456→- Institute logo
+  1457→- PDF download
+  1458→- Public verification page
+  1459→
+  1460→For the initial release:
+  1461→
+  1462→- Create the database-ready structure
+  1463→- Create service interfaces
+  1464→- Add a feature flag
+  1465→- Do not show incomplete certificate buttons when disabled
+  1466→- Do not generate fake certificates
+  1467→
+  1468→Implement the complete module only when the feature is enabled in scope.
+  1469→
+  1470→======================================================================
+  1471→28. FUTURE-READY INTEGRATIONS
+  1472→======================================================================
+  1473→
+  1474→Architect extension points for:
+  1475→
+  1476→- Live classes
+  1477→- Razorpay
+  1478→- Stripe
+  1479→- Student payments
+  1480→- Revenue dashboard
+  1481→- AI course recommendations
+  1482→- AI-generated quizzes
+  1483→- Certificate generation
+  1484→- Push notifications
+  1485→- SMS notifications
+  1486→- Mobile application
+  1487→- Microservices
+  1488→- Database read replicas
+  1489→- Webhooks
+  1490→
+  1491→Do not implement these as fake active features.
+  1492→
+  1493→Use feature flags and clean service interfaces.
+  1494→
+  1495→======================================================================
+  1496→29. DATABASE DESIGN
+  1497→======================================================================
+  1498→
+  1499→Design a normalized PostgreSQL schema.
+  1500→
+  1501→At minimum, include tables or equivalent entities for:
+  1502→
+  1503→- users
+  1504→- student_profiles
+  1505→- admin_profiles, if needed
+  1506→- refresh_tokens
+  1507→- user_sessions
+  1508→- password_reset_tokens
+  1509→- email_verification_tokens
+  1510→- batches
+  1511→- batch_enrollments
+  1512→- courses
+  1513→- batch_courses
+  1514→- chapters
+  1515→- topics
+  1516→- videos
+  1517→- video_progress
+  1518→- learning_activity
+  1519→- materials
+  1520→- announcements
+  1521→- announcement_batches
+  1522→- tests
+  1523→- test_batches
+  1524→- questions
+  1525→- question_options
+  1526→- test_attempts
+  1527→- attempt_answers
+  1528→- results, if separate from attempts
+  1529→- feedback
+  1530→- contact_messages
+  1531→- audit_logs
+  1532→- notifications
+  1533→- institute_settings
+  1534→- uploaded_files
+  1535→- certificates
+  1536→- feature_flags
+  1537→
+  1538→Use appropriate:
+  1539→
+  1540→- Primary keys
+  1541→- Foreign keys
+  1542→- Unique constraints
+  1543→- Composite unique constraints
+  1544→- Database indexes
+  1545→- Check constraints
+  1546→- Cascading rules
+  1547→- Soft-deletion fields
+  1548→- Created and updated timestamps
+  1549→- Status enums
+  1550→
+  1551→Important constraints:
+  1552→
+  1553→- Unique user email
+  1554→- Unique batch slug
+  1555→- Unique course slug
+  1556→- Unique enrollment per student and batch
+  1557→- Maximum question count enforced by service and validation
+  1558→- No duplicate active attempt for the same student/test
+  1559→- No duplicate final submission
+  1560→- Attempt number unique per student and test
+  1561→- Valid start/end date relationships
+  1562→- Valid publication states
+  1563→
+  1564→Create an entity relationship diagram in the documentation.
+  1565→
+  1566→======================================================================
+  1567→30. API DESIGN
+  1568→======================================================================
+  1569→
+  1570→Use versioned routes such as:
+  1571→
+  1572→/api/v1/auth
+  1573→/api/v1/public
+  1574→/api/v1/admin
+  1575→/api/v1/students
+  1576→/api/v1/batches
+  1577→/api/v1/courses
+  1578→/api/v1/videos
+  1579→/api/v1/materials
+  1580→/api/v1/tests
+  1581→/api/v1/attempts
+  1582→/api/v1/results
+  1583→/api/v1/analytics
+  1584→/api/v1/reports
+  1585→/api/v1/announcements
+  1586→/api/v1/feedback
+  1587→/api/v1/contact
+  1588→/api/v1/settings
+  1589→
+  1590→API standards:
+  1591→
+  1592→- Consistent response structure
+  1593→- Proper HTTP status codes
+  1594→- Request ID
+  1595→- Pagination metadata
+  1596→- Structured validation errors
+  1597→- No stack traces in production
+  1598→- No database internals in responses
+  1599→- Typed request and response contracts
+  1600→- Idempotency for important operations where appropriate
+  1601→
+  1602→Example success response:
+  1603→
+  1604→{
+  1605→  "success": true,
+  1606→  "data": {},
+  1607→  "message": "Operation completed successfully",
+  1608→  "meta": {}
+  1609→}
+  1610→
+  1611→Example error response:
+  1612→
+  1613→{
+  1614→  "success": false,
+  1615→  "error": {
+  1616→    "code": "VALIDATION_ERROR",
+  1617→    "message": "The request contains invalid fields",
+  1618→    "fields": {}
+  1619→  },
+  1620→  "requestId": "..."
+  1621→}
+  1622→
+  1623→Create OpenAPI/Swagger documentation and a Postman collection.
+  1624→
+  1625→======================================================================
+  1626→31. SECURITY REQUIREMENTS
+  1627→======================================================================
+  1628→
+  1629→Implement the following security controls:
+  1630→
+  1631→Authentication and sessions:
+  1632→- bcrypt with 12 rounds
+  1633→- Short-lived access tokens
+  1634→- Rotating refresh tokens
+  1635→- Refresh-token reuse detection
+  1636→- Session revocation
+  1637→- Secure HTTP-only cookies
+  1638→- SameSite cookie policy
+  1639→- Secure cookies in production
+  1640→
+  1641→Authorization:
+  1642→- Central role middleware
+  1643→- Resource ownership checks
+  1644→- Batch membership checks
+  1645→- Account status checks
+  1646→- Route-level and service-level authorization
+  1647→
+  1648→Application security:
+  1649→- Helmet security headers
+  1650→- Strict CORS allowlist
+  1651→- Rate limiting
+  1652→- Login-specific rate limiting
+  1653→- Request-size limits
+  1654→- Input validation
+  1655→- Input sanitization
+  1656→- SQL injection protection through ORM and safe queries
+  1657→- XSS prevention
+  1658→- CSRF protection where required
+  1659→- Secure file upload
+  1660→- MIME checking
+  1661→- Filename sanitization
+  1662→- Open-redirect prevention
+  1663→- Error-message sanitization
+  1664→
+  1665→Infrastructure:
+  1666→- HTTPS only in production
+  1667→- Nginx security configuration
+  1668→- Environment-managed secrets
+  1669→- Database backups
+  1670→- Redis authentication where supported
+  1671→- Least-privilege cloud credentials
+  1672→- Dependency vulnerability scanning
+  1673→- Production logging without sensitive data
+  1674→
+  1675→Sensitive values that must never appear in logs:
+  1676→
+  1677→- Passwords
+  1678→- Access tokens
+  1679→- Refresh tokens
+  1680→- Password reset tokens
+  1681→- Storage secret keys
+  1682→- Database URLs
+  1683→- SMTP passwords
+  1684→- Complete authorization headers
+  1685→
+  1686→======================================================================
+  1687→32. AUDIT LOGS
+  1688→======================================================================
+  1689→
+  1690→Track important admin and security actions.
+  1691→
+  1692→Audit events should include:
+  1693→
+  1694→- Admin login
+  1695→- Failed admin login
+  1696→- Student approval
+  1697→- Student rejection
+  1698→- Student block/unblock
+  1699→- Batch creation/update/archive
+  1700→- Enrollment assignment/removal
+  1701→- Course creation/update
+  1702→- Video creation/publication
+  1703→- Material upload/removal
+  1704→- Test creation/publication
+  1705→- Announcement publication
+  1706→- Report export
+  1707→- Setting changes
+  1708→
+  1709→Audit log fields:
+  1710→
+  1711→- Actor user ID
+  1712→- Actor role
+  1713→- Action
+  1714→- Entity type
+  1715→- Entity ID
+  1716→- Before summary
+  1717→- After summary
+  1718→- IP address
+  1719→- User agent
+  1720→- Request ID
+  1721→- Timestamp
+  1722→
+  1723→Do not store password or token values in audit logs.
+  1724→
+  1725→Audit records should be append-only for normal admin users.
+  1726→
+  1727→======================================================================
+  1728→33. PERFORMANCE REQUIREMENTS
+  1729→======================================================================
+  1730→
+  1731→Implement:
+  1732→
+  1733→- Server-side pagination
+  1734→- Database indexes
+  1735→- Optimized joins
+  1736→- Avoid N+1 queries
+  1737→- Redis caching
+  1738→- Cache invalidation
+  1739→- Lazy-loaded pages
+  1740→- Lazy-loaded images
+  1741→- Code splitting
+  1742→- Compressed API responses
+  1743→- CDN-ready assets
+  1744→- Optimized thumbnails
+  1745→- Skeleton loading states
+  1746→- Debounced search
+  1747→- Request cancellation
+  1748→- Efficient charts
+  1749→- Background jobs for large exports where necessary
+  1750→
+  1751→Target reasonable performance:
+  1752→
+  1753→- Fast initial public-page loading
+  1754→- Responsive dashboard interactions
+  1755→- Paginated large lists
+  1756→- No loading of complete student/test datasets into the browser
+  1757→- No blocking report generation for extremely large datasets
+  1758→
+  1759→Use Lighthouse and browser performance auditing.
+  1760→
+  1761→======================================================================
+  1762→34. RESPONSIVE UI/UX REQUIREMENTS
+  1763→======================================================================
+  1764→
+  1765→Visual style:
+  1766→
+  1767→- Professional educational platform
+  1768→- Deep blue primary branding
+  1769→- Teal or green secondary accents
+  1770→- Clean white or neutral backgrounds
+  1771→- Clear typography
+  1772→- Consistent spacing
+  1773→- Modern cards and data tables
+  1774→- Minimal visual clutter
+  1775→- High readability
+  1776→
+  1777→Required responsive behavior:
+  1778→
+  1779→- Mobile navigation drawer
+  1780→- Collapsible admin sidebar
+  1781→- Scroll-safe data tables
+  1782→- Card layouts on small screens
+  1783→- Responsive charts
+  1784→- Responsive video player
+  1785→- Touch-friendly controls
+  1786→- Forms that work on narrow screens
+  1787→- No horizontal page overflow
+  1788→
+  1789→Accessibility:
+  1790→
+  1791→- WCAG 2.1 AA target
+  1792→- Keyboard navigation
+  1793→- Visible focus states
+  1794→- Proper labels
+  1795→- Semantic headings
+  1796→- ARIA only where needed
+  1797→- Accessible dialogs
+  1798→- Accessible error messages
+  1799→- Color contrast compliance
+  1800→- Do not communicate status through color alone
+  1801→- Reduced-motion support
+  1802→
+  1803→======================================================================
+  1804→35. VALIDATION AND ERROR HANDLING
+  1805→======================================================================
+  1806→
+  1807→Implement shared validation rules where practical.
+  1808→
+  1809→Handle:
+  1810→
+  1811→- Invalid email
+  1812→- Weak password
+  1813→- Duplicate email
+  1814→- Invalid dates
+  1815→- End date before start date
+  1816→- Invalid YouTube URL
+  1817→- Unsupported file format
+  1818→- Oversized upload
+  1819→- Empty test
+  1820→- More than 20 questions
+  1821→- Invalid correct answer
+  1822→- Unauthorized batch access
+  1823→- Expired test
+  1824→- Attempt limit reached
+  1825→- Duplicate submission
+  1826→- Expired session
+  1827→- Network failure
+  1828→- Storage failure
+  1829→- Email failure
+  1830→- Database conflict
+  1831→- Redis unavailability
+  1832→
+  1833→The application must fail gracefully.
+  1834→
+  1835→Non-critical email or cache failures should not corrupt successful primary
+  1836→database operations.
+  1837→
+  1838→Display actionable user messages without exposing implementation details.
+  1839→
+  1840→======================================================================
+  1841→36. TESTING REQUIREMENTS
+  1842→======================================================================
+  1843→
+  1844→Create:
+  1845→
+  1846→- Unit tests
+  1847→- Service tests
+  1848→- API integration tests
+  1849→- Component tests
+  1850→- End-to-end tests
+  1851→- Authorization tests
+  1852→- Validation tests
+  1853→- Security-focused tests
+  1854→
+  1855→Critical test cases:
+  1856→
+  1857→Authentication:
+  1858→- Valid login
+  1859→- Invalid login
+  1860→- Blocked user login
+  1861→- Pending user login
+  1862→- Token refresh
+  1863→- Refresh-token rotation
+  1864→- Logout
+  1865→- Password reset
+  1866→- Expired token
+  1867→
+  1868→Authorization:
+  1869→- Student cannot access admin API
+  1870→- Student cannot access another student's data
+  1871→- Student cannot access unassigned batch
+  1872→- Student cannot access unpublished content
+  1873→- Blocked student loses protected access
+  1874→- Admin-only routes reject student tokens
+  1875→
+  1876→Batch management:
+  1877→- Duplicate enrollment prevention
+  1878→- Student assignment
+  1879→- Student removal
+  1880→- Archived batch behavior
+  1881→
+  1882→Video progress:
+  1883→- Unauthorized progress rejected
+  1884→- Valid progress saved
+  1885→- Completion threshold applied
+  1886→- Progress cannot be posted for another user
+  1887→
+  1888→Assessment:
+  1889→- More than 20 questions rejected
+  1890→- Test outside availability rejected
+  1891→- Third attempt rejected
+  1892→- Timer survives refresh
+  1893→- Expired attempt auto-finalized
+  1894→- Correct answer not exposed before submission
+  1895→- Duplicate submission rejected
+  1896→- Score calculated correctly
+  1897→- Answer key follows visibility rule
+  1898→- Concurrent submission handled safely
+  1899→
+  1900→Uploads:
+  1901→- Invalid MIME rejected
+  1902→- Oversized file rejected
+  1903→- Unauthorized download rejected
+  1904→- Authorized download allowed
+  1905→
+  1906→Reports:
+  1907→- Correct filters
+  1908→- Correct exported columns
+  1909→- No spreadsheet formula injection
+  1910→- No sensitive information exported
+  1911→
+  1912→Create a minimum quality threshold for important services and workflows.
+  1913→Do not chase meaningless coverage numbers while leaving critical logic untested.
+  1914→
+  1915→======================================================================
+  1916→37. DEVOPS AND DEPLOYMENT
+  1917→======================================================================
+  1918→
+  1919→Provide:
+  1920→
+  1921→- Frontend Dockerfile
+  1922→- Backend Dockerfile
+  1923→- Production multi-stage builds
+  1924→- Docker Compose for local development
+  1925→- PostgreSQL service
+  1926→- Redis service
+  1927→- Nginx configuration
+  1928→- Health-check endpoints
+  1929→- Readiness checks
+  1930→- Environment-based configuration
+  1931→- Database migration startup procedure
+  1932→- Backup and restore documentation
+  1933→- SSL setup documentation
+  1934→- CI/CD workflow
+  1935→
+  1936→GitHub Actions should perform:
+  1937→
+  1938→- Install dependencies
+  1939→- Lint
+  1940→- Type-check
+  1941→- Unit tests
+  1942→- Integration tests where available
+  1943→- Build frontend
+  1944→- Build backend
+  1945→- Security audit
+  1946→- Docker build
+  1947→- Controlled deployment
+  1948→
+  1949→Create endpoints such as:
+  1950→
+  1951→- GET /health
+  1952→- GET /health/ready
+  1953→- GET /health/live
+  1954→
+  1955→Do not expose confidential environment information through health endpoints.
+  1956→
+  1957→======================================================================
+  1958→38. DOCUMENTATION AND DELIVERABLES
+  1959→======================================================================
+  1960→
+  1961→Deliver:
+  1962→
+  1963→1. Complete source code
+  1964→2. Clean repository structure
+  1965→3. README
+  1966→4. Setup guide
+  1967→5. Local-development guide
+  1968→6. Production-deployment guide
+  1969→7. `.env.example`
+  1970→8. Database schema documentation
+  1971→9. Entity relationship diagram
+  1972→10. API documentation
+  1973→11. Swagger/OpenAPI specification
+  1974→12. Postman collection
+  1975→13. Admin user guide
+  1976→14. Student user guide
+  1977→15. Testing guide
+  1978→16. Backup and recovery guide
+  1979→17. Security configuration guide
+  1980→18. Architecture decision records
+  1981→19. Known limitations document
+  1982→20. Change log
+  1983→21. Seed/demo data script
+  1984→22. Database migrations
+  1985→23. Docker configuration
+  1986→24. CI/CD workflow
+  1987→
+  1988→The admin user manual should explain:
+  1989→
+  1990→- Login
+  1991→- Dashboard
+  1992→- Approving students
+  1993→- Creating batches
+  1994→- Assigning students
+  1995→- Creating courses
+  1996→- Adding videos
+  1997→- Uploading PDFs
+  1998→- Creating tests
+  1999→- Publishing announcements
+  2000→- Viewing results
+
+[showing lines 1-2000 of 2230; use offset=2001 with limit to continue reading]
