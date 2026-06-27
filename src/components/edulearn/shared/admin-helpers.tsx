@@ -56,14 +56,14 @@ export function StatCard({ label, value, icon: Icon, color = 'blue', hint }: { l
     slate: 'from-slate-500 to-slate-700',
   }
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 card-lift hover:border-slate-300">
       <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs text-slate-500">{label}</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{value}</div>
+        <div className="min-w-0">
+          <div className="text-xs text-slate-500 truncate">{label}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1 tabular-nums">{value}</div>
           {hint && <div className="text-[10px] text-slate-400 mt-0.5">{hint}</div>}
         </div>
-        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center text-white shadow-sm`}>
+        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center text-white shadow-md shrink-0`}>
           <Icon className="w-5 h-5" />
         </div>
       </div>

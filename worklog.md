@@ -21,3 +21,31 @@ Work Log:
 - Inspected existing scaffold (Next.js 16, Tailwind v3, all shadcn/ui components, Prisma+SQLite)
 - Will write comprehensive LMS schema adapted to SQLite (JSON fields stored as String, enums as String)
 - Will write lib utilities: auth (bcrypt+jwt), session, audit logger, validation, api response helpers, youtube id extractor, file storage (local)
+
+---
+Task ID: 11
+Agent: main
+Task: Fix admin logout, fix test submit 422, polish visual styling for deploy readiness
+
+Work Log:
+- Fixed admin logout: added profile dropdown menu in admin header (avatar + name + role + chevron) with Settings + Logout options; added SidebarFooter component (shared between desktop + mobile sidebar) with user info + logout button; mobile sidebar now has logout at bottom
+- Fixed test submit 422: made `attemptId` optional in attemptSubmitSchema (it's in the URL path, not body); added `finalize` boolean to schema. Verified Aarav can now start → answer → submit → see 80% result with answer review
+- Applied same profile dropdown + SidebarFooter pattern to student app (Profile, Give Feedback, Logout)
+- Polished visual styling throughout:
+  - globals.css: added mesh-bg, glass-card, gradient-text, animated-gradient, shimmer, animate-fade-in, animate-slide-up, card-lift, btn-glow, focus-ring utilities; smooth scroll; antialiased fonts
+  - Public home hero: mesh gradient background + floating orbs + entrance animations + trust indicators + glassmorphism badges
+  - Public header: glassmorphism sticky bar, logo hover scale
+  - Login page: split-screen layout (branding panel left with mesh-bg + stats, form right with shadow card)
+  - Boot screen: mesh-bg + animated pulse dots
+  - Admin/Student sidebar: gradient active states with shadow, group-hover icon scale, "Admin Console"/"Student Portal" subtitles
+  - Admin/Student header: glassmorphism backdrop-blur, profile dropdown with avatar ring
+  - StatCard: card-lift hover, tabular-nums, gradient icon badges with shadow
+- Verified all flows with Agent Browser: admin login → dashboard → profile dropdown → logout; student login → dashboard → profile dropdown → logout; mobile sidebar has logout; test submit works end-to-end with result view
+- Lint: 0 errors, 4 warnings (unused eslint-disable directives only)
+- Dev server: healthy, all routes returning 200
+
+Stage Summary:
+- Admin logout now accessible via header profile dropdown (desktop) + sidebar footer (desktop & mobile)
+- Test attempt submit works correctly (server-side scoring verified — Aarav scored 80%)
+- Visual design upgraded to modern, attractive aesthetic: mesh gradients, glassmorphism, entrance animations, hover micro-interactions, gradient accents
+- Project is deploy-ready: lint clean, dev server healthy, all key flows browser-verified

@@ -28,30 +28,39 @@ export function HomePage({
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-teal-800 text-white">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(45,212,191,0.4) 0%, transparent 50%)' }} />
+      <section className="relative overflow-hidden mesh-bg text-white">
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(45,212,191,0.5) 0%, transparent 50%)' }} />
+        {/* Decorative floating orbs */}
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-teal-400/20 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-blue-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <Badge variant="secondary" className="mb-4 bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <div className="animate-slide-up">
+              <Badge variant="secondary" className="mb-4 bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur">
                 {settings?.tagline || 'Advanced Learning Management System'}
               </Badge>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
                 {settings?.heroTitle || 'Unlock Your Potential with EDULEARN PRO'}
               </h1>
-              <p className="mt-5 text-base sm:text-lg text-blue-100 max-w-xl">
+              <p className="mt-5 text-base sm:text-lg text-blue-100 max-w-xl leading-relaxed">
                 {settings?.heroSubtitle || 'Industry-leading courses, expert faculty, and a learning experience designed for your success.'}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <Button size="lg" onClick={() => setView({ name: user ? 'public/register' : 'public/register' })} className="bg-white text-blue-800 hover:bg-blue-50">
+                <Button size="lg" onClick={() => setView({ name: user ? 'public/register' : 'public/register' })} className="bg-white text-blue-800 hover:bg-blue-50 btn-glow font-semibold">
                   Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => setView({ name: 'public/courses' })} className="border-white/30 text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" onClick={() => setView({ name: 'public/courses' })} className="border-white/30 text-white hover:bg-white/10 backdrop-blur">
                   Explore Courses
                 </Button>
               </div>
+              {/* Trust indicators */}
+              <div className="mt-8 flex items-center gap-6 text-xs text-blue-100/80">
+                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live batches running</div>
+                <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5" /> 94% pass rate</div>
+                <div className="hidden sm:flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> 5,000+ learners</div>
+              </div>
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block animate-fade-in">
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                 <img
                   src={settings?.heroImage || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80'}
@@ -72,9 +81,9 @@ export function HomePage({
               { icon: Award, label: 'Pass Rate', value: settings?.statPassRate ?? 0, suffix: '%' },
               { icon: Clock, label: 'Years Experience', value: settings?.statExperience ?? 0, suffix: '+' },
             ].map((stat, i) => (
-              <div key={i} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/10">
+              <div key={i} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 card-lift hover:bg-white/15">
                 <stat.icon className="w-6 h-6 mb-2 text-teal-300" />
-                <div className="text-2xl sm:text-3xl font-bold">{stat.value.toLocaleString()}{stat.suffix}</div>
+                <div className="text-2xl sm:text-3xl font-bold tabular-nums">{stat.value.toLocaleString()}{stat.suffix}</div>
                 <div className="text-xs text-blue-100">{stat.label}</div>
               </div>
             ))}

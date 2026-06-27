@@ -25,11 +25,11 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <button onClick={() => go({ name: 'public/home' })} className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-700 to-teal-600 flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 to-teal-600 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 group-hover:shadow-lg transition-all">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div className="flex flex-col items-start leading-tight">

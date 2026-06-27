@@ -5,9 +5,14 @@ import { useApp } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
   LayoutDashboard, Users, BookOpen, GraduationCap, FolderOpen, FileQuestion,
   BarChart3, Trophy, Megaphone, MailOpen, MessageSquare, FileText, History,
-  Settings, LogOut, Menu, Bell, Search, ChevronRight
+  Settings, LogOut, Menu, Bell, ChevronRight, Search, User, Shield, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { View } from '@/stores/app-store'
@@ -45,7 +50,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <nav className="flex flex-col gap-4 px-3 py-4 overflow-y-auto scroll-thin h-full">
       {groups.map((group) => (
         <div key={group}>
-          <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-white/50 font-semibold">{group}</div>
+          <div className="px-3 mb-1 text-[10px] uppercase tracking-wider text-white/40 font-semibold">{group}</div>
           <div className="space-y-0.5">
             {NAV.filter((n) => n.group === group).map((item) => {
               const active = view.name === item.view.name
@@ -57,12 +62,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     onNavigate?.()
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-left',
-                    active ? 'sidebar-active font-medium' : 'sidebar-text sidebar-hover'
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-150 text-left group',
+                    active
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium shadow-lg shadow-blue-900/40'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <item.icon className="w-4 h-4 shrink-0" />
+                  <item.icon className={cn('w-4 h-4 shrink-0 transition-transform group-hover:scale-110', active && 'drop-shadow')} />
                   <span className="truncate">{item.label}</span>
                 </button>
               )
@@ -74,11 +81,40 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
+function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, logout, setView } = useApp()
+  return (
+    <div className="border-t border-white/10 p-3 space-y-2">
+      <button
+        onClick={() => { setView({ name: 'admin/settings' }); onNavigate?.() }}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 transition-colors text-left"
+      >
+        <Avatar className="w-9 h-9 border-2 border-white/20">
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-teal-400 text-white font-semibold">
+            {user?.name?.charAt(0) || 'A'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="truncate text-sm font-medium text-white">{user?.name}</div>
+          <div className="text-white/50 text-[10px] truncate">{user?.email}</div>
+        </div>
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => { logout(); onNavigate?.() }}
+        className="w-full text-white/70 hover:text-white hover:bg-rose-500/20 border border-white/10"
+      >
+        <LogOut className="w-4 h-4 mr-2" /> Logout
+      </Button>
+    </div>
+  )
+}
+
 export function AdminApp() {
   const { view, user, logout, setView } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Breadcrumbs derived from current view
   const breadcrumbMap: Record<string, string> = {
     'admin/dashboard': 'Dashboard',
     'admin/students': 'Students',
@@ -105,73 +141,101 @@ export function AdminApp() {
   return (
     <div className="min-h-screen flex bg-slate-50">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col sidebar-bg shrink-0" style={{ background: 'hsl(222 47% 22%)' }}>
-        <div className="h-16 flex items-center px-6 border-b border-white/10">
-          <button onClick={() => setView({ name: 'admin/dashboard' })} className="flex items-center gap-2 text-white">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center">
+      <aside
+        className="hidden lg:flex w-64 flex-col shrink-0 sticky top-0 h-screen"
+        style={{ background: 'linear-gradient(180deg, hsl(222 47% 20%) 0%, hsl(222 47% 16%) 100%)' }}
+      >
+        <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
+          <button onClick={() => setView({ name: 'admin/dashboard' })} className="flex items-center gap-2 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center shadow-lg shadow-blue-900/50 group-hover:scale-105 transition-transform">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div className="font-bold tracking-tight text-sm">EDULEARN PRO</div>
+            <div>
+              <div className="font-bold tracking-tight text-sm text-white">EDULEARN PRO</div>
+              <div className="text-[9px] text-white/40 uppercase tracking-wider">Admin Console</div>
+            </div>
           </button>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <SidebarContent />
-        </div>
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-2 px-3 py-2 text-white/80 text-xs">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-semibold">
-              {user?.name?.charAt(0) || 'A'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="truncate font-medium">{user?.name}</div>
-              <div className="text-white/50 text-[10px]">Administrator</div>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={logout} className="w-full mt-1 text-white/70 hover:text-white hover:bg-white/10">
-            <LogOut className="w-4 h-4 mr-2" /> Logout
-          </Button>
-        </div>
+        <div className="flex-1 overflow-hidden"><SidebarContent /></div>
+        <SidebarFooter />
       </aside>
 
       {/* Mobile sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="lg:hidden fixed top-3 left-3 z-50 bg-white shadow-md" aria-label="Open menu">
+          <Button variant="ghost" size="icon" className="lg:hidden fixed top-3 left-3 z-50 bg-white shadow-md border border-slate-200" aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0" style={{ background: 'hsl(222 47% 22%)' }}>
+        <SheetContent side="left" className="w-72 p-0 flex flex-col" style={{ background: 'linear-gradient(180deg, hsl(222 47% 20%) 0%, hsl(222 47% 16%) 100%)' }}>
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <div className="h-16 flex items-center px-6 border-b border-white/10">
-            <div className="flex items-center gap-2 text-white">
-              <GraduationCap className="w-5 h-5" />
-              <span className="font-bold text-sm">EDULEARN PRO</span>
+          <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-white">EDULEARN PRO</div>
+                <div className="text-[9px] text-white/40 uppercase tracking-wider">Admin</div>
+              </div>
             </div>
           </div>
-          <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          <div className="flex-1 overflow-hidden"><SidebarContent onNavigate={() => setMobileOpen(false)} /></div>
+          <SidebarFooter onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-4 sm:px-6 lg:px-8 gap-4 sticky top-0 z-30">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center px-4 sm:px-6 lg:px-8 gap-4 sticky top-0 z-30">
           <div className="lg:hidden w-10" />
           <div className="flex items-center gap-2 text-sm text-slate-500 flex-1 min-w-0">
-            <button onClick={() => setView({ name: 'admin/dashboard' })} className="hover:text-slate-900">Admin</button>
+            <button onClick={() => setView({ name: 'admin/dashboard' })} className="hover:text-slate-900 transition-colors">Admin</button>
             <ChevronRight className="w-3 h-3" />
-            <span className="font-medium text-slate-900 truncate">{currentLabel}</span>
+            <span className="font-semibold text-slate-900 truncate">{currentLabel}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <Button variant="ghost" size="icon" aria-label="Search">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="icon" aria-label="Search" className="hidden sm:inline-flex text-slate-500 hover:text-slate-900">
               <Search className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+            <Button variant="ghost" size="icon" aria-label="Notifications" className="relative text-slate-500 hover:text-slate-900">
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
             </Button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-semibold text-sm">
-              {user?.name?.charAt(0) || 'A'}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors" aria-label="Account menu">
+                  <Avatar className="w-8 h-8 ring-2 ring-blue-100">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-teal-500 text-white font-semibold text-sm">
+                      {user?.name?.charAt(0) || 'A'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden md:block text-left">
+                    <div className="text-xs font-semibold text-slate-900 leading-tight">{user?.name}</div>
+                    <div className="text-[10px] text-slate-500 leading-tight flex items-center gap-1">
+                      <Shield className="w-2.5 h-2.5" /> Administrator
+                    </div>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{user?.name}</span>
+                    <span className="text-xs font-normal text-slate-500">{user?.email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setView({ name: 'admin/settings' })}>
+                  <Settings className="w-4 h-4 mr-2" /> Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-rose-600 focus:text-rose-700 focus:bg-rose-50">
+                  <LogOut className="w-4 h-4 mr-2" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
@@ -183,5 +247,4 @@ export function AdminApp() {
   )
 }
 
-// Lazy import to keep this file readable — actual page components live in their own files
 import { AdminContent } from './admin-content'
