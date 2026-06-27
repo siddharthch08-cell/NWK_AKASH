@@ -85,3 +85,20 @@ Stage Summary:
 - Lint: 0 errors, 4 warnings (cosmetic only)
 - Dev server: healthy, all routes returning 200
 - Browser-verified: admin login, student login, Add Video flow, materials page, dashboard visibility
+
+---
+Task ID: 13
+Agent: main
+Task: Fix invisible fonts on home/login pages
+
+Work Log:
+- **Root cause identified**: Custom CSS utility classes (mesh-bg, glass-card, gradient-text, btn-glow, card-lift, animate-fade-in, animate-slide-up, focus-ring, shimmer, animated-gradient) defined as plain `.class { }` selectors in globals.css were being silently stripped by Tailwind v4's build engine. Tailwind v4 requires custom utilities to use the `@utility` directive.
+- Verified the bug via browser DevTools: `getComputedStyle(hero).backgroundColor` returned `rgba(0,0,0,0)` (transparent) and `backgroundImage: none` — the mesh-bg class had no effect, so the hero section's `text-white` was rendering on a transparent/white body background = completely invisible text.
+- **Fix**: Converted all 10 custom utility classes from plain `.class { }` syntax to Tailwind v4's `@utility name { }` directive. Moved hover/active pseudo-variant rules (card-lift:hover, btn-glow:hover, btn-glow:active) into `@layer utilities`. Kept @keyframes definitions outside layers (they work globally).
+- Verified fix via DevTools: `backgroundColor` now returns `rgb(30, 58, 138)` (dark blue) and `backgroundImage` is present. VLM analysis confirms all hero text, stat cards, trust indicators, and login branding panel are now clearly visible with good contrast.
+
+Stage Summary:
+- All custom CSS utilities converted to Tailwind v4 @utility format
+- Hero section, login branding panel, and boot screen now render with correct dark blue mesh gradient backgrounds
+- All white text on these backgrounds is fully visible
+- Lint: 0 errors, 4 warnings (cosmetic)
