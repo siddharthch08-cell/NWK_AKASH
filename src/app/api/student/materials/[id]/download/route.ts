@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return notFound('File not found on disk')
   }
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     status: 200,
     headers: {
       'Content-Type': material.fileType || 'application/octet-stream',

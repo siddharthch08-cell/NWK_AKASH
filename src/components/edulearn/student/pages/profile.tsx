@@ -15,7 +15,7 @@ import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 
 export function StudentProfile() {
-  const { user, logout, bootstrap } = useApp()
+  const { user, logout, setUser } = useApp()
   const toastAction = useToastAction()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +29,15 @@ export function StudentProfile() {
 
   const saveProfile = async () => {
     setSaving(true)
-    try { await api.patch('/api/student/profile', form); toast.success('Profile updated'); load(); bootstrap() } catch (e) { toastAction.error(e) } finally { setSaving(false) }
+    try {
+      const res = await api.patch<{ user: any }>('/api/student/profile', form)
+      toast.success('Profile updated')
+      // Merge updated user into shared store (don't reset view)
+      if (user) {
+        setUser({ ...user, name: res.user.name, phone: res.user.phone, photo: res.user.photo })
+      }
+      load()
+    } catch (e) { toastAction.error(e) } finally { setSaving(false) }
   }
   const changePassword = async () => {
     if (pwForm.newPassword !== pwForm.confirmPassword) { toast.error('Passwords do not match'); return }

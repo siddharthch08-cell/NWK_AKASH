@@ -55,23 +55,47 @@ export async function GET(req: NextRequest, { params }: Params) {
         },
       },
       materials: {
-        where: { archived: false, OR: [{ batchId: id }, { visibility: 'COURSE' }] },
+        where: {
+          archived: false,
+          // Only materials for THIS batch, OR COURSE-visibility materials for courses assigned to this batch
+          OR: [
+            { batchId: id },
+            {
+              visibility: 'COURSE',
+              course: {
+                batches: { some: { batchId: id } },
+                status: 'PUBLISHED',
+              },
+            },
+          ],
+        },
         orderBy: { createdAt: 'desc' },
         select: { id: true, title: true, fileName: true, fileType: true, fileSize: true, materialType: true, createdAt: true },
-      },
-      announcements: {
-        where: {
-          status: 'PUBLISHED',
-          publishAt: { lte: new Date() },
-          OR: [{ expireAt: null }, { expireAt: { gt: new Date() } }],
-        },
-        orderBy: [{ pinned: 'desc' }, { publishAt: 'desc' }],
-        take: 5,
-        select: { id: true, title: true, message: true, priority: true, pinned: true, publishAt: true },
       },
     },
   })
   if (!batch) return notFound('Batch not found')
 
-  return ok({ batch }, 'Batch detail')
+  // Fetch announcements separately (they go through AnnouncementBatch join table)
+  const now = new Date()
+  const announcements = await db.announcement.findMany({
+    where: {
+      status: 'PUBLISHED',
+      publishAt: { lte: now },
+      AND: [
+        { OR: [{ expireAt: null }, { expireAt: { gt: now } }] },
+        {
+          OR: [
+            { audience: 'ALL_STUDENTS' },
+            { audience: 'BATCH', batches: { some: { batchId: id } } },
+          ],
+        },
+      ],
+    },
+    orderBy: [{ pinned: 'desc' }, { publishAt: 'desc' }],
+    take: 5,
+    select: { id: true, title: true, message: true, priority: true, pinned: true, publishAt: true },
+  })
+
+  return ok({ batch: { ...batch, announcements } }, 'Batch detail')
 }

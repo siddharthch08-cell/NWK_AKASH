@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!topic) return notFound('Topic not found')
 
   // Resolve YouTube ID — accept either youtubeUrl or youtubeId
-  let youtubeId = parsed.data.youtubeId
+  let youtubeId: string | null = parsed.data.youtubeId || null
   if (!youtubeId && parsed.data.youtubeUrl) {
     youtubeId = extractYouTubeId(parsed.data.youtubeUrl)
   }
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       scheduledAt: parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : null,
       publishedAt,
       createdBy: ctx.user.id,
-    },
+    } as any,
   })
   await audit({ ctx, action: 'VIDEO_CREATED', entityType: 'VIDEO', entityId: video.id, after: { title: video.title, youtubeId } })
   return ok({ video }, 'Video created', undefined, 201)

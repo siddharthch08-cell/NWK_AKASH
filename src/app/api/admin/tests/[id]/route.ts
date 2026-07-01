@@ -72,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 
   const updated = await db.test.update({ where: { id }, data })
-  await audit({ ctx, action: 'TEST_CREATED', entityType: 'TEST', entityId: id, before: existing, after: updated })
+  await audit({ ctx, action: 'TEST_UPDATED', entityType: 'TEST', entityId: id, before: existing, after: updated })
   return ok({ test: updated }, 'Test updated')
 }
 

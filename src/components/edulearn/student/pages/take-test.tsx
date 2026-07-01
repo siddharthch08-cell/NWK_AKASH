@@ -16,6 +16,7 @@ interface StartResp {
   attempt: { id: string; attemptNumber: number; startedAt: string; expiresAt: string; durationMins: number; remainingSecs: number }
   test: { id: string; title: string; instructions?: string | null; durationMins: number; showResultImmediately: boolean; passingPct?: number | null }
   questions: { id: string; text: string; marks: number; order: number; options: { id: string; text: string; order: number }[] }[]
+  savedAnswers: Record<string, string | null>
   resumed: boolean
 }
 
@@ -45,8 +46,10 @@ export function StudentTakeTest({ id }: { id: string }) {
       const res = await api.post<StartResp>(`/api/student/tests/${id}/start`)
       setData(res)
       setRemainingSecs(res.attempt.remainingSecs)
-      // Pre-fill answers if resuming (we don't have saved answers in the start response — fetch them via GET attempt)
-      // For simplicity, leave answers empty on resume (student re-selects)
+      // Initialize answers from saved answers (resume support)
+      if (res.savedAnswers && Object.keys(res.savedAnswers).length > 0) {
+        setAnswers({ ...res.savedAnswers })
+      }
     } catch (e) {
       if (e instanceof ApiError) setError(e.message)
       else setError('Failed to start test')
@@ -107,7 +110,17 @@ export function StudentTakeTest({ id }: { id: string }) {
       const answersArr = Object.entries(answers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null }))
       await api.post(`/api/student/attempts/${data.attempt.id}`, { answers: answersArr, submissionType: 'MANUAL', finalize: false })
       toast.success('Answers saved')
-    } catch (e) { if (e instanceof ApiError) toast.error(e.message) }
+      return true
+    } catch (e) { if (e instanceof ApiError) toast.error(e.message); else toast.error('Save failed'); return false }
+  }
+
+  const exitTest = async () => {
+    if (!data) return
+    if (!confirm('Leave the test? Your current answers will be saved and you can resume later.')) return
+    const saved = await saveDraft()
+    if (saved) {
+      setView({ name: 'student/tests' })
+    }
   }
 
   if (loading || starting) return <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /><div className="text-sm text-slate-500 mt-2">{starting ? 'Starting test…' : 'Loading…'}</div></div>
@@ -135,7 +148,7 @@ export function StudentTakeTest({ id }: { id: string }) {
 
   return (
     <div>
-      <Button variant="ghost" size="sm" onClick={() => { if (confirm('Leave the test? Your active attempt will be saved and you can resume later.')) setView({ name: 'student/tests' }) }} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Exit (saves progress)</Button>
+      <Button variant="ghost" size="sm" onClick={exitTest} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Exit (saves progress)</Button>
 
       {/* Sticky timer bar */}
       <Card className={`mb-4 sticky top-16 z-20 ${lowTime ? 'border-rose-300 bg-rose-50' : ''}`}>

@@ -71,6 +71,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (existing.expiresAt < now) {
       await finalizeAttempt(existing.id, 'AUTO_TIMEOUT', ctx.user.id)
     } else {
+      // Fetch saved answers for resume
+      const savedAnswers = await db.attemptAnswer.findMany({
+        where: { attemptId: existing.id },
+        select: { questionId: true, selectedOptionId: true },
+      })
+      const savedAnswersMap: Record<string, string | null> = {}
+      for (const a of savedAnswers) {
+        savedAnswersMap[a.questionId] = a.selectedOptionId
+      }
       return ok(
         {
           attempt: {
@@ -96,6 +105,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             order: q.order,
             options: q.options.map((o) => ({ id: o.id, text: o.text, order: o.order })),
           })),
+          savedAnswers: savedAnswersMap,
           resumed: true,
         },
         'Resumed active attempt'
@@ -151,6 +161,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         order: q.order,
         options: q.options.map((o) => ({ id: o.id, text: o.text, order: o.order })),
       })),
+      savedAnswers: {} as Record<string, string | null>,
       resumed: false,
     },
     'Test attempt started',

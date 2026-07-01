@@ -59,6 +59,14 @@ export async function GET(req: NextRequest) {
     where: { role: 'STUDENT', createdAt: { gte: eightWeeksAgo } },
     select: { createdAt: true, status: true },
   })
+  // Fetch approval events from audit logs for the same period
+  const approvalLogs = await db.auditLog.findMany({
+    where: {
+      action: { in: ['STUDENT_APPROVED', 'BULK_STUDENT_APPROVED'] },
+      timestamp: { gte: eightWeeksAgo },
+    },
+    select: { timestamp: true },
+  })
   const weeks: { label: string; registered: number; approved: number }[] = []
   for (let i = 7; i >= 0; i--) {
     const start = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000)
@@ -67,7 +75,10 @@ export async function GET(req: NextRequest) {
     const registered = recentStudents.filter(
       (s) => s.createdAt >= start && s.createdAt < end
     ).length
-    weeks.push({ label, registered, approved: 0 })
+    const approved = approvalLogs.filter(
+      (l) => l.timestamp >= start && l.timestamp < end
+    ).length
+    weeks.push({ label, registered, approved })
   }
 
   // Batch enrollment

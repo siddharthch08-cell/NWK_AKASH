@@ -39,6 +39,33 @@ export class ApiError extends Error {
   }
 }
 
+let isRefreshing = false
+let refreshPromise: Promise<string | null> = Promise.resolve(null)
+
+async function refreshToken(): Promise<string | null> {
+  if (isRefreshing) return refreshPromise
+  isRefreshing = true
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) return null
+      const envelope = await res.json()
+      if (!envelope.success) return null
+      const newToken = envelope.data.accessToken
+      setToken(newToken)
+      return newToken
+    } catch {
+      return null
+    } finally {
+      isRefreshing = false
+    }
+  })()
+  return refreshPromise
+}
+
 async function request<T>(
   url: string,
   options: RequestInit = {}
@@ -61,12 +88,26 @@ async function request<T>(
     throw new ApiError('NETWORK_ERROR', 'Network request failed. Please check your connection.', 0)
   }
 
-  // Global 401 handler — clear stale token and force re-login
+  // Global 401 handler — try refresh once, then redirect to login
   if (res.status === 401 && typeof window !== 'undefined') {
-    setToken(null)
-    // Avoid redirect loops on auth endpoints themselves
+    // Don't try to refresh auth endpoints themselves
     if (!url.includes('/api/auth/')) {
-      window.location.reload()
+      const newToken = await refreshToken()
+      if (newToken) {
+        // Retry the original request with the new token
+        headers.Authorization = `Bearer ${newToken}`
+        try {
+          res = await fetch(url, { ...options, headers, credentials: 'include' })
+        } catch {
+          throw new ApiError('NETWORK_ERROR', 'Network request failed.', 0)
+        }
+      } else {
+        // Refresh failed — clear and redirect
+        setToken(null)
+        window.location.reload()
+      }
+    } else {
+      setToken(null)
     }
   }
 

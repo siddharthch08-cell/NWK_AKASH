@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { api, setToken, ApiError } from '@/lib/api-client'
 import { useApp } from '@/stores/app-store'
+import type { PublicSettings } from './public-site'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +26,7 @@ const schema = z.object({
     .regex(/[a-z]/, 'Needs lowercase')
     .regex(/[0-9]/, 'Needs a number'),
   confirmPassword: z.string(),
-  termsAccepted: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
+  termsAccepted: z.literal(true, { message: 'You must accept the terms' }),
 }).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] })
 type FormData = z.infer<typeof schema>
 
@@ -55,7 +56,7 @@ function PasswordStrength({ password }: { password: string }) {
   )
 }
 
-export function RegisterPage() {
+export function RegisterPage({ settings }: { settings?: PublicSettings | null }) {
   const { setUser, setView } = useApp()
   const [submitting, setSubmitting] = useState(false)
   const [password, setPassword] = useState('')
@@ -63,6 +64,7 @@ export function RegisterPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -132,15 +134,14 @@ export function RegisterPage() {
                 <Input
                   id="password"
                   type="password"
-                  {...register('password')}
+                  {...register('password', {
+                    onChange: (e) => setPassword(e.target.value),
+                  })}
                   className="mt-1"
                   placeholder="••••••••"
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                  }}
                 />
                 {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
-                {password && <PasswordStrength password={password || watch('password') || ''} />}
+                {password && <PasswordStrength password={password} />}
               </div>
               <div>
                 <Label htmlFor="confirmPassword">Confirm Password *</Label>
@@ -148,9 +149,13 @@ export function RegisterPage() {
                 {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword.message}</p>}
               </div>
               <div className="flex items-start gap-2">
-                <Checkbox id="terms" {...register('termsAccepted')} />
+                <Checkbox
+                  id="terms"
+                  checked={!!watch('termsAccepted')}
+                  onCheckedChange={(v) => setValue('termsAccepted', (v === true) as true, { shouldValidate: true })}
+                />
                 <Label htmlFor="terms" className="text-sm font-normal text-slate-600">
-                  I accept the <button type="button" className="text-blue-700 hover:underline">Terms of Service</button> and <button type="button" className="text-blue-700 hover:underline">Privacy Policy</button>. I understand my account requires admin approval.
+                  I accept the Terms of Service and Privacy Policy. I understand my account requires admin approval.
                 </Label>
               </div>
               {errors.termsAccepted && <p className="text-xs text-red-600">{errors.termsAccepted.message}</p>}

@@ -1,0 +1,1461 @@
+# EDULEARN PRO — MASTER REPAIR, CROSS-PANEL SYNCHRONIZATION AND DEPLOYMENT PROMPT
+
+You are acting as a **senior Next.js architect, Prisma engineer, application-security engineer, QA lead and deployment reviewer**.
+
+You have access to:
+
+1. The complete EDULEARN PRO source-code workspace.
+2. The deep audit report named `EDULEARN_PRO_DEEP_MODULE_AUDIT.md`.
+3. The existing Prisma schema, database access layer, API routes, Public panel, Admin panel and Student panel.
+
+Your task is to **directly inspect, modify, test and complete the existing application**.
+
+Do not return only suggestions, sample code, pseudo-code or another audit. Apply the fixes to the real project.
+
+---
+
+# 1. Primary objective
+
+Make EDULEARN PRO deployment-ready by fixing:
+
+* Broken API routes.
+* Non-working modules.
+* Admin changes that do not reflect in Student or Public panels.
+* Test-attempt data-loss paths.
+* Hidden-result privacy leakage.
+* Missing video-progress functionality.
+* Incomplete course-to-batch assignment.
+* Authentication session-expiry problems.
+* Incorrect analytics.
+* Hardcoded branding and ignored settings.
+* Placeholder controls.
+* TypeScript errors hidden during builds.
+* Authorization and data-integrity defects.
+
+The final application must maintain one consistent flow:
+
+```text
+Admin mutation
+    ↓
+Database update
+    ↓
+Cache/state invalidation
+    ↓
+Updated Admin panel
+    ↓
+Updated Student/Public panel
+    ↓
+Direct URL and API access follow the same rule
+```
+
+A change is not fixed merely because the database updates. It is fixed only when every dependent panel, API and direct-access route reflects the same state.
+
+---
+
+# 2. Non-negotiable implementation rules
+
+## 2.1 Preserve the current application
+
+* Do not rebuild the project from scratch.
+* Do not replace the existing architecture unnecessarily.
+* Preserve working pages, styling, database records and existing functional workflows.
+* Make targeted, maintainable fixes.
+* Do not remove functional modules to make tests pass.
+* Do not silently change established business logic unless the audit identifies that logic as broken.
+* Do not replace real data with mock data.
+* Do not hardcode record IDs, test results, statuses, analytics or user values.
+
+## 2.2 No fake fixes
+
+Do not:
+
+* Comment out broken code.
+* Catch and suppress errors without resolving them.
+* return fake success responses.
+* add `any` everywhere to silence TypeScript.
+* leave TODO comments instead of implementation.
+* keep inactive duplicate handlers.
+* keep unreachable fallback branches.
+* keep `typescript.ignoreBuildErrors: true`.
+* mark a module fixed without running its acceptance tests.
+
+## 2.3 Data safety
+
+Before schema changes:
+
+* Inspect the existing Prisma schema and migration history.
+* Use additive, backward-compatible migrations wherever possible.
+* Preserve existing users, attempts, answers, courses, batches, enrollments and progress records.
+* Do not reset or reseed the production database.
+* Use Prisma transactions for multi-step state changes.
+* Make retry-sensitive actions idempotent.
+
+## 2.4 Route security
+
+Every Student API must verify:
+
+1. The current user is authenticated.
+2. The current user has the STUDENT role.
+3. The requested data belongs to or is accessible by that student.
+4. The associated batch is in an allowed lifecycle state.
+5. The associated course or test is published where required.
+6. Archived content is rejected.
+7. Direct API access follows the same rules as the UI.
+
+Every Admin API must verify the authenticated user has the ADMIN role.
+
+Return correct status codes:
+
+* `400` for invalid request data.
+* `401` for unauthenticated access.
+* `403` for authenticated but unauthorized access.
+* `404` when an accessible resource does not exist.
+* `409` for state conflicts or capacity conflicts.
+* `422` for valid JSON that violates business rules.
+
+---
+
+# 3. Required execution order
+
+Complete work in the following order.
+
+Do not begin cosmetic cleanup before deployment blockers are fixed.
+
+## Phase 1: Stop hard failures and data loss
+
+1. Fix all six student-status routes.
+2. Implement the missing student video-progress route.
+3. Repair public registration.
+4. Repair Contact PATCH.
+5. Repair Feedback PATCH.
+6. Repair test save, resume, exit and submission.
+7. Enforce hidden-result rules.
+8. Add Admin result publication.
+9. Connect course-to-batch assignment and unassignment.
+10. Fix Admin material download.
+11. Fix Student Feedback runtime failure.
+
+## Phase 2: Make all status changes propagate
+
+1. Centralize access rules.
+2. Apply them to all Student APIs.
+3. Fix batch lifecycle propagation.
+4. Fix course lifecycle propagation.
+5. Fix test lifecycle propagation.
+6. Fix material lifecycle propagation.
+7. Centralize branding/settings.
+8. Add state/cache invalidation after mutations.
+
+## Phase 3: Authentication, integrity and authorization
+
+1. Complete refresh-token flow.
+2. Remove insecure secret fallbacks.
+3. Make test submission idempotent.
+4. Enforce batch capacity transactionally.
+5. Protect Leaderboard batch access.
+6. Validate partial date updates.
+7. Fix audit-action accuracy.
+
+## Phase 4: Analytics and incomplete workflows
+
+1. Correct dashboard statistics.
+2. Deduplicate course progress.
+3. Complete Admin lifecycle controls.
+4. Replace or remove non-functional controls.
+5. Fix empty/loading states.
+6. Run full build and regression tests.
+
+---
+
+# 4. Exact required repairs
+
+## ISSUE 1 — Fix all six Admin student-status routes
+
+Affected actions:
+
+* Approve
+* Reject
+* Block
+* Unblock
+* Activate
+* Deactivate
+
+Affected route directories:
+
+```text
+src/app/api/admin/students/[id]/approve/
+src/app/api/admin/students/[id]/reject/
+src/app/api/admin/students/[id]/block/
+src/app/api/admin/students/[id]/unblock/
+src/app/api/admin/students/[id]/activate/
+src/app/api/admin/students/[id]/deactivate/
+```
+
+The existing helper receives a context object but incorrectly executes:
+
+```ts
+const { id } = await params
+```
+
+Use a correct Next.js App Router handler contract, for example:
+
+```ts
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+}
+```
+
+Alternatively, destructure `{ params }` correctly before passing it to a helper.
+
+Requirements:
+
+* Validate that `id` is a non-empty identifier.
+* Confirm the target student exists.
+* Confirm the transition is valid.
+* Update status transactionally.
+* Write the correct audit entry.
+* Return the updated student object.
+* Refresh the Admin list and detail state after success.
+* Ensure blocked, rejected, inactive or unapproved users cannot access Student APIs.
+* Ensure the currently logged-in target user loses access according to the intended session policy.
+
+Do not duplicate six large handlers. Extract a typed shared status-transition helper while preserving route-specific audit actions and validation.
+
+---
+
+## ISSUE 2 — Implement Student Video Progress GET and POST
+
+Create the missing route:
+
+```text
+src/app/api/student/videos/[id]/progress/route.ts
+```
+
+The existing Video Player calls:
+
+```text
+GET  /api/student/videos/{id}/progress
+POST /api/student/videos/{id}/progress
+```
+
+Implement both methods.
+
+### GET requirements
+
+Return sufficient data for the current player to initialize:
+
+* Video metadata.
+* Authorized course/batch context.
+* Existing last playback position.
+* Existing watched duration.
+* Completion state.
+* Effective completion threshold.
+* Any player fields currently expected by `video-player.tsx`.
+
+Validate:
+
+* Student authentication.
+* Video existence.
+* Course publication status.
+* Student enrollment.
+* Batch lifecycle status.
+* Video/archive visibility.
+* Direct URL access.
+
+### POST requirements
+
+Consume the existing progress heartbeat validation schema where appropriate.
+
+Safely process:
+
+* Current playback position.
+* Duration.
+* Watched seconds or heartbeat increment.
+* Completion state.
+* Last-watched timestamp.
+
+Requirements:
+
+* Clamp negative or invalid values.
+* Do not allow playback position above duration.
+* Prevent duplicate heartbeat requests from inflating watch time.
+* Upsert one progress record for the appropriate student/video relationship.
+* Apply the completion threshold from Admin settings.
+* Mark complete only after the configured threshold is reached.
+* Never move completed progress backward.
+* Return the updated normalized progress record.
+
+After implementation, verify that the following update correctly:
+
+* Continue Watching.
+* Student course progress.
+* Video completion percentage.
+* Admin total watch time.
+* Admin most-watched videos.
+* Student last playback position.
+* Student completion state.
+
+---
+
+## ISSUE 3 — Repair Public Registration
+
+Affected file:
+
+```text
+src/components/edulearn/public/register-page.tsx
+```
+
+### Password field
+
+Do not override the `onChange` supplied by React Hook Form after spreading `register()`.
+
+Either:
+
+* Compose the React Hook Form handler with the local password-strength handler, or
+* use `Controller`, `watch` or `setValue` correctly.
+
+React Hook Form must receive every password change.
+
+### Terms checkbox
+
+The Radix checkbox does not use the native checkbox event contract.
+
+Use `Controller` or explicit `checked` and `onCheckedChange` integration.
+
+The form value must be a real boolean and validation must require `true`.
+
+Requirements:
+
+* Valid registration submits successfully.
+* Invalid password is blocked.
+* Unchecked terms are blocked.
+* Checking the terms visually updates form state.
+* Server errors appear without clearing valid fields.
+* Duplicate submission is prevented.
+* No registration record is created twice from one action.
+
+Also connect Terms and Privacy buttons to real pages or remove the clickable appearance until those pages exist.
+
+---
+
+## ISSUE 4 — Fix Admin Contact status and notes update
+
+Current UI calls:
+
+```text
+PATCH /api/admin/contact/{id}
+```
+
+Move or implement PATCH inside:
+
+```text
+src/app/api/admin/contact/[id]/route.ts
+```
+
+The collection route must not pretend to receive a dynamic ID.
+
+Requirements:
+
+* Validate status values.
+* Validate notes length and type.
+* Update the selected message.
+* Return the updated object.
+* Write an audit record where appropriate.
+* Update Admin list and detail without stale status.
+
+Also fix GET behavior:
+
+The current GET marks a message READ but returns the old pre-update object. Return the post-update record.
+
+Avoid an unnecessary write when the message is already READ or later in the workflow.
+
+---
+
+## ISSUE 5 — Fix Admin Feedback status and notes update
+
+Current UI calls:
+
+```text
+PATCH /api/admin/feedback/{id}
+```
+
+Implement PATCH in:
+
+```text
+src/app/api/admin/feedback/[id]/route.ts
+```
+
+Requirements:
+
+* Validate allowed transitions.
+* Update REVIEWING, RESOLVED and CLOSED states correctly.
+* Save notes.
+* Return the updated feedback object.
+* Refresh both Admin list and detail state.
+* Remove the incorrectly placed dynamic PATCH behavior from the collection route.
+
+---
+
+## ISSUE 6 — Fix Test Save, Resume, Exit and Answer Data Loss
+
+Affected areas include:
+
+```text
+src/components/edulearn/student/pages/take-test.tsx
+src/app/api/student/tests/[id]/start/route.ts
+src/app/api/student/attempts/[id]/route.ts
+```
+
+### Resume requirements
+
+When an existing active attempt is resumed:
+
+* Return saved answers with question IDs and selected option IDs.
+* Initialize the client answer state from saved answers.
+* Preserve remaining time using server timestamps.
+* Preserve the original question and option order.
+* Do not reset answers to empty values.
+
+The client may either:
+
+* Receive saved answers in the start/resume response, or
+* call the attempt detail route immediately after resume.
+
+Use one clear contract rather than two conflicting flows.
+
+### Save Progress requirements
+
+* Upsert only answers supplied by the student.
+* Preserve previously saved answers not changed by the current request.
+* Allow an answer to be intentionally cleared through an explicit value.
+* Return the saved normalized answer state.
+* Prevent saving after submission.
+
+### Exit requirements
+
+The button says “Exit (saves progress).”
+
+It must actually:
+
+1. Save the current answer state.
+2. Confirm the save succeeded.
+3. Then navigate away.
+
+If saving fails, remain on the test and show an error.
+
+### Submit requirements
+
+Do not delete all saved answer rows and recreate blanks from incomplete client memory.
+
+On submission:
+
+* Merge the latest client answers with server-saved answers.
+* Evaluate the complete merged set.
+* Use a transaction.
+* Mark the attempt submitted once.
+* Prevent later mutation.
+* Preserve saved answers when the client omits unchanged questions.
+
+---
+
+## ISSUE 7 — Make Test Submission Idempotent
+
+Repeated submission currently returns a different response shape.
+
+Create one stable response contract.
+
+A first submit and a retry of the same already-submitted attempt must return compatible fields.
+
+The client must never receive undefined `test` or `questions` fields that it assumes exist.
+
+Requirements:
+
+* Disable the Submit button while a request is active.
+* Handle network retry safely.
+* Use a transaction and state check.
+* Do not calculate or store a second score.
+* Do not create duplicate answer records.
+* Return the same result-state contract for the original and repeated request.
+* Include an `alreadySubmitted` flag without removing required data.
+
+---
+
+## ISSUE 8 — Enforce hidden test results at API level
+
+`showResultImmediately=false` must be a real access rule, not a condition on one page.
+
+Add an explicit publication state. Prefer an additive field such as:
+
+```prisma
+resultPublishedAt DateTime?
+```
+
+on the appropriate attempt/result entity.
+
+The exact schema location must be selected after inspecting existing models, but it must support:
+
+* Immediate publication when `showResultImmediately=true`.
+* Hidden result after submission when it is false.
+* Later Admin publication.
+* Auditable publication time.
+* Protection per submitted attempt or a clearly defined bulk-publication operation.
+
+### Student API restrictions before publication
+
+Before a result is published, Student APIs must not expose:
+
+* Score.
+* Percentage.
+* Pass/fail.
+* Correct answer IDs.
+* Correct/incorrect question state.
+* Question-level marks.
+* Average or best-score contributions.
+* Detailed result routes.
+* Hidden values in embedded batch or test-history objects.
+
+Return only safe information such as:
+
+* Attempt ID.
+* Submission timestamp.
+* Publication pending state.
+* Test title.
+* Result availability status.
+
+The server, not the client, must remove protected fields.
+
+### Admin workflow
+
+Add Admin controls to:
+
+* Publish one result.
+* Publish selected results.
+* Publish all submitted results for a test.
+* See publication state and publication timestamp.
+
+Add protected Admin API endpoint(s) and correct audit records.
+
+### Student behavior
+
+* Hidden attempts display “Result awaiting publication.”
+* Direct result-detail URL returns a safe pending response or `403`.
+* Published attempts immediately become visible after refetch.
+* Existing immediate-result behavior remains unchanged.
+
+---
+
+## ISSUE 9 — Apply Test Shuffle Settings
+
+The system stores:
+
+* `shuffleQuestions`
+* `shuffleOptions`
+
+but does not use them.
+
+Requirements:
+
+* Expose the settings in Admin create/edit UI.
+* Apply question shuffling only when enabled.
+* Apply option shuffling only when enabled.
+* Preserve question and option order for the full lifetime of an attempt.
+* Do not reshuffle when the page refreshes or the attempt resumes.
+* Do not alter answer correctness relationships.
+
+Use either:
+
+* Persisted order, or
+* deterministic shuffling based on an immutable attempt-specific seed.
+
+Never call a fresh random shuffle on each render.
+
+---
+
+## ISSUE 10 — Connect Course-to-Batch Assignment
+
+Existing APIs include course/batch assignment routes, but no working Admin UI uses them.
+
+Implement a complete workflow in Admin Course Detail and/or Batch Detail:
+
+* View currently assigned batches.
+* Search/select eligible batches.
+* Assign one or multiple batches.
+* Unassign a course from a batch.
+* Prevent duplicate assignment.
+* Confirm destructive unassignment.
+* Show current course and batch lifecycle status.
+* Refresh related pages after mutation.
+
+Inspect existing route contracts first. Reuse them where correct. Repair or extend them if unassignment is missing.
+
+After assignment:
+
+* Published courses must appear for eligible students.
+* Draft or archived courses must not appear.
+* Inactive or completed batch behavior must follow the centralized access policy.
+* Direct course URLs must follow the same rule.
+
+Do not leave text saying “Assign courses from the Courses page” unless a working control exists there.
+
+---
+
+## ISSUE 11 — Fix Admin Material Download
+
+The UI currently calls:
+
+```text
+/api/admin/materials/{id}/download
+```
+
+while the actual GET handler is:
+
+```text
+/api/admin/materials/{id}
+```
+
+Choose one canonical route.
+
+Prefer keeping the existing working server route unless a separate `/download` route is justified.
+
+Update all callers.
+
+Requirements:
+
+* Admin download succeeds.
+* Filename and content type are correct.
+* Missing files return a clear error.
+* Unauthorized requests are rejected.
+* No dead duplicate download route remains.
+
+---
+
+## ISSUE 12 — Fix Student Feedback runtime error
+
+Affected file:
+
+```text
+src/components/edulearn/student/pages/feedback.tsx
+```
+
+Fix the missing toast import or use the project’s existing notification utility consistently.
+
+Also prevent duplicate creation:
+
+* Disable Submit while pending.
+* Clear the form only after confirmed success.
+* Show a success notification.
+* Preserve the form when the API fails.
+* Do not crash after a successful database insert.
+
+---
+
+# 5. Centralized cross-panel access policy
+
+Create a shared, typed server-side policy layer instead of duplicating different conditions across routes.
+
+Possible location:
+
+```text
+src/lib/access-policy.ts
+```
+
+The implementation may use helpers such as:
+
+```ts
+canStudentAccessBatch(...)
+canStudentAccessCourse(...)
+canStudentAccessTest(...)
+canStudentAccessMaterial(...)
+canStudentAccessVideo(...)
+canStudentViewResult(...)
+```
+
+Do not rely only on helpers returning booleans after loading unrestricted data. Where practical, encode the same restrictions in Prisma `where` clauses.
+
+## Batch access policy
+
+Define explicitly which statuses allow Student access.
+
+At minimum:
+
+* ACTIVE: accessible.
+* UPCOMING: accessible only where the product intentionally supports previews.
+* INACTIVE: no learning-content access.
+* COMPLETED: either read-only historical access or no access, but the rule must be consistent.
+* ARCHIVED or equivalent: no active access.
+
+Use the product’s existing intended lifecycle where it is clear. Document any unavoidable choice.
+
+Remove this defect completely:
+
+```ts
+bc.batch.status === 'ACTIVE' ||
+bc.batch.status === 'UPCOMING' ||
+true
+```
+
+No unconditional bypass may remain.
+
+## Course access policy
+
+A Student may access a course only when:
+
+* The student is valid and authorized.
+* The student has an allowed enrollment relationship.
+* The parent batch passes lifecycle rules.
+* The course is PUBLISHED.
+* The course is not archived/deleted.
+* The course assignment is active.
+
+Apply this to:
+
+* Course list.
+* Course detail.
+* Batch detail.
+* Dashboard.
+* Video access.
+* Material access.
+* Direct API URLs.
+
+## Test access policy
+
+Require:
+
+* Valid enrollment.
+* Allowed batch status.
+* Test status PUBLISHED.
+* Test assignment validity.
+* Test date/time availability.
+* Attempt-limit rules.
+* Result-publication rules.
+
+Batch detail must not show unpublished tests.
+
+## Material access policy
+
+Require:
+
+* Material not archived.
+* Valid material visibility rule.
+* Parent batch allowed.
+* Parent course published when course-scoped.
+* Student enrollment and assignment.
+* Direct download authorization.
+
+Deactivating a batch or archiving a course must revoke future file access according to policy.
+
+---
+
+# 6. Cross-panel synchronization and invalidation
+
+After every successful Admin mutation, update all affected views.
+
+Use the existing state architecture first. Do not add a heavy dependency solely for refetching.
+
+Apply suitable mechanisms such as:
+
+* Returning the updated object from mutation APIs.
+* Updating local list/detail state.
+* Calling `router.refresh()` for server-rendered data.
+* Re-fetching affected stores.
+* `revalidatePath` or `revalidateTag` for cached server data.
+* Revalidation on window focus.
+* A lightweight same-origin `BroadcastChannel` for open Admin/Student/Public tabs where appropriate.
+
+At minimum, synchronize:
+
+* Student status changes.
+* Batch status changes.
+* Course status and assignments.
+* Test status and assignments.
+* Test-result publication.
+* Materials.
+* Contact and Feedback status.
+* Branding and settings.
+* Announcements.
+
+Do not create infinite polling or fetch loops.
+
+An already-open panel must refresh through a defined strategy rather than relying permanently on manual browser reload.
+
+---
+
+# 7. Authentication and session continuity
+
+## Refresh route
+
+Implement the missing route:
+
+```text
+POST /api/auth/refresh
+```
+
+Use the existing refresh-session records rather than creating a second unrelated system.
+
+Requirements:
+
+* Read the refresh token securely.
+* Validate signature/hash/session record.
+* Reject expired, revoked or reused tokens.
+* Rotate the refresh token.
+* Revoke the previous refresh token.
+* Issue a fresh short-lived access token.
+* Update the secure cookie/session state.
+* Return a minimal safe response.
+* Protect against token replay.
+
+## API client behavior
+
+On an access-token `401` caused by expiry:
+
+1. Attempt refresh once.
+2. Retry the original request once.
+3. If refresh fails, clear authentication and redirect to login.
+4. Prevent multiple parallel failed requests from launching multiple refresh rotations.
+
+Do not create an infinite retry loop.
+
+## Security cleanup
+
+* Remove development fallback JWT secrets from source.
+* Require environment variables.
+* Fail startup clearly when required secrets are missing.
+* Use `httpOnly`, `secure` in production and appropriate `sameSite` settings for refresh cookies.
+* Do not expose refresh tokens to client JavaScript.
+* Ensure logout revokes the current refresh session.
+* Ensure password change revokes all refresh sessions.
+* Document the remaining access-token invalidation behavior if immediate JWT revocation is not implemented.
+
+Preserve the existing authentication UI unless a change is required for correctness.
+
+---
+
+# 8. Batch capacity and enrollment integrity
+
+The displayed batch capacity must be enforced.
+
+In student-assignment routes:
+
+* Count active/current enrollments.
+* Exclude students already assigned.
+* Validate the requested number against remaining capacity.
+* Perform check and insert in a transaction.
+* Protect against concurrent over-enrollment.
+* Return `409` when capacity would be exceeded.
+* Return which students were already assigned or invalid.
+* Do not partially assign unless the API explicitly supports and reports partial results.
+
+Admin UI requirements:
+
+* Display current count and remaining capacity.
+* Exclude invalid statuses where appropriate.
+* Exclude or mark already-enrolled students.
+* Support pagination/search instead of silently limiting the usable list to 100.
+* Disable assignment when the batch is full.
+
+---
+
+# 9. Leaderboard authorization
+
+When `/api/student/leaderboard` receives a `batchId`:
+
+* Verify the current student is enrolled in that batch.
+* Verify the enrollment and batch satisfy lifecycle access rules.
+* Reject unrelated batch IDs with `403` or a safe `404`.
+* Never expose another batch’s student names, images, scores or attempt data to an unauthorized student.
+
+If no `batchId` is supplied, return only leaderboards for batches accessible to the current student.
+
+---
+
+# 10. Branding and Settings propagation
+
+Centralize application settings and remove hardcoded branding where a stored setting exists.
+
+Apply configured values to:
+
+* Public header.
+* Public footer.
+* Public login/register branding.
+* Admin shell.
+* Student shell.
+* Loading/boot screen.
+* Browser title.
+* Description metadata.
+* OpenGraph metadata.
+* Twitter metadata.
+* Logo.
+* Favicon.
+* Institute name.
+* Tagline.
+
+Use valid fallback branding only when the database setting is genuinely absent.
+
+## Dynamic metadata
+
+Use an appropriate Next.js metadata strategy, such as `generateMetadata`, for server-accessible branding.
+
+Favicon changes must actually update browser metadata.
+
+## Maintenance mode
+
+Implement enforcement, not just storage.
+
+When maintenance mode is enabled:
+
+* Public learning/auth flows show a maintenance page.
+* Admin access remains available.
+* Existing privileged behavior is clearly defined.
+* APIs return a consistent maintenance response where required.
+
+## Settings-backed defaults
+
+Apply:
+
+* Video completion threshold.
+* Default maximum attempts in new test forms.
+* Maximum upload size in both server validation and Admin UI text.
+
+Do not show a hardcoded “20 MB” label when the server uses another limit.
+
+For settings such as Revenue or Certificates that have no delivered module:
+
+* Do not pretend they are active.
+* Either implement their real behavior or clearly label/remove unavailable controls.
+
+---
+
+# 11. Fix profile update navigation
+
+Affected file:
+
+```text
+src/components/edulearn/student/pages/profile.tsx
+```
+
+Do not call a global bootstrap operation that resets the current Student view after a normal profile save.
+
+Instead:
+
+* Return the updated user from the API.
+* Merge it into the shared auth/user store.
+* Refresh profile/header identity.
+* Keep the user on the Profile page.
+* Show success or failure state.
+
+Use global bootstrap only for true authentication initialization.
+
+---
+
+# 12. Analytics corrections
+
+## Admin approved-student trend
+
+Remove hardcoded:
+
+```ts
+approved: 0
+```
+
+Calculate approved students for each intended date interval using actual approval timestamps/status history available in the schema.
+
+If approval history is not currently stored, add the smallest correct auditable field/event required rather than fabricating data.
+
+## Admin aggregate counts
+
+Clearly define dashboard counts.
+
+Prefer separate values such as:
+
+* Total records.
+* Active records.
+* Published records.
+* Archived records.
+
+Do not label unrestricted counts in a way that implies only active content.
+
+## Student test statistics
+
+Use one consistent submitted-attempt dataset for:
+
+* Dashboard average.
+* Dashboard best.
+* Results average.
+* Results best.
+* Attempt count.
+
+Do not calculate Dashboard statistics from only the latest ten attempts unless the UI explicitly says “last ten attempts.”
+
+Pagination may limit displayed rows but must not limit aggregate calculations.
+
+Hidden unpublished results must not contribute visible score statistics before publication.
+
+## Course-progress deduplication
+
+Deduplicate courses by course ID when a course is assigned through multiple enrolled batches.
+
+Do not produce duplicate cards or duplicate React keys.
+
+Define how progress is combined when the same course has multiple valid assignments.
+
+## Video analytics
+
+After implementing the progress endpoint, verify actual records drive:
+
+* Total watch time.
+* Completion count.
+* Continue Watching.
+* Most-watched videos.
+* Student course progress.
+
+Do not leave analytics silently showing zeros because of missing ingestion.
+
+---
+
+# 13. Complete Admin content lifecycle controls
+
+Inspect existing APIs and connect all intended lifecycle actions to UI.
+
+At minimum:
+
+## Courses
+
+* Create.
+* Edit.
+* Publish.
+* Archive.
+* Restore if supported.
+* Assign batches.
+* Unassign batches.
+* View assigned batches.
+
+## Batches
+
+* Create.
+* Edit.
+* Change status.
+* Archive.
+* Assign students.
+* Remove students.
+* Assign courses if supported from this page.
+* Enforce capacity.
+
+## Tests
+
+* Create.
+* Edit.
+* Publish.
+* Archive.
+* Configure shuffling.
+* Configure result visibility.
+* Assign/unassign batches.
+* Publish results.
+* View publication state.
+
+## Questions
+
+* Create.
+* Edit.
+* Delete with confirmation.
+* Reorder.
+* Preserve correct-answer mapping.
+* Prevent edits that corrupt already-submitted attempts, or version the necessary data.
+
+Do not leave working APIs inaccessible behind missing UI controls.
+
+---
+
+# 14. Public enrollment request workflow
+
+The UI currently presents “Enroll Now” or “Request Enrollment” without a real request module.
+
+Choose one honest implementation:
+
+## Preferred: implement enrollment requests
+
+Add:
+
+* Student/public request endpoint.
+* Duplicate-request prevention.
+* Request status model.
+* Admin request queue.
+* Approve/reject actions.
+* Capacity and student-status checks.
+* Conversion of an approved request into enrollment.
+* Notifications or visible request-state feedback.
+
+## Alternative
+
+If enrollment requests are outside the actual product scope:
+
+* Rename buttons to honest actions such as “Register to view available batches.”
+* Remove wording that implies a request was created.
+* Do not leave a fake “Request Enrollment” action.
+
+Do not invent a fake success notification.
+
+---
+
+# 15. Placeholder controls
+
+Review:
+
+* Admin search.
+* Student search.
+* Notification icons.
+* Terms.
+* Privacy Policy.
+* Static notification badges.
+
+For each control:
+
+* Implement the real function, or
+* remove/disable the interactive appearance.
+
+Do not ship buttons that look operational but have no handler.
+
+Terms and Privacy pages must be accessible from Registration and Footer if users are required to accept them.
+
+---
+
+# 16. Homepage empty state
+
+Do not use `batches.length === 0` as both loading and empty state.
+
+Maintain explicit states:
+
+```ts
+loading
+error
+data
+empty
+```
+
+When the API successfully returns zero featured batches, show a real empty-state message rather than permanent skeleton loading.
+
+Apply the same correction to other pages with this anti-pattern.
+
+---
+
+# 17. Partial date-range validation
+
+Affected batch and test PATCH handlers must validate the final merged entity, not only fields present together in the incoming payload.
+
+Example:
+
+1. Load the current record.
+2. Merge current dates with incoming dates.
+3. Validate final start/end relationship.
+4. Reject invalid ranges before update.
+
+Also validate:
+
+* Attempt windows.
+* Registration windows where applicable.
+* Start date before end date.
+* Time zone consistency.
+
+---
+
+# 18. Audit history accuracy
+
+The Test update route currently writes `TEST_CREATED`.
+
+Use the correct update audit action.
+
+Review related lifecycle mutations for similar incorrect actions.
+
+Audit entries should contain:
+
+* Correct actor.
+* Correct action.
+* Correct entity type.
+* Correct entity ID.
+* Meaningful changed fields where supported.
+* Timestamp.
+
+Do not record a creation event for an update.
+
+---
+
+# 19. Fix batch-detail material relation
+
+The current relation includes:
+
+```ts
+OR: [
+  { batchId: id },
+  { visibility: 'COURSE' }
+]
+```
+
+inside a relation already constrained to the batch, so the COURSE branch does not retrieve intended course-only materials.
+
+Rewrite the query according to the actual visibility model.
+
+The result must intentionally include only materials the Student may access through:
+
+* The current batch, or
+* Published courses assigned to the current batch,
+
+while applying archive, course-status and batch-status policies.
+
+Do not broaden access to unrelated COURSE-visible materials.
+
+---
+
+# 20. TypeScript and deployment requirements
+
+Remove from `next.config.ts`:
+
+```ts
+typescript: {
+  ignoreBuildErrors: true
+}
+```
+
+Fix every real TypeScript error, including:
+
+* Incorrect student-status route context typing.
+* Missing `PublicSettings` export or incorrect imports.
+* Missing `toast` symbol.
+* Invalid `settings` prop passed to RegisterPage.
+* Any new errors introduced during repairs.
+
+Also run:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+Use the actual package manager and scripts declared by the project.
+
+A successful build with errors ignored is not accepted.
+
+Do not disable ESLint or TypeScript checks globally.
+
+---
+
+# 21. API and client contract standards
+
+For every repaired endpoint:
+
+* Define typed request payloads.
+* Validate them.
+* Return a stable typed response.
+* Keep list/detail response shapes consistent where appropriate.
+* Do not return stale pre-update objects.
+* Do not expose private internal fields.
+* Handle expected conflict states explicitly.
+* Ensure the client checks `response.ok`.
+* Show server error messages safely.
+* Prevent duplicate pending actions.
+* Refresh affected local and shared state after success.
+
+Remove dead collection-route handlers after moving them to dynamic routes.
+
+---
+
+# 22. Required automated and manual regression tests
+
+Create tests using the project’s existing testing stack. If no test stack exists, add the smallest suitable setup without introducing unnecessary complexity.
+
+## Authentication
+
+1. Valid registration creates one pending student.
+2. Password changes reach React Hook Form.
+3. Terms must be true.
+4. Admin can approve, reject, block, unblock, activate and deactivate the selected student.
+5. Invalid student ID does not modify another user.
+6. Access token expiry triggers one refresh and request retry.
+7. Revoked refresh token is rejected.
+8. Logout revokes the session.
+
+## Course and batch propagation
+
+1. Assign course to batch.
+2. Eligible student sees it.
+3. Unassign course.
+4. Student no longer sees or opens it.
+5. Set course DRAFT or ARCHIVED.
+6. It disappears from Batch Detail, Course List, Dashboard and direct URL.
+7. Set batch INACTIVE.
+8. Courses, tests, videos and materials obey the same access rule.
+9. Restore allowed status.
+10. Content becomes accessible after refresh/revalidation.
+
+## Video progress
+
+1. Open an authorized video.
+2. GET returns video and current progress.
+3. Send heartbeat.
+4. Resume from stored position.
+5. Reach configured completion threshold.
+6. Completion becomes true once.
+7. Repeated heartbeat does not inflate time incorrectly.
+8. Admin analytics update.
+
+## Tests
+
+1. Start attempt.
+2. Answer multiple questions.
+3. Save progress.
+4. Exit through the save-and-exit button.
+5. Reopen attempt.
+6. Confirm all saved answers are restored.
+7. Change one answer.
+8. Submit.
+9. Confirm untouched saved answers remain.
+10. Retry submission.
+11. Confirm identical compatible response and no duplicate grading.
+12. Confirm shuffled order remains stable across reload.
+13. Confirm non-shuffled test remains ordered.
+
+## Hidden results
+
+1. Submit a test with immediate results disabled.
+2. Confirm score is absent from submit response.
+3. Confirm score is absent from Results API.
+4. Confirm average/best excludes hidden score.
+5. Confirm direct result URL does not expose it.
+6. Publish from Admin.
+7. Confirm the Student can then see it everywhere.
+
+## Contact and Feedback
+
+1. Update status.
+2. Update notes.
+3. Confirm dynamic PATCH succeeds.
+4. Confirm list and detail show the same updated object.
+5. Confirm Student Feedback does not crash or create duplicates.
+
+## Capacity and authorization
+
+1. Fill batch to capacity.
+2. Attempt another assignment.
+3. Confirm `409` and no partial over-enrollment.
+4. Simulate concurrent enrollment attempts.
+5. Confirm final count never exceeds capacity.
+6. Query an unrelated leaderboard batch.
+7. Confirm access is denied.
+
+## Settings and branding
+
+1. Change institute name.
+2. Change tagline.
+3. Change logo.
+4. Change favicon.
+5. Change upload limit.
+6. Change test-attempt default.
+7. Change video threshold.
+8. Enable maintenance mode.
+9. Verify Public, Admin, Student, metadata and APIs reflect the appropriate values.
+
+## Build
+
+1. Type-check with no suppression.
+2. Lint.
+3. Production build.
+4. No ignored build errors.
+5. No unresolved imports.
+6. No missing route handlers.
+
+---
+
+# 23. Completion criteria
+
+Do not mark the project complete until all of the following are true:
+
+* Every audited hard failure is repaired.
+* No test answer can be lost during save/resume/submit.
+* Hidden test results are protected server-side.
+* Video progress and analytics work end-to-end.
+* Course-to-batch assignment is available in Admin UI.
+* Admin status changes propagate consistently.
+* Direct URLs cannot bypass status rules.
+* Refresh-token flow works.
+* Batch capacity is enforced transactionally.
+* Leaderboard access is authorized.
+* Branding/settings are no longer ignored.
+* Analytics are based on real, consistent datasets.
+* Placeholder controls are implemented or removed.
+* TypeScript errors are no longer suppressed.
+* Lint, type-check and production build pass.
+* Regression evidence is provided.
+
+---
+
+# 24. Required final response after implementation
+
+After modifying the project, return a structured completion report containing:
+
+## A. Files changed
+
+List every created, modified and deleted file.
+
+## B. Database changes
+
+List:
+
+* Prisma model changes.
+* Migration names.
+* Backfill behavior.
+* Why existing data remains safe.
+
+## C. Issue-by-issue status
+
+For each of the 36 audited findings, state:
+
+* Fixed.
+* Removed because it was a fake/incomplete control.
+* Partially fixed, with an exact reason.
+* Not fixed, with reproducible evidence.
+
+Do not use vague statements such as “handled” or “improved.”
+
+## D. Cross-panel verification
+
+For every important Admin action, show:
+
+```text
+Admin action
+→ API mutation
+→ database state
+→ Admin refetch
+→ Student/Public refetch
+→ direct URL result
+```
+
+## E. Test evidence
+
+Provide:
+
+* Commands executed.
+* TypeScript result.
+* Lint result.
+* Production build result.
+* Automated test result.
+* Manual workflow result.
+
+## F. Remaining risks
+
+Report any unresolved limitation honestly.
+
+Do not declare “deployment-ready” when build or critical regression tests still fail.
+
+---
+
+# Final instruction
+
+Start by reading the complete audit and tracing the existing code contracts. Then implement the fixes in the specified phases.
+
+Do not produce another theoretical plan.
+
+Do not stop after repairing only the first visible error.
+
+Repair the full workflow so that Public, Admin, Student, APIs, Prisma data and direct URL access all enforce the same business state.

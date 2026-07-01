@@ -57,7 +57,7 @@ export interface Student {
   testAttempts: number
 }
 
-export interface StudentDetail extends Student {
+export interface StudentDetail extends Omit<Student, 'testAttempts' | 'enrolledBatches'> {
   preferredBatchId?: string | null
   updatedAt: string
   enrollments: EnrollmentWithBatch[]

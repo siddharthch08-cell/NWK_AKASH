@@ -367,6 +367,7 @@ model TestAttempt {
   timeTakenSecs   Int      @default(0)
   submissionType  String? // MANUAL | AUTO_TIMEOUT | ADMIN_FINALIZED
   status          String   @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | ABANDONED
+  resultPublishedAt DateTime? // null = hidden; set = visible to student
   createdAt       DateTime @default(now())
 
   test            Test     @relation(fields: [testId], references: [id], onDelete: Cascade)

@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   // Resolve youtubeId from either field
   if (parsed.data.youtubeId !== undefined || parsed.data.youtubeUrl !== undefined) {
-    let youtubeId = parsed.data.youtubeId
+    let youtubeId: string | null = parsed.data.youtubeId || null
     if (!youtubeId && parsed.data.youtubeUrl) {
       youtubeId = extractYouTubeId(parsed.data.youtubeUrl)
     }
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   if (parsed.data.thumbnail !== undefined) data.thumbnail = parsed.data.thumbnail || null
 
-  const updated = await db.video.update({ where: { id }, data })
+  const updated = await db.video.update({ where: { id }, data: data as any })
   return ok({ video: updated }, 'Video updated')
 }
 

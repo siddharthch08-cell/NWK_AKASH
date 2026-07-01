@@ -64,6 +64,8 @@ export async function finalizeAttempt(
     }
 
     const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0
+    // Auto-publish result if test has showResultImmediately=true
+    const publishedAt = test.showResultImmediately ? now : null
     const finalized = await tx.testAttempt.update({
       where: { id: attemptId },
       data: {
@@ -74,6 +76,7 @@ export async function finalizeAttempt(
         percentage,
         timeTakenSecs,
         submissionType,
+        resultPublishedAt: publishedAt,
       },
     })
     return finalized

@@ -20,9 +20,13 @@ export function HomePage({
 }) {
   const { setView, user } = useApp()
   const [batches, setBatches] = useState<PublicBatch[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get<{ batches: PublicBatch[] }>('/api/public/batches').then((d) => setBatches(d.batches)).catch(() => {})
+    api.get<{ batches: PublicBatch[] }>('/api/public/batches')
+      .then((d) => setBatches(d.batches))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -143,7 +147,7 @@ export function HomePage({
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {batches.length === 0 && (
+            {loading && (
               <>
                 {[1, 2, 3].map((i) => (
                   <Card key={i} className="overflow-hidden">
@@ -156,6 +160,13 @@ export function HomePage({
                   </Card>
                 ))}
               </>
+            )}
+            {!loading && batches.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <BookOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                <h3 className="text-lg font-semibold text-slate-700">No batches available yet</h3>
+                <p className="text-slate-500 mt-1">Please check back later or contact us for upcoming schedules.</p>
+              </div>
             )}
             {batches.map((b) => (
               <Card key={b.id} className="overflow-hidden hover:shadow-lg transition-shadow group">

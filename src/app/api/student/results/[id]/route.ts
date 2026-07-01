@@ -33,7 +33,31 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (attempt.userId !== ctx.user.id) return forbidden('This is not your attempt')
   if (attempt.status !== 'SUBMITTED') return forbidden('Attempt not yet submitted')
 
-  const showResult = attempt.test.showResultImmediately
+  const published = !!attempt.resultPublishedAt
+
+  // If not published, return only safe metadata
+  if (!published) {
+    return ok(
+      {
+        attempt: {
+          id: attempt.id,
+          attemptNumber: attempt.attemptNumber,
+          submittedAt: attempt.submittedAt,
+          resultPublished: false,
+          score: null,
+          totalMarks: null,
+          percentage: null,
+          timeTakenSecs: null,
+          passed: null,
+        },
+        test: { id: attempt.test.id, title: attempt.test.title },
+        questions: [],
+        hidden: true,
+      },
+      'Result awaiting publication'
+    )
+  }
+
   const showKey = attempt.test.showAnswerKey
   const passed = attempt.test.passingPct != null ? attempt.percentage >= attempt.test.passingPct : null
 
@@ -50,6 +74,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         submittedAt: attempt.submittedAt,
         startedAt: attempt.startedAt,
         passed,
+        resultPublished: true,
       },
       test: {
         id: attempt.test.id,
@@ -67,14 +92,12 @@ export async function GET(req: NextRequest, { params }: Params) {
           selectedOptionId: ans?.selectedOptionId || null,
           answered: !!ans?.selectedOptionId,
         }
-        if (showResult) {
+        if (showKey) {
           base.isCorrect = ans?.isCorrect
           base.marksAwarded = ans?.marksAwarded
-          if (showKey) {
-            base.explanation = q.explanation
-            base.correctOptionId = q.options.find((o) => o.isCorrect)?.id || null
-            base.options = q.options.map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
-          }
+          base.explanation = q.explanation
+          base.correctOptionId = q.options.find((o) => o.isCorrect)?.id || null
+          base.options = q.options.map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
         }
         return base
       }),

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       take: 8,
     }),
     db.testAttempt.findMany({
-      where: { userId, status: 'SUBMITTED' },
+      where: { userId, status: 'SUBMITTED', resultPublishedAt: { not: null } },
       include: { test: { select: { id: true, title: true } } },
       orderBy: { submittedAt: 'desc' },
       take: 10,
@@ -80,10 +80,15 @@ export async function GET(req: NextRequest) {
       topic: { chapter: { course: { batches: { some: { batch: { enrollments: { some: { userId } } } } } } } },
     },
   })
-  const avgScore = attempts.length
-    ? Math.round(attempts.reduce((a, at) => a + at.percentage, 0) / attempts.length)
+  // Stats from ALL published attempts (not just the take:10 slice)
+  const allPublishedAttempts = await db.testAttempt.findMany({
+    where: { userId, status: 'SUBMITTED', resultPublishedAt: { not: null } },
+    select: { percentage: true },
+  })
+  const avgScore = allPublishedAttempts.length
+    ? Math.round(allPublishedAttempts.reduce((a, at) => a + at.percentage, 0) / allPublishedAttempts.length)
     : 0
-  const bestScore = attempts.length ? Math.max(...attempts.map((a) => a.percentage)) : 0
+  const bestScore = allPublishedAttempts.length ? Math.max(...allPublishedAttempts.map((a) => a.percentage)) : 0
 
   // Count active tests (available now)
   const activeTests = await db.test.count({

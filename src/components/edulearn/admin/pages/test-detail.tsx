@@ -193,7 +193,7 @@ function AddQuestionDialog({ testId, open, onClose, onAdded }: { testId: string;
             <RadioGroup className="mt-2 space-y-2">
               {options.map((o, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <RadioGroupItem value={String(i)} checked={o.isCorrect} onCheckedChange={() => setOpt(i, 'isCorrect', true)} />
+                  <RadioGroupItem value={String(i)} checked={o.isCorrect} onClick={() => setOpt(i, 'isCorrect', true)} />
                   <Input value={o.text} onChange={(e) => setOpt(i, 'text', e.target.value)} placeholder={`Option ${String.fromCharCode(65 + i)}`} />
                   {o.isCorrect && <Badge className="bg-emerald-100 text-emerald-700">Correct</Badge>}
                   {options.length > 2 && <Button variant="ghost" size="icon" onClick={() => removeOpt(i)}><X className="w-4 h-4" /></Button>}

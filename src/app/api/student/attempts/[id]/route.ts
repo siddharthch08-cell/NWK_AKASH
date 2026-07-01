@@ -78,22 +78,30 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
   }
 
-  // Save / upsert answers (replace any existing answers for this attempt)
+  // Upsert only supplied answers — preserve previously saved answers not in this request
+  const clientAnswersMap = new Map(parsed.data.answers.map((a) => [a.questionId, a.selectedOptionId || null]))
+
   await db.$transaction(async (tx) => {
-    // Clear previous answers (in case of resume + change)
-    await tx.attemptAnswer.deleteMany({ where: { attemptId: id } })
-    for (const q of attempt.test.questions) {
-      const ans = parsed.data.answers.find((a) => a.questionId === q.id)
-      await tx.attemptAnswer.create({
-        data: {
-          attemptId: id,
-          questionId: q.id,
-          selectedOptionId: ans?.selectedOptionId || null,
-          // isCorrect and marksAwarded will be set by finalizeAttempt
-          isCorrect: false,
-          marksAwarded: 0,
-        },
+    for (const [questionId, selectedOptionId] of clientAnswersMap) {
+      const existing = await tx.attemptAnswer.findFirst({
+        where: { attemptId: id, questionId },
       })
+      if (existing) {
+        await tx.attemptAnswer.update({
+          where: { id: existing.id },
+          data: { selectedOptionId },
+        })
+      } else {
+        await tx.attemptAnswer.create({
+          data: {
+            attemptId: id,
+            questionId,
+            selectedOptionId,
+            isCorrect: false,
+            marksAwarded: 0,
+          },
+        })
+      }
     }
   })
 
@@ -134,43 +142,45 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const showResult = attempt.test.showResultImmediately
   const showKey = attempt.test.showAnswerKey
+  const published = !!result!.resultPublishedAt
 
-  // Build the response — only include isCorrect/correct answer when allowed
+  // Build the response — only include isCorrect/correct answer when published AND allowed
   const questions = result!.test.questions.map((q) => {
     const ans = result!.answers.find((a) => a.questionId === q.id)
     const base: any = {
       id: q.id,
       text: q.text,
-      explanation: showKey ? q.explanation : undefined,
+      explanation: (published && showKey) ? q.explanation : undefined,
       marks: q.marks,
       selectedOptionId: ans?.selectedOptionId || null,
       answered: !!ans?.selectedOptionId,
     }
-    if (showResult) {
+    if (published && showResult) {
       base.isCorrect = ans?.isCorrect
       base.marksAwarded = ans?.marksAwarded
       if (showKey) {
         base.correctOptionId = q.options.find((o) => o.isCorrect)?.id || null
-        base.options = q.options.map((o) => ({ id: o.id, text: o.text, isCorrect: showKey ? o.isCorrect : undefined }))
+        base.options = q.options.map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
       }
     }
     return base
   })
 
-  const passed = attempt.test.passingPct != null ? result!.percentage >= attempt.test.passingPct : null
+  const passed = (published && attempt.test.passingPct != null) ? result!.percentage >= attempt.test.passingPct : null
 
   return ok(
     {
       attempt: {
         id: result!.id,
         attemptNumber: result!.attemptNumber,
-        score: result!.score,
-        totalMarks: result!.totalMarks,
-        percentage: result!.percentage,
-        timeTakenSecs: result!.timeTakenSecs,
+        score: published ? result!.score : null,
+        totalMarks: published ? result!.totalMarks : null,
+        percentage: published ? result!.percentage : null,
+        timeTakenSecs: published ? result!.timeTakenSecs : null,
         submissionType: result!.submissionType,
         submittedAt: result!.submittedAt,
         passed,
+        resultPublished: published,
       },
       test: {
         id: result!.test.id,
@@ -179,9 +189,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         showResultImmediately: result!.test.showResultImmediately,
         passingPct: result!.test.passingPct,
       },
-      questions,
+      questions: published ? questions : [],
+      hidden: !published,
     },
-    'Test submitted and scored'
+    published ? 'Test submitted and scored' : 'Test submitted — result awaiting publication'
   )
 }
 

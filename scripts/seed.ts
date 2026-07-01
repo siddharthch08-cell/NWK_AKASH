@@ -90,7 +90,7 @@ async function main() {
     { name: 'Arjun Gupta', email: 'arjun@example.com', status: 'ACTIVE' },
     { name: 'Meera Krishnan', email: 'meera@example.com', status: 'ACTIVE' },
   ]
-  const students = []
+  const students: any[] = []
   for (const s of studentDefs) {
     const u = await db.user.upsert({
       where: { email: s.email },

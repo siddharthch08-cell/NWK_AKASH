@@ -1,30 +1,41 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
-import { ok, unauthorized } from '@/lib/api-response'
+import { ok, unauthorized, forbidden } from '@/lib/api-response'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
 
   const url = new URL(req.url)
-  const batchId = url.searchParams.get('batchId') || undefined
+  const requestedBatchId = url.searchParams.get('batchId') || undefined
 
-  // Get all submitted attempts for students in batches the current student is in
-  // (or only the selected batch if provided)
-  const accessibleBatchIds = batchId
-    ? [batchId]
-    : (await db.batchEnrollment.findMany({
-        where: { userId: ctx.user.id },
-        select: { batchId: true },
-      })).map((e) => e.batchId)
+  // Get student's accessible batch IDs
+  const enrollments = await db.batchEnrollment.findMany({
+    where: {
+      userId: ctx.user.id,
+      batch: { status: { in: ['ACTIVE', 'UPCOMING', 'COMPLETED'] } },
+    },
+    select: { batchId: true },
+  })
+  const accessibleBatchIds = enrollments.map((e) => e.batchId)
 
-  if (accessibleBatchIds.length === 0) return ok({ leaderboard: [], myRank: null }, 'Leaderboard')
+  // If a specific batchId is requested, verify the student is enrolled in it
+  if (requestedBatchId) {
+    if (!accessibleBatchIds.includes(requestedBatchId)) {
+      return forbidden('You do not have access to this batch')
+    }
+  }
+
+  const targetBatchIds = requestedBatchId ? [requestedBatchId] : accessibleBatchIds
+
+  if (targetBatchIds.length === 0) return ok({ leaderboard: [], myRank: null }, 'Leaderboard')
 
   const attempts = await db.testAttempt.findMany({
     where: {
       status: 'SUBMITTED',
-      test: { batches: { some: { batchId: { in: accessibleBatchIds } } } },
+      resultPublishedAt: { not: null },
+      test: { batches: { some: { batchId: { in: targetBatchIds } } } },
     },
     include: { user: { select: { id: true, name: true, photo: true } } },
     take: 10000,

@@ -40,14 +40,14 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (!course) return notFound('Course not found')
   if (course.status !== 'PUBLISHED') return notFound('Course not found')
 
-  const enrolled = course.batches.some((bc) =>
-    bc.batch.status === 'ACTIVE' || bc.batch.status === 'UPCOMING' || true // allow any assigned batch
-  )
   // Strict check: is the student enrolled in ANY batch that has this course?
   const hasAccess = await db.batchEnrollment.findFirst({
     where: {
       userId: ctx.user.id,
-      batch: { courses: { some: { courseId: id } } },
+      batch: {
+        courses: { some: { courseId: id } },
+        status: { in: ['ACTIVE', 'UPCOMING', 'COMPLETED'] },
+      },
     },
   })
   if (!hasAccess) return forbidden('You do not have access to this course')
