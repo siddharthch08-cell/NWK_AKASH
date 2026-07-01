@@ -34,16 +34,14 @@ export async function POST(req: NextRequest) {
   const user = await db.user.findFirst({ where: { id: payload.sub!, deletedAt: null } })
   if (!user) return unauthorized('User not found')
 
-  // Reuse detection: if the token was already rotated, revoke all user sessions
-  if (stored.rotatedFrom) {
-    await db.refreshToken.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    })
-    return unauthorized('Token reuse detected — all sessions revoked')
-  }
+  // Reuse detection: if the token was already consumed (revokedAt set),
+  // it means someone is presenting an old token again after rotation.
+  // This IS genuine reuse — revoke all user sessions.
+  // (The rotatedFrom field is NOT reuse — it just means this token is a rotation successor.)
+  // The revokedAt check is already handled above (stored.revokedAt check).
 
-  // Rotate: revoke old token, issue new one
+  // Rotate: mark old token as consumed (revokedAt) so it can't be used again
+  // But don't treat rotatedFrom as reuse — that's a legitimate rotation chain
   await db.refreshToken.update({
     where: { token: refreshToken },
     data: { revokedAt: new Date() },

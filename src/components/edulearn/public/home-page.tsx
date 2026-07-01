@@ -261,7 +261,7 @@ export function HomePage({
                       <div><span className="font-medium">Evening:</span> <span className="text-slate-600">{course.evening}</span></div>
                     </div>
                   </div>
-                  <Button size="sm" className="w-full mt-4 bg-blue-700 hover:bg-blue-800" onClick={() => setView({ name: user ? 'public/register' : 'public/login' })}>
+                  <Button size="sm" className="w-full mt-4 bg-blue-700 hover:bg-blue-800" onClick={() => setView({ name: user ? 'student/dashboard' : 'public/register' })}>
                     Enroll Now
                   </Button>
                 </CardContent>

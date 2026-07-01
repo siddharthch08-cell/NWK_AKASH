@@ -1,0 +1,1529 @@
+     1→# NAYA WALLAH KANOON / EDULEARN PRO
+     2→
+     3→## Latest Full Repair, Workflow Consolidation and Deployment Master Prompt
+     4→
+     5→You are acting as a senior Next.js App Router architect, Prisma engineer, TypeScript engineer, application-security engineer, LMS product architect, QA lead and deployment engineer.
+     6→
+     7→You have access to:
+     8→
+     9→1. The latest complete source repository.
+    10→2. `NWK_LATEST_DEEP_REVIEW_AUDIT.md`.
+    11→3. The current Prisma schema and bundled database.
+    12→4. The Public website, Admin panel, Student panel, Docker files and all API routes.
+    13→
+    14→Your task is to directly repair the existing application end-to-end.
+    15→
+    16→Do not return only suggestions, pseudo-code, sample snippets, another audit or a visual redesign. Modify the real project, preserve valid data, run verifications and return evidence.
+    17→
+    18→---
+    19→
+    20→# 1. Primary objective
+    21→
+    22→Create one consistent application pipeline:
+    23→
+    24→```text
+    25→Admin action
+    26→→ validated canonical service
+    27→→ transactional database mutation
+    28→→ audit record
+    29→→ cache/store invalidation
+    30→→ updated Admin view
+    31→→ updated Student/Public view
+    32→→ identical direct API authorization
+    33→```
+    34→
+    35→A defect is not fixed merely because one screen works. It is fixed only when every API, panel, direct URL, export and background calculation follows the same business rule.
+    36→
+    37→Use `NWK_LATEST_DEEP_REVIEW_AUDIT.md` as the verified defect checklist.
+    38→
+    39→---
+    40→
+    41→# 2. Preserve the correct architecture
+    42→
+    43→The normalized data model is conceptually correct and must be preserved:
+    44→
+    45→```text
+    46→Batch
+    47→= cohort, timing, capacity, dates, lifecycle and enrollments
+    48→
+    49→Course
+    50→= reusable syllabus and content container
+    51→
+    52→BatchCourse
+    53→= assignment deciding which Batches receive a Course
+    54→
+    55→Course
+    56→ └── Chapter
+    57→      └── Topic
+    58→           ├── Video
+    59→           └── Study Material link
+    60→```
+    61→
+    62→Do not duplicate Courses, Chapters, Topics, Videos or Study Materials per Batch.
+    63→
+    64→One Course must be reusable across multiple eligible Batches. Content changes must automatically apply to every eligible Batch assigned to that Course.
+    65→
+    66→---
+    67→
+    68→# 3. Non-negotiable engineering rules
+    69→
+    70→* Do not rebuild the application from scratch.
+    71→* Do not reset or reseed the production database.
+    72→* Preserve valid Users, Enrollments, Attempts, Answers, Progress, Courses, Content and audit history.
+    73→* Use additive, reviewable Prisma migrations.
+    74→* Do not use `prisma db push` as the production migration strategy.
+    75→* Do not suppress TypeScript, ESLint, Prisma or build failures.
+    76→* Do not use broad `any` casts to silence errors.
+    77→* Do not comment out broken functionality.
+    78→* Do not return fake success responses.
+    79→* Do not keep multiple mutation routes with different validation rules.
+    80→* Do not rely on UI visibility for security.
+    81→* Do not fabricate public statistics, reviews, gallery records, results or student data.
+    82→* Do not label Archive as permanent Delete.
+    83→* Use database transactions for multi-record state changes.
+    84→* Make submission, refresh and assignment operations idempotent where retries are possible.
+    85→* Use correct HTTP status codes and stable response contracts.
+    86→* Remove dead code only after proving it is unused by other active modules.
+    87→
+    88→Before changing a workflow, trace:
+    89→
+    90→```text
+    91→UI component
+    92→→ request payload
+    93→→ route handler
+    94→→ validation
+    95→→ service
+    96→→ Prisma query/mutation
+    97→→ response serializer
+    98→→ state refresh
+    99→→ dependent panels
+   100→```
+   101→
+   102→---
+   103→
+   104→# 4. Required repair order
+   105→
+   106→Complete work in this order:
+   107→
+   108→## Phase 1 — Deployment, security and privacy blockers
+   109→
+   110→1. Resolve database-provider mismatch.
+   111→2. Add controlled migration history.
+   112→3. Repair refresh-token rotation and storage.
+   113→4. Remove unsafe secret fallbacks.
+   114→5. Harden cookie/session behavior.
+   115→6. Close every hidden-result leak.
+   116→7. Fix Student Material entitlement bypass.
+   117→8. Restore clean TypeScript/build scope.
+   118→
+   119→## Phase 2 — Canonical relationship and lifecycle services
+   120→
+   121→1. Consolidate Course↔Batch assignment.
+   122→2. Consolidate Student↔Batch enrollment.
+   123→3. Enforce capacity transactionally.
+   124→4. Centralize Student entitlement and lifecycle policy.
+   125→5. Add date/status conflict handling.
+   126→
+   127→## Phase 3 — Admin completeness
+   128→
+   129→1. Complete Batch management.
+   130→2. Complete Course and content management.
+   131→3. Complete Study Material management.
+   132→4. Complete Test management and result publication.
+   133→5. Complete Announcement and communication workflows.
+   134→
+   135→## Phase 4 — Student consistency and analytics
+   136→
+   137→1. Apply entitlement policy to every Student route.
+   138→2. Render Study Materials chapter-wise.
+   139→3. Correct Dashboard calculations.
+   140→4. Correct Video progress/watch-time logic.
+   141→5. Correct Leaderboard cohort logic.
+   142→6. Correct Reports and exports.
+   143→
+   144→## Phase 5 — Public and business workflows
+   145→
+   146→1. Correct course/enrollment actions.
+   147→2. Implement Enrollment Requests.
+   148→3. Implement Counselling Leads.
+   149→4. Add real free resources.
+   150→5. Add Reviews, Gallery and Demo Classes.
+   151→6. Enforce Maintenance Mode.
+   152→7. Apply branding/settings.
+   153→8. Add Terms and Privacy.
+   154→
+   155→## Phase 6 — Cleanup and proof
+   156→
+   157→1. Remove obsolete Study Material upload code.
+   158→2. Add pagination, debounce and indexes.
+   159→3. Run migration/build/security/regression tests.
+   160→4. Provide finding-by-finding evidence.
+   161→
+   162→Do not spend time on cosmetic refinements before P0 and P1 defects are repaired.
+   163→
+   164→---
+   165→
+   166→# 5. Resolve Prisma and Docker database mismatch
+   167→
+   168→The current source uses SQLite in Prisma while Docker provisions PostgreSQL. Choose one supported production database and make every configuration consistent.
+   169→
+   170→## Preferred production architecture: PostgreSQL
+   171→
+   172→When PostgreSQL is the intended production database:
+   173→
+   174→* Change the Prisma datasource provider to `postgresql`.
+   175→* Create a proper `prisma/migrations` history.
+   176→* Review all SQLite-specific field, default and query assumptions.
+   177→* Build a documented data migration from the existing SQLite database.
+   178→* Preserve IDs and relationships.
+   179→* Ensure `.env.example`, Docker Compose, Prisma schema and runtime all use the same `DATABASE_URL` format.
+   180→* Replace container startup `prisma db push` with controlled migration deployment.
+   181→* Add database health checks and correct service startup ordering.
+   182→* Test migration on an empty database and a copy of the supplied database.
+   183→
+   184→## Acceptable alternative: persistent SQLite
+   185→
+   186→When SQLite is intentionally retained:
+   187→
+   188→* Remove the PostgreSQL service and PostgreSQL connection URL.
+   189→* Mount the SQLite database path on persistent storage.
+   190→* Document concurrency and backup limitations.
+   191→* Ensure only one coherent database configuration remains.
+   192→
+   193→Do not leave two engines configured simultaneously.
+   194→
+   195→---
+   196→
+   197→# 6. Repair refresh-token rotation and session security
+   198→
+   199→The current refresh flow treats a legitimate replacement token as reused during the next refresh.
+   200→
+   201→Implement a token-family model with correct replay detection.
+   202→
+   203→## Required behavior
+   204→
+   205→1. Accept the refresh token from a secure cookie.
+   206→2. Hash the presented token before database lookup.
+   207→3. Verify the token record is active, unexpired and not consumed or revoked.
+   208→4. Atomically mark the current token consumed.
+   209→5. Create one replacement token in the same family.
+   210→6. Store only the replacement token hash.
+   211→7. Return the raw replacement token only in the secure cookie.
+   212→8. Permit the replacement token to refresh normally.
+   213→9. Detect replay only when a consumed or revoked old token is presented again.
+   214→10. Revoke the entire token family on genuine replay.
+   215→
+   216→Use one database transaction.
+   217→
+   218→Also:
+   219→
+   220→* Remove plaintext refresh-token storage.
+   221→* Remove known fallback JWT secrets.
+   222→* Fail startup if required secrets are missing.
+   223→* Make authentication cookies `httpOnly` where possible.
+   224→* Use `secure` in production and appropriate `sameSite` values.
+   225→* Revoke sessions on logout.
+   226→* Revoke all token families after password change.
+   227→* Revoke or invalidate sessions when a Student is blocked, rejected, deactivated or deleted.
+   228→* Add a single-flight client refresh mechanism so simultaneous `401` responses cause one refresh request.
+   229→* Retry each failed request at most once.
+   230→* Prevent infinite refresh loops.
+   231→
+   232→Add tests for first refresh, second refresh, parallel refresh, expiry, replay, logout, password change and status revocation.
+   233→
+   234→---
+   235→
+   236→# 7. Close every hidden-result leak
+   237→
+   238→Create one server-side result-visibility policy and serializer. Do not repeat partial checks across routes.
+   239→
+   240→Audit and repair at minimum:
+   241→
+   242→* Student Test List.
+   243→* Student Test Detail.
+   244→* Student Attempt Detail.
+   245→* Attempt submit response.
+   246→* Repeated submit response.
+   247→* Results List.
+   248→* Results Detail.
+   249→* Student Dashboard.
+   250→* Leaderboard.
+   251→* Admin and Student reports and exports.
+   252→* Embedded Attempt summaries inside other payloads.
+   253→
+   254→Before `resultPublishedAt` is set, Student responses must not expose:
+   255→
+   256→* Score.
+   257→* Total marks.
+   258→* Percentage.
+   259→* Pass/fail.
+   260→* Correct option IDs.
+   261→* Correctness flags.
+   262→* Marks per question.
+   263→* Restricted explanations.
+   264→* Best or average aggregates derived from the hidden result.
+   265→
+   266→Return only safe metadata, for example:
+   267→
+   268→```json
+   269→{
+   270→  "attemptId": "...",
+   271→  "submittedAt": "...",
+   272→  "resultStatus": "AWAITING_PUBLICATION"
+   273→}
+   274→```
+   275→
+   276→The first submit and repeated submit must return the same stable response shape.
+   277→
+   278→## Admin result-publication UI
+   279→
+   280→Add controls to:
+   281→
+   282→* Publish one result.
+   283→* Publish selected results.
+   284→* Publish all eligible results for a Test.
+   285→* View publication status and timestamp.
+   286→
+   287→Audit each publication operation.
+   288→
+   289→## Existing data reconciliation
+   290→
+   291→The supplied data contains a submitted Attempt with `resultPublishedAt = null` for a Test configured for immediate results. Create a safe data backfill or finalization rule:
+   292→
+   293→* Immediate-result Tests publish eligible submitted results.
+   294→* Hidden-result Tests remain unpublished.
+   295→* Descriptive or incomplete grading remains pending.
+   296→
+   297→Test every Student route before and after publication.
+   298→
+   299→---
+   300→
+   301→# 8. Fix Student Study Material authorization bypass
+   302→
+   303→The Student Materials collection currently starts with accessible Course IDs and then overwrites the Course restriction when a `courseId` query is provided.
+   304→
+   305→Fix this by intersecting requested filters with the authorized set.
+   306→
+   307→Required behavior:
+   308→
+   309→* When no `courseId` is supplied, return Materials only from authorized Courses.
+   310→* When an authorized `courseId` is supplied, apply it within the authorized set.
+   311→* When an unauthorized `courseId` is supplied, return `403` or an empty authorized result according to the project’s privacy policy.
+   312→* Never replace the entitlement predicate with untrusted query input.
+   313→
+   314→Apply the same entitlement checks to a new or updated Student Material detail route and to Course Detail serialization.
+   315→
+   316→---
+   317→
+   318→# 9. Restore clean build scope
+   319→
+   320→The TypeScript scope currently includes unsupported Socket.IO examples without the declared dependencies.
+   321→
+   322→Choose one honest solution:
+   323→
+   324→* Move examples outside the production TypeScript scope.
+   325→* Explicitly exclude them from `tsconfig`.
+   326→* Add and maintain the required dependencies when the examples are active supported code.
+   327→
+   328→Also repair confirmed build issues such as:
+   329→
+   330→* FAQ or JSX key typing in the homepage.
+   331→* Timer typing and `.unref` compatibility in the rate limiter.
+   332→* Undefined imports, invalid props or client/server boundary problems found during a clean build.
+   333→
+   334→Do not exclude real production source to hide errors.
+   335→
+   336→Run:
+   337→
+   338→```bash
+   339→npm run lint
+   340→npx tsc --noEmit
+   341→npm run build
+   342→```
+   343→
+   344→without error suppression.
+   345→
+   346→---
+   347→
+   348→# 10. Create one centralized lifecycle and entitlement policy
+   349→
+   350→Create a typed server-side module such as:
+   351→
+   352→```text
+   353→src/lib/access-policy.ts
+   354→```
+   355→
+   356→or a service layer with equivalent responsibility.
+   357→
+   358→Use it in Prisma query construction and response authorization.
+   359→
+   360→Implement policies for:
+   361→
+   362→* Student account eligibility.
+   363→* Enrollment eligibility.
+   364→* Batch lifecycle.
+   365→* Course access.
+   366→* Video access.
+   367→* Test access.
+   368→* Material access.
+   369→* Announcement audience.
+   370→* Result visibility.
+   371→
+   372→## Required lifecycle contract
+   373→
+   374→Define one explicit rule set and apply it everywhere.
+   375→
+   376→Recommended active-learning rule:
+   377→
+   378→* `ACTIVE`: full learning access.
+   379→* `UPCOMING`: metadata or preview only when explicitly supported.
+   380→* `COMPLETED`: historical/read-only access only through a dedicated history policy.
+   381→* `INACTIVE`: no active learning access.
+   382→* `ARCHIVED`: no Student access.
+   383→
+   384→Do not let individual routes invent different combinations.
+   385→
+   386→## Date/status conflicts
+   387→
+   388→The supplied database has six Batches marked ACTIVE whose end dates are already in the past.
+   389→
+   390→Implement one clear strategy.
+   391→
+   392→### Option A — Manual lifecycle with warnings
+   393→
+   394→* Status remains authoritative.
+   395→* Admin Dashboard and Batch list display a date/status conflict warning.
+   396→* Add a bulk reconciliation action.
+   397→* Prevent newly created contradictory ranges or statuses where appropriate.
+   398→
+   399→### Option B — Automatic reconciliation
+   400→
+   401→* Implement a scheduled or startup-safe lifecycle service.
+   402→* Define exactly when ACTIVE becomes COMPLETED.
+   403→* Preserve audit history.
+   404→
+   405→Do not silently use dates in some routes and status in others.
+   406→
+   407→---
+   408→
+   409→# 11. Consolidate Course↔Batch assignment
+   410→
+   411→There must be one canonical service and one canonical mutation contract.
+   412→
+   413→Preferred endpoint:
+   414→
+   415→```http
+   416→PUT /api/admin/courses/:courseId/batches
+   417→```
+   418→
+   419→Payload:
+   420→
+   421→```json
+   422→{
+   423→  "batchIds": ["batch-1", "batch-2"]
+   424→}
+   425→```
+   426→
+   427→The service must:
+   428→
+   429→* Authenticate Admin.
+   430→* Verify Course existence.
+   431→* Verify each Batch exists.
+   432→* Require allowed Batch lifecycle.
+   433→* Compute additions and removals.
+   434→* Apply changes transactionally.
+   435→* Prevent duplicates.
+   436→* Preserve Course content.
+   437→* Write accurate audit entries.
+   438→* Return the final assignment set.
+   439→
+   440→Refactor or remove:
+   441→
+   442→* Old Course add-only assignment route.
+   443→* Batch-side assignment route with weaker validation.
+   444→* Any direct Prisma writes outside the canonical service.
+   445→
+   446→Both Course-side and Batch-side UIs may remain, but they must call the same service.
+   447→
+   448→## Course list and detail improvements
+   449→
+   450→Course list must show:
+   451→
+   452→* Title.
+   453→* Publication status.
+   454→* Assigned ACTIVE Batch names.
+   455→* Active assignment count.
+   456→* Chapter count.
+   457→* Topic count.
+   458→* Video count.
+   459→* Material count.
+   460→* Warning when PUBLISHED but assigned to no eligible Batch.
+   461→
+   462→Add filters for:
+   463→
+   464→* Course status.
+   465→* Assigned Batch.
+   466→* Track or category.
+   467→* Delivery warning.
+   468→
+   469→Course Detail should use tabs:
+   470→
+   471→1. Overview.
+   472→2. Batch Availability.
+   473→3. Content.
+   474→4. Tests or Assessments where applicable.
+   475→5. Audit history.
+   476→
+   477→---
+   478→
+   479→# 12. Consolidate Student↔Batch enrollment
+   480→
+   481→There are currently multiple enrollment write paths with different validation.
+   482→
+   483→Create one canonical service, for example:
+   484→
+   485→```text
+   486→assignStudentsToBatch(batchId, userIds)
+   487→unassignStudentsFromBatch(batchId, userIds)
+   488→```
+   489→
+   490→Use it from both:
+   491→
+   492→* Batch Detail → Assign Students.
+   493→* Student Detail → Assign Batches.
+   494→
+   495→The service must:
+   496→
+   497→* Validate Batch existence and assignable lifecycle.
+   498→* Validate Student existence.
+   499→* Require eligible Student status.
+   500→* Exclude soft-deleted Students.
+   501→* Deduplicate incoming IDs.
+   502→* Detect existing Enrollments.
+   503→* Calculate only genuinely new Enrollments.
+   504→* Enforce remaining capacity transactionally.
+   505→* Prevent concurrent over-enrollment.
+   506→* Return explicit results for added, existing, invalid and rejected Students.
+   507→* Audit assignment and removal.
+   508→
+   509→Use `409` for capacity conflicts.
+   510→
+   511→Do not catch all database failures and label them duplicates.
+   512→
+   513→## Admin UX
+   514→
+   515→Show:
+   516→
+   517→* Current Enrollment count.
+   518→* Capacity.
+   519→* Remaining seats.
+   520→* Searchable paginated Students.
+   521→* Eligibility status.
+   522→* Already-enrolled state.
+   523→* Full-Batch warning.
+   524→
+   525→Remove arbitrary first-100 limitations.
+   526→
+   527→---
+   528→
+   529→# 13. Complete Batch management
+   530→
+   531→Add Admin controls for:
+   532→
+   533→* View.
+   534→* Edit.
+   535→* Change status.
+   536→* Archive.
+   537→* Restore.
+   538→* Permanently delete an empty Batch.
+   539→
+   540→Editable fields:
+   541→
+   542→* Name.
+   543→* Slug.
+   544→* Track.
+   545→* Shift.
+   546→* Description.
+   547→* Thumbnail.
+   548→* Start and end dates.
+   549→* Capacity.
+   550→* Status.
+   551→
+   552→## Merged date validation
+   553→
+   554→For PATCH:
+   555→
+   556→1. Load the current Batch.
+   557→2. Merge current and incoming values.
+   558→3. Validate the final start and end range.
+   559→4. Reject invalid state before writing.
+   560→
+   561→## Archive versus permanent Delete
+   562→
+   563→Archive must preserve history and revoke active delivery.
+   564→
+   565→Permanent Delete must be allowed only when protected dependency counts are zero.
+   566→
+   567→Check:
+   568→
+   569→* Enrollments.
+   570→* BatchCourse assignments.
+   571→* Test assignments.
+   572→* Announcements.
+   573→* Attempts or historical records connected through Batch context.
+   574→* Other protected joins.
+   575→
+   576→Return `409` plus exact dependency counts when deletion is unsafe.
+   577→
+   578→Do not cascade-delete learning history silently.
+   579→
+   580→## Batch list efficiency
+   581→
+   582→Display:
+   583→
+   584→* Track.
+   585→* Shift.
+   586→* Lifecycle.
+   587→* Start and end dates.
+   588→* Date/status conflict.
+   589→* Capacity used.
+   590→* Course count.
+   591→* Test count.
+   592→
+   593→Add filters for track, shift, lifecycle, capacity and conflict state.
+   594→
+   595→Use server pagination and debounced search.
+   596→
+   597→Remove the invalid or nonexistent Material count from Batch Detail unless a correct derived count is implemented.
+   598→
+   599→---
+   600→
+   601→# 14. Complete Course content management
+   602→
+   603→Preserve:
+   604→
+   605→```text
+   606→Course → Chapter → Topic → Video / Material
+   607→```
+   608→
+   609→Add complete Admin controls for:
+   610→
+   611→## Course
+   612→
+   613→* Edit.
+   614→* Publish or unpublish.
+   615→* Archive or restore.
+   616→* Assign eligible Batches.
+   617→
+   618→## Chapter
+   619→
+   620→* Create.
+   621→* Edit.
+   622→* Reorder.
+   623→* Delete with complete child and dependency counts.
+   624→
+   625→## Topic
+   626→
+   627→* Create.
+   628→* Edit.
+   629→* Reorder.
+   630→* Delete with complete child and dependency counts.
+   631→
+   632→## Video
+   633→
+   634→* Create.
+   635→* Edit title, description, URL, duration and status.
+   636→* Reorder.
+   637→* Publish or unpublish.
+   638→* Archive or delete safely.
+   639→
+   640→## Ordering
+   641→
+   642→Use `sortOrder` and a stable tie-breaker.
+   643→
+   644→Prevent unrelated IDs from being updated by scoped reorder endpoints.
+   645→
+   646→Consider uniqueness or deterministic normalization for ordering within parent scope.
+   647→
+   648→## Delete warnings
+   649→
+   650→Chapter and Topic delete dialogs must include linked Study Materials, not only Topics or Videos.
+   651→
+   652→Do not silently cascade-delete Materials without showing impact.
+   653→
+   654→---
+   655→
+   656→# 15. Complete Study Material external-link management
+   657→
+   658→The link-based schema and basic creation path are working and must be preserved.
+   659→
+   660→Support:
+   661→
+   662→* Telegram.
+   663→* WhatsApp.
+   664→* Google Drive.
+   665→* Other approved HTTPS URLs.
+   666→
+   667→## Admin Materials list
+   668→
+   669→Add:
+   670→
+   671→* Pagination.
+   672→* Debounced search.
+   673→* Course filter.
+   674→* Chapter filter.
+   675→* Topic filter.
+   676→* Platform filter.
+   677→* Type filter.
+   678→* Publication filter.
+   679→* Archive filter.
+   680→
+   681→The default operational list must exclude archived records.
+   682→
+   683→Show:
+   684→
+   685→* Title.
+   686→* Platform.
+   687→* Type.
+   688→* Course.
+   689→* Chapter.
+   690→* Topic.
+   691→* Published or archived state.
+   692→* Sort order.
+   693→* Created date.
+   694→
+   695→Add actions:
+   696→
+   697→* Open.
+   698→* Edit.
+   699→* Publish or unpublish.
+   700→* Archive.
+   701→* Restore.
+   702→* Permanently delete with confirmation.
+   703→
+   704→## Edit validation
+   705→
+   706→PATCH must validate the final merged hierarchy and URL.
+   707→
+   708→When changing Course, Chapter or Topic:
+   709→
+   710→* Chapter must belong to Course.
+   711→* Topic must belong to Chapter.
+   712→* The final Course must have an eligible active delivery assignment, or the UI must clearly support a draft or unassigned resource state according to one explicit rule.
+   713→
+   714→Do not let Edit bypass the creation-time invariant silently.
+   715→
+   716→## Selector reliability
+   717→
+   718→Replace `.catch(() => {})` with visible error states.
+   719→
+   720→Use searchable server-side selectors rather than `pageSize=100` ceilings.
+   721→
+   722→## Sorting
+   723→
+   724→Use `sortOrder` in Admin and Student queries, with a stable tie-breaker.
+   725→
+   726→Provide Admin reorder controls.
+   727→
+   728→---
+   729→
+   730→# 16. Render Study Materials inside Course → Chapter → Topic
+   731→
+   732→Update Admin and Student Course serializers to return:
+   733→
+   734→```text
+   735→Chapter
+   736→  chapterMaterials[]
+   737→  Topics[]
+   738→    videos[]
+   739→    materials[]
+   740→```
+   741→
+   742→## Student Course Detail
+   743→
+   744→* Chapter-level Materials appear directly under the Chapter.
+   745→* Topic-level Materials appear only under the correct Topic.
+   746→* Only published, non-archived, authorized Materials are returned.
+   747→* Links open with `target="_blank"` and `rel="noopener noreferrer"`.
+   748→* Do not expose unrelated Materials.
+   749→
+   750→## Admin Course Detail
+   751→
+   752→Show Videos and Materials in the same content tree.
+   753→
+   754→Provide create, edit, reorder and archive actions without navigating to a disconnected workflow unless intentional.
+   755→
+   756→## Student Material detail
+   757→
+   758→Add an authorized detail route or an authorized click-resolution route when click-time entitlement revalidation is required.
+   759→
+   760→Apply the same access policy as list and Course Detail.
+   761→
+   762→---
+   763→
+   764→# 17. Remove obsolete physical Study Material upload artifacts
+   765→
+   766→The active feature is link-based, but dead upload code remains.
+   767→
+   768→Audit and remove Study Material-specific references to:
+   769→
+   770→* `src/lib/storage.ts`, when unused by other modules.
+   771→* Obsolete upload configuration.
+   772→* Stale Material file fields in TypeScript types.
+   773→* Unused upload API helpers.
+   774→* Docker upload-directory creation.
+   775→* Upload volumes and environment variables.
+   776→* Obsolete API and deployment documentation.
+   777→* Orphaned files in `private-uploads` after safe archival review.
+   778→
+   779→Do not remove upload infrastructure used by logos, profile images, gallery images or another active module.
+   780→
+   781→Before deleting an actual stored file, confirm it is not referenced by an active database record or feature.
+   782→
+   783→Update documentation to describe the external-link Material system only.
+   784→
+   785→---
+   786→
+   787→# 18. Apply one entitlement policy to every Student module
+   788→
+   789→Audit and repair at minimum:
+   790→
+   791→* Student Batches list.
+   792→* Student Batch Detail.
+   793→* Student Courses list.
+   794→* Student Course Detail.
+   795→* Student Videos and progress.
+   796→* Student Tests list, detail and start.
+   797→* Student Materials list and detail.
+   798→* Student Announcements.
+   799→* Student Dashboard.
+   800→* Continue Watching.
+   801→* Leaderboard.
+   802→* Result routes.
+   803→
+   804→Required active-learning entitlement:
+   805→
+   806→```text
+   807→eligible Student
+   808→+ eligible Enrollment
+   809→+ allowed Batch lifecycle
+   810→+ BatchCourse or TestBatch assignment
+   811→+ PUBLISHED entity
+   812→+ non-archived content
+   813→= access
+   814→```
+   815→
+   816→List, detail, direct API and mutation routes must use the same rules.
+   817→
+   818→Do not return Draft or Archived Courses and Tests through nested Batch payloads.
+   819→
+   820→Define a separate explicit history policy for COMPLETED Batches rather than mixing it into active routes.
+   821→
+   822→---
+   823→
+   824→# 19. Correct Student Dashboard and analytics
+   825→
+   826→## Course progress
+   827→
+   828→* Deduplicate Courses by Course ID when one Student receives the same Course through multiple Batches.
+   829→* Define how one progress value is combined across assignments.
+   830→* Replace N+1 queries with grouped or batched queries.
+   831→* Apply current entitlement before returning cards.
+   832→
+   833→## Attempts
+   834→
+   835→* Return total Attempt count independently from the recent-Attempt display slice.
+   836→* Use one published-result dataset for average and best values.
+   837→* Do not include hidden results.
+   838→
+   839→## Continue Watching
+   840→
+   841→Revalidate current entitlement before returning a Video.
+   842→
+   843→## Admin counts
+   844→
+   845→Exclude soft-deleted Students.
+   846→
+   847→Surface ACTIVE Batches with date/status conflicts separately.
+   848→
+   849→Use clear labels for total, active, published and archived records.
+   850→
+   851→---
+   852→
+   853→# 20. Correct Video progress and watch-time logic
+   854→
+   855→Do not treat the latest playback position as accumulated watch time.
+   856→
+   857→Implement a server-derived progress model:
+   858→
+   859→* Authoritative Video duration.
+   860→* Validated current position.
+   861→* Monotonic last position where appropriate.
+   862→* Heartbeat delta validation.
+   863→* Duplicate heartbeat prevention.
+   864→* Accumulated watched seconds.
+   865→* Completion threshold from Settings.
+   866→* Completion cannot move backward.
+   867→* Entitlement checked on every read and write.
+   868→
+   869→Do not trust client-supplied percentage as the source of truth.
+   870→
+   871→Clamp position to authoritative duration.
+   872→
+   873→Correct analytics:
+   874→
+   875→* Total watch time.
+   876→* Most-watched Videos.
+   877→* Completion count.
+   878→* Continue Watching.
+   879→* Course progress.
+   880→
+   881→Aggregate all candidates before selecting top-N.
+   882→
+   883→---
+   884→
+   885→# 21. Complete Test management
+   886→
+   887→## Shuffle
+   888→
+   889→Apply `shuffleQuestions` and `shuffleOptions` using stable per-Attempt order.
+   890→
+   891→Refresh and resume must preserve the original order.
+   892→
+   893→Expose controls in Admin create and edit UI.
+   894→
+   895→## Result publication
+   896→
+   897→Connect the existing publication API to visible Admin controls.
+   898→
+   899→## Stable answer references
+   900→
+   901→Do not delete and recreate Options when editing text or order when submitted Attempts reference them.
+   902→
+   903→Update stable Option IDs in place.
+   904→
+   905→When structural replacement is unavoidable, version Questions or Options, or block the destructive edit after Attempts exist.
+   906→
+   907→Prove historical `AttemptAnswer.selectedOptionId` values remain valid.
+   908→
+   909→## Date validation
+   910→
+   911→Validate the final merged Test availability range during PATCH.
+   912→
+   913→## OMR
+   914→
+   915→Implement the publicly advertised OMR workflow:
+   916→
+   917→* Numbered navigator.
+   918→* Answered and unanswered state.
+   919→* Mark for review.
+   920→* Current-question indicator.
+   921→* Timer.
+   922→* Auto-submit once.
+   923→* Mobile drawer.
+   924→* Save and resume.
+   925→
+   926→## Descriptive questions
+   927→
+   928→Because the public requirements advertise descriptive answers and evaluation, add a compatible model or remove the public claim until implementation.
+   929→
+   930→Preferred implementation:
+   931→
+   932→* `MCQ` and `DESCRIPTIVE` types.
+   933→* Text answer.
+   934→* Evaluation status.
+   935→* Marks awarded.
+   936→* Evaluator feedback.
+   937→* Evaluator ID and time.
+   938→* Result remains pending until grading completes.
+   939→
+   940→Preserve existing MCQ Attempts.
+   941→
+   942→## Weekly Test claim
+   943→
+   944→Align schema, configuration and public content. Do not advertise a fixed 100-question weekly Test when the configured product prevents it.
+   945→
+   946→---
+   947→
+   948→# 22. Correct Leaderboard cohort identity
+   949→
+   950→A Test assigned to multiple Batches must not cause all Attempts to appear in every Batch leaderboard.
+   951→
+   952→Create an immutable Attempt context such as:
+   953→
+   954→* `batchId` on TestAttempt at start time.
+   955→* Another explicit assignment-context relation.
+   956→
+   957→Validate that the Student was entitled through that Batch when the Attempt began.
+   958→
+   959→Leaderboard queries must filter by the Attempt’s stored Batch context, not only by current TestBatch assignments.
+   960→
+   961→Also:
+   962→
+   963→* Apply one lifecycle policy.
+   964→* Exclude hidden or unpublished results.
+   965→* Paginate instead of silently capping at 10,000.
+   966→* Protect Student identity fields.
+   967→
+   968→Backfill existing Attempts only when the correct Batch can be determined unambiguously. Report ambiguous records rather than guessing.
+   969→
+   970→---
+   971→
+   972→# 23. Correct reports and exports
+   973→
+   974→* Use configured institute branding instead of hardcoded `EDULEARN PRO`.
+   975→* Use the same authorization and hidden-result serializers as application APIs.
+   976→* Add pagination or export-all strategy instead of silent 10,000-row truncation.
+   977→* Report truncation explicitly when a limit remains.
+   978→* Escape CSV cells beginning with `=`, `+`, `-` or `@` to prevent spreadsheet formula injection.
+   979→* Use the authenticated request client with refresh and retry handling for downloads.
+   980→* Do not expose soft-deleted or unauthorized records.
+   981→
+   982→---
+   983→
+   984→# 24. Complete Announcements, Contact and Feedback
+   985→
+   986→## Announcements
+   987→
+   988→Add Admin:
+   989→
+   990→* Edit.
+   991→* Archive.
+   992→* Pagination.
+   993→* Search and filtering.
+   994→* ACTIVE Batch selector by default.
+   995→
+   996→Validate Batch IDs and lifecycle before relation creation.
+   997→
+   998→Apply publication, expiry, audience, Enrollment and Batch lifecycle on Student and Public reads.
+   999→
+  1000→## Contact
+  1001→
+  1002→Add complete pagination, search and status filtering.
+  1003→
+  1004→Audit notes and status changes.
+  1005→
+  1006→## Feedback
+  1007→
+  1008→Define legal state transitions instead of allowing arbitrary enum changes.
+  1009→
+  1010→Audit every transition.
+  1011→
+  1012→## Notifications
+  1013→
+  1014→Either implement a real Notification module and badge counts or remove fake Bells and static red dots.
+  1015→
+  1016→Do not ship controls that visually claim unread Notifications while no workflow exists.
+  1017→
+  1018→---
+  1019→
+  1020→# 25. Complete Student account and status workflows
+  1021→
+  1022→Create shared authentication result types that distinguish:
+  1023→
+  1024→* Unauthenticated → `401`.
+  1025→* Authenticated but forbidden or status-blocked → `403`.
+  1026→
+  1027→Use one Student status-transition service for individual and bulk actions.
+  1028→
+  1029→Define legal transitions and apply them consistently.
+  1030→
+  1031→Exclude soft-deleted Users from active Admin queries and counts.
+  1032→
+  1033→Complete Forgot Password and Reset Password using the existing token model, or remove inactive UI references until it exists.
+  1034→
+  1035→---
+  1036→
+  1037→# 26. Correct Public course and enrollment actions
+  1038→
+  1039→Fix reversed logged-in and logged-out redirect conditions on Home and Public Courses.
+  1040→
+  1041→Implement a real `EnrollmentRequest` workflow:
+  1042→
+  1043→* Authenticated Student request.
+  1044→* Requested Batch and Course context.
+  1045→* Duplicate prevention.
+  1046→* Batch lifecycle validation.
+  1047→* Capacity validation.
+  1048→* Admin queue.
+  1049→* Approve or reject.
+  1050→* Conversion to Enrollment through the canonical enrollment service.
+  1051→* Student-visible request state.
+  1052→
+  1053→Do not display “Request Enrollment” when the button merely navigates.
+  1054→
+  1055→Public Courses should present actual Course information and Batch availability, not only relabel Batches as Courses.
+  1056→
+  1057→---
+  1058→
+  1059→# 27. Implement a dedicated Counselling Lead workflow
+  1060→
+  1061→Replace the fabricated counselling email Contact submission with a dedicated model and Admin module.
+  1062→
+  1063→Suggested fields:
+  1064→
+  1065→* Name.
+  1066→* Subject.
+  1067→* Contact.
+  1068→* Source.
+  1069→* Status.
+  1070→* Notes.
+  1071→* Assigned user.
+  1072→* Forwarding status or error.
+  1073→* Created and updated timestamps.
+  1074→
+  1075→Statuses:
+  1076→
+  1077→* NEW.
+  1078→* CONTACTED.
+  1079→* SCHEDULED.
+  1080→* COMPLETED.
+  1081→* CLOSED.
+  1082→
+  1083→Required behavior:
+  1084→
+  1085→* Validate Public submission.
+  1086→* Add rate limiting and duplicate protection.
+  1087→* Persist before external forwarding.
+  1088→* Support optional email, webhook or WhatsApp automation.
+  1089→* Add Admin queue with search, filters, status and notes.
+  1090→* Add CSV export.
+  1091→* Audit status changes.
+  1092→
+  1093→External notification failure must not lose the Lead.
+  1094→
+  1095→---
+  1096→
+  1097→# 28. Complete Public resource and content modules
+  1098→
+  1099→Implement real Admin-managed destinations for:
+  1100→
+  1101→* Free Probation playlist.
+  1102→* Free Question Paper or internal Test.
+  1103→* Demo Class.
+  1104→
+  1105→Buttons must open a configured destination or show an honest unavailable state.
+  1106→
+  1107→Implement persistent modules for:
+  1108→
+  1109→## Reviews
+  1110→
+  1111→* Student name.
+  1112→* Review.
+  1113→* Rating.
+  1114→* Optional image.
+  1115→* Publication status.
+  1116→* Sort order.
+  1117→
+  1118→## Gallery
+  1119→
+  1120→* Image.
+  1121→* Caption.
+  1122→* Publication status.
+  1123→* Sort order.
+  1124→
+  1125→## Demo Classes
+  1126→
+  1127→* Title.
+  1128→* Description.
+  1129→* Video URL.
+  1130→* Thumbnail.
+  1131→* Publication status.
+  1132→* Sort order.
+  1133→
+  1134→Do not fabricate records.
+  1135→
+  1136→Remove fabricated fallback statistics such as success rate or Student count unless they are explicitly labelled static marketing copy. Prefer real database-derived values.
+  1137→
+  1138→Show loading, empty and error states instead of silently converting failures into empty content.
+  1139→
+  1140→---
+  1141→
+  1142→# 29. Complete Settings, branding and Maintenance Mode
+  1143→
+  1144→Apply settings to:
+  1145→
+  1146→* Public header and footer.
+  1147→* Login and registration.
+  1148→* Admin shell.
+  1149→* Student shell.
+  1150→* Browser title.
+  1151→* Metadata.
+  1152→* OpenGraph and Twitter metadata.
+  1153→* Logo.
+  1154→* Favicon.
+  1155→* Institute name and tagline.
+  1156→* Address and map.
+  1157→* Social links, including WhatsApp.
+  1158→* Fee, offer and Batch-timing content.
+  1159→* Free-resource links.
+  1160→* Demo Class link.
+  1161→* Video completion threshold.
+  1162→* Default Test Attempts.
+  1163→
+  1164→Remove obsolete `maxUploadMb` only when no active feature uses it.
+  1165→
+  1166→Implement Maintenance Mode enforcement:
+  1167→
+  1168→* Admin remains accessible.
+  1169→* Public and Student behavior is defined consistently.
+  1170→* APIs return a stable maintenance response where appropriate.
+  1171→
+  1172→Add real Terms of Service and Privacy Policy pages and connect them from Registration and Footer.
+  1173→
+  1174→Do not keep clickable controls without destinations.
+  1175→
+  1176→---
+  1177→
+  1178→# 30. Improve navigation and route state
+  1179→
+  1180→The application currently relies heavily on one root page plus Zustand view state.
+  1181→
+  1182→Implement real routes for important Public, Admin and Student pages, or add a robust route synchronization layer that provides:
+  1183→
+  1184→* Shareable URLs.
+  1185→* Refresh persistence.
+  1186→* Browser Back and Forward support.
+  1187→* Deep links.
+  1188→* Proper access guards.
+  1189→
+  1190→Do not call store `setState` during render. Move redirection and state correction into routing guards or effects.
+  1191→
+  1192→Preserve the current visual structure while improving navigation behavior.
+  1193→
+  1194→---
+  1195→
+  1196→# 31. Add cross-panel invalidation
+  1197→
+  1198→Create one defined invalidation strategy.
+  1199→
+  1200→After Admin mutations, update affected views through appropriate use of:
+  1201→
+  1202→* Returned post-mutation records.
+  1203→* Local store updates.
+  1204→* Query refetch.
+  1205→* `router.refresh()`.
+  1206→* `revalidatePath` or `revalidateTag`.
+  1207→* Version counters.
+  1208→* Refetch on window focus.
+  1209→* Same-origin `BroadcastChannel` where useful.
+  1210→
+  1211→Cover:
+  1212→
+  1213→* Student status.
+  1214→* Batch status and details.
+  1215→* Enrollment.
+  1216→* Course assignments and status.
+  1217→* Chapters, Topics and Videos.
+  1218→* Study Materials.
+  1219→* Tests and Results.
+  1220→* Announcements.
+  1221→* Settings and branding.
+  1222→
+  1223→Do not add aggressive polling or infinite fetch loops.
+  1224→
+  1225→---
+  1226→
+  1227→# 32. Performance and maintainability
+  1228→
+  1229→* Add debounced search to Admin lists.
+  1230→* Replace arbitrary `pageSize=100` selectors with searchable server pagination.
+  1231→* Add reverse-lookup indexes such as `BatchCourse.courseId`, suitable `TestBatch` indexes and AnnouncementBatch reverse indexes.
+  1232→* Add indexes for frequently filtered lifecycle, status and date fields.
+  1233→* Use stable sort order with tie-breakers.
+  1234→* Replace silent `.catch(() => {})` with user-visible and logged errors.
+  1235→* Replace in-memory rate limiting with Redis or another shared production store for multi-instance deployment.
+  1236→* Define trusted-proxy configuration before trusting forwarded IP headers.
+  1237→
+  1238→Do not optimize blindly. Use query plans or measured access patterns where possible.
+  1239→
+  1240→---
+  1241→
+  1242→# 33. API and audit standards
+  1243→
+  1244→For every repaired endpoint:
+  1245→
+  1246→* Validate typed input.
+  1247→* Authenticate.
+  1248→* Authorize.
+  1249→* Apply lifecycle policy.
+  1250→* Use a canonical service.
+  1251→* Return a stable response.
+  1252→* Return post-update state.
+  1253→* Log safe server errors.
+  1254→* Write an accurate audit event.
+  1255→
+  1256→Use:
+  1257→
+  1258→* `400` for malformed input.
+  1259→* `401` for unauthenticated.
+  1260→* `403` for forbidden.
+  1261→* `404` for inaccessible or missing records.
+  1262→* `409` for conflicts, capacity or dependencies.
+  1263→* `422` for business-rule validation.
+  1264→
+  1265→Audit entries must contain:
+  1266→
+  1267→* Actor.
+  1268→* Action.
+  1269→* Entity type.
+  1270→* Entity ID.
+  1271→* Changed fields where appropriate.
+  1272→* Timestamp.
+  1273→
+  1274→Do not record updates as creation events.
+  1275→
+  1276→---
+  1277→
+  1278→# 34. Required automated and manual tests
+  1279→
+  1280→Use the existing test stack. When absent, add the smallest maintainable stack.
+  1281→
+  1282→## Build and migration
+  1283→
+  1284→1. Install from the lockfile.
+  1285→2. Lint.
+  1286→3. Type-check.
+  1287→4. Prisma format and validate.
+  1288→5. Migrate an empty database.
+  1289→6. Migrate a copy of the supplied database.
+  1290→7. Production build.
+  1291→8. Docker startup with one matching database provider.
+  1292→
+  1293→## Authentication
+  1294→
+  1295→1. Login.
+  1296→2. Refresh twice normally.
+  1297→3. Replay a consumed token.
+  1298→4. Parallel refresh.
+  1299→5. Logout.
+  1300→6. Password-change revocation.
+  1301→7. Block or deactivate Student.
+  1302→8. Verify `401` versus `403` behavior.
+  1303→
+  1304→## Hidden results
+  1305→
+  1306→1. Submit a hidden-result Test.
+  1307→2. Query Test list, Test detail, Attempt detail, Results list, Results detail, Dashboard, Leaderboard and exports.
+  1308→3. Confirm no protected field leaks.
+  1309→4. Retry submission and verify the same safe response shape.
+  1310→5. Publish through Admin UI.
+  1311→6. Verify authorized visibility everywhere.
+  1312→
+  1313→## Batch, Course and Content
+  1314→
+  1315→1. Create an ACTIVE Batch.
+  1316→2. Confirm it appears in Course creation and Course Detail.
+  1317→3. Assign a Course through Course-side and Batch-side UI.
+  1318→4. Prove both use one service.
+  1319→5. Add Chapter, Topic, Video and Material once.
+  1320→6. Confirm all eligible assigned Batches receive shared content.
+  1321→7. Unassign one Batch.
+  1322→8. Confirm only that cohort loses access.
+  1323→9. Archive the Batch.
+  1324→10. Confirm every Student list, detail and direct route follows policy.
+  1325→11. Permanently delete an empty Batch.
+  1326→12. Attempt unsafe deletion and verify `409` plus dependency counts.
+  1327→
+  1328→## Enrollment
+  1329→
+  1330→1. Duplicate IDs.
+  1331→2. Already-enrolled Students.
+  1332→3. Ineligible Student statuses.
+  1333→4. Inactive Batch.
+  1334→5. Full capacity.
+  1335→6. Concurrent assignment.
+  1336→7. Student-side and Batch-side entry points.
+  1337→8. Confirm one service and no over-enrollment.
+  1338→
+  1339→## Study Materials
+  1340→
+  1341→1. Create Telegram, WhatsApp, Drive and Other links.
+  1342→2. Reject invalid protocols, hosts and hierarchy IDs.
+  1343→3. Verify pagination and filters.
+  1344→4. Edit hierarchy and URL.
+  1345→5. Publish, unpublish, archive, restore and delete.
+  1346→6. Render Chapter-level and Topic-level Materials correctly.
+  1347→7. Attempt an arbitrary unauthorized `courseId` query.
+  1348→8. Verify direct-detail authorization.
+  1349→9. Confirm no physical upload or download system remains.
+  1350→
+  1351→## Tests
+  1352→
+  1353→1. Save and resume.
+  1354→2. Stable shuffle.
+  1355→3. OMR states.
+  1356→4. Timer and one-time auto-submit.
+  1357→5. Repeated submit.
+  1358→6. Option editing preserves historical answers.
+  1359→7. Result publication.
+  1360→8. Descriptive evaluation when implemented.
+  1361→
+  1362→## Video and analytics
+  1363→
+  1364→1. Authorized open.
+  1365→2. Resume position.
+  1366→3. Duplicate heartbeat.
+  1367→4. Forged 100% request.
+  1368→5. Duration clamping.
+  1369→6. Completion threshold.
+  1370→7. Inactive Batch denial.
+  1371→8. Correct accumulated watch time.
+  1372→9. Correct top Videos.
+  1373→
+  1374→## Public and business workflows
+  1375→
+  1376→1. Logged-in and logged-out Course action.
+  1377→2. Enrollment Request.
+  1378→3. Counselling Lead.
+  1379→4. Free-resource links.
+  1380→5. Reviews, Gallery and Demo publication.
+  1381→6. Maintenance Mode.
+  1382→7. Branding and favicon.
+  1383→8. Terms and Privacy.
+  1384→9. Public error and empty states.
+  1385→
+  1386→## Reports and security
+  1387→
+  1388→1. Hidden results excluded.
+  1389→2. CSV formula injection escaped.
+  1390→3. Pagination or export-all.
+  1391→4. Dynamic branding.
+  1392→5. Token refresh during download.
+  1393→
+  1394→---
+  1395→
+  1396→# 35. Required cross-panel evidence
+  1397→
+  1398→For each important mutation, record:
+  1399→
+  1400→```text
+  1401→Admin action
+  1402→→ request payload
+  1403→→ service invoked
+  1404→→ database state
+  1405→→ audit entry
+  1406→→ Admin refetch
+  1407→→ Student/Public response
+  1408→→ direct API result
+  1409→```
+  1410→
+  1411→At minimum, provide this evidence for:
+  1412→
+  1413→* Batch status.
+  1414→* Batch deletion or archive.
+  1415→* Enrollment.
+  1416→* Course assignment.
+  1417→* Course publication or archive.
+  1418→* Chapter, Topic and Video mutation.
+  1419→* Study Material creation, editing and archive.
+  1420→* Test publication and Result publication.
+  1421→* Announcement publication.
+  1422→* Settings and branding.
+  1423→* Student status change.
+  1424→
+  1425→---
+  1426→
+  1427→# 36. Completion criteria
+  1428→
+  1429→Do not declare the project fixed until:
+  1430→
+  1431→* Prisma and Docker use one database provider.
+  1432→* Migration history exists and succeeds.
+  1433→* Refresh tokens work across repeated rotations and replay detection.
+  1434→* Tokens are not stored in plaintext.
+  1435→* Known secret fallbacks are removed.
+  1436→* Every hidden-result leak is closed.
+  1437→* Student Material filter bypass is closed.
+  1438→* TypeScript, lint and production build pass.
+  1439→* Course↔Batch assignment uses one canonical service.
+  1440→* Enrollment uses one canonical transactional service.
+  1441→* Capacity cannot be bypassed.
+  1442→* Student lifecycle rules are identical across modules.
+  1443→* Batch Edit, Archive, Restore and safe Delete are available.
+  1444→* Course and content lifecycle controls are complete.
+  1445→* Materials appear inside Course Chapters and Topics.
+  1446→* Obsolete physical Material upload code is removed safely.
+  1447→* Video watch time is server-derived.
+  1448→* Leaderboard cohort mixing is fixed.
+  1449→* Public enrollment, counselling and resource actions are real workflows.
+  1450→* Maintenance Mode and branding settings are enforced.
+  1451→* Critical regression tests pass.
+  1452→
+  1453→---
+  1454→
+  1455→# 37. Required final implementation report
+  1456→
+  1457→Return a structured report containing:
+  1458→
+  1459→## A. Files changed
+  1460→
+  1461→List every created, modified and deleted file.
+  1462→
+  1463→## B. Database changes
+  1464→
+  1465→List:
+  1466→
+  1467→* Provider decision.
+  1468→* Migration names.
+  1469→* Models, fields and indexes.
+  1470→* Backfills.
+  1471→* SQLite-to-PostgreSQL migration behavior when applicable.
+  1472→* Data-preservation evidence.
+  1473→
+  1474→## C. Audit finding disposition
+  1475→
+  1476→For every finding in `NWK_LATEST_DEEP_REVIEW_AUDIT.md`, state:
+  1477→
+  1478→* Fixed.
+  1479→* Removed because the control or claim was misleading and not implemented.
+  1480→* Not reproducible, with exact evidence.
+  1481→* Remaining, with exact blocker.
+  1482→
+  1483→Do not use vague labels such as “handled” or “improved.”
+  1484→
+  1485→## D. Canonical services
+  1486→
+  1487→Document the final services used for:
+  1488→
+  1489→* Course↔Batch assignment.
+  1490→* Student↔Batch Enrollment.
+  1491→* Student entitlement.
+  1492→* Result visibility.
+  1493→* Session rotation.
+  1494→
+  1495→## E. Cross-panel proof
+  1496→
+  1497→Provide mutation-to-UI and API evidence for every major workflow.
+  1498→
+  1499→## F. Commands and results
+  1500→
+  1501→Include actual output summaries for:
+  1502→
+  1503→```bash
+  1504→npm run lint
+  1505→npx tsc --noEmit
+  1506→npx prisma format
+  1507→npx prisma validate
+  1508→npx prisma migrate status
+  1509→npm run build
+  1510→```
+  1511→
+  1512→Include automated tests, migration tests and Docker startup results.
+  1513→
+  1514→## G. Remaining risks
+  1515→
+  1516→Report unresolved limitations honestly.
+  1517→
+  1518→Do not claim deployment readiness when a critical build, migration, privacy, security or lifecycle test remains incomplete.
+  1519→
+  1520→---
+  1521→
+  1522→# Final instruction
+  1523→
+  1524→Read `NWK_LATEST_DEEP_REVIEW_AUDIT.md` completely before changing code.
+  1525→
+  1526→Convert every verified finding into a tracked implementation item. Preserve the normalized Batch/Course model, remove duplicate business pipelines, centralize lifecycle and entitlement rules, and prove every repair across Public, Admin, Student, direct APIs, reports and deployment.
+  1527→
+  1528→Do not stop after obtaining a successful build. The task is complete only when the full application workflow is consistent, secure, efficient and backed by reproducible test evidence.
+  1529→

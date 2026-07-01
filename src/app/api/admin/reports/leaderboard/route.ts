@@ -52,10 +52,10 @@ export async function GET(req: NextRequest) {
   rows.forEach((r, i) => (r.rank = i + 1))
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'EDULEARN PRO'
+  wb.creator = 'Naya Wallah Kanoon'
   wb.created = new Date()
   const ws = wb.addWorksheet('Leaderboard')
-  ws.addRow(['EDULEARN PRO — Leaderboard Export'])
+  ws.addRow(['Naya Wallah Kanoon — Leaderboard Export'])
   ws.addRow([`Generated: ${new Date().toISOString()}`])
   ws.addRow([])
   ws.columns = [

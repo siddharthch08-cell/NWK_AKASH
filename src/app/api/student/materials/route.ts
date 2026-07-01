@@ -35,15 +35,22 @@ export async function GET(req: NextRequest) {
 
   if (accessibleCourseIds.length === 0) return ok({ materials: [] }, 'No materials available')
 
-  // Build where clause
+  // Build where clause — always intersect with authorized course set
   const where: Prisma.MaterialWhereInput = {
     published: true,
     archived: false,
-    courseId: { in: accessibleCourseIds },
     course: { status: 'PUBLISHED' },
   }
 
-  if (courseId) where.courseId = courseId
+  // If courseId filter is provided, validate it's in the authorized set
+  if (courseId) {
+    if (!accessibleCourseIds.includes(courseId)) {
+      return ok({ materials: [] }, 'No materials available')
+    }
+    where.courseId = courseId
+  } else {
+    where.courseId = { in: accessibleCourseIds }
+  }
   if (chapterId) where.chapterId = chapterId
   if (topicId) where.topicId = topicId
   if (materialType) where.materialType = materialType

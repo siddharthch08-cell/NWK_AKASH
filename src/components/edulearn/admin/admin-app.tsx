@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap, FolderOpen, FileQuestion,
   BarChart3, Trophy, Megaphone, MailOpen, MessageSquare, FileText, History,
-  Settings, LogOut, Menu, Bell, ChevronRight, Search, User, Shield, ChevronDown,
+  Settings, LogOut, Menu, ChevronRight, Search, User, Shield, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { View } from '@/stores/app-store'
@@ -197,10 +197,6 @@ export function AdminApp() {
           <div className="flex items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="icon" aria-label="Search" className="hidden sm:inline-flex text-slate-500 hover:text-slate-900">
               <Search className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" aria-label="Notifications" className="relative text-slate-500 hover:text-slate-900">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -22,12 +22,12 @@ async function exportWorkbook(
   rows: Record<string, unknown>[]
 ) {
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'EDULEARN PRO'
+  wb.creator = 'Naya Wallah Kanoon'
   wb.created = new Date()
   const ws = wb.addWorksheet(sheetName)
 
   // Add a meta header row at the top
-  ws.addRow(['EDULEARN PRO — Export'])
+  ws.addRow(['Naya Wallah Kanoon — Export'])
   ws.addRow([`Generated: ${new Date().toISOString()}`])
   ws.addRow([`Filters: ${filtersLabel}`])
   ws.addRow([])

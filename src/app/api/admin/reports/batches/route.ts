@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
   })
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'EDULEARN PRO'
+  wb.creator = 'Naya Wallah Kanoon'
   wb.created = new Date()
   const ws = wb.addWorksheet('Batches')
-  ws.addRow(['EDULEARN PRO — Batches Export'])
+  ws.addRow(['Naya Wallah Kanoon — Batches Export'])
   ws.addRow([`Generated: ${new Date().toISOString()}`])
   ws.addRow([])
   ws.columns = [

@@ -33,10 +33,14 @@ export function rateLimit(
 }
 
 // Periodically purge expired buckets to avoid memory growth
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now()
   for (const [k, b] of buckets) {
     b.timestamps = b.timestamps.filter((t) => now - t < 60 * 60 * 1000)
     if (b.timestamps.length === 0) buckets.delete(k)
   }
-}, 5 * 60 * 1000).unref?.()
+}, 5 * 60 * 1000)
+// Allow the process to exit even if the timer is still running
+if (typeof cleanupTimer.unref === 'function') {
+  cleanupTimer.unref()
+}

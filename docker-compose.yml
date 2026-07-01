@@ -1,6 +1,9 @@
 # =============================================================================
-# EDULEARN PRO — Docker Compose (app + PostgreSQL)
+# EDULEARN PRO / Naya Wallah Kanoon — Docker Compose (SQLite, single container)
 # =============================================================================
+# This project uses SQLite (file-based) for both development and production.
+# PostgreSQL is NOT required. The database file is persisted via a volume.
+#
 # Usage:
 #   export JWT_ACCESS_SECRET=$(openssl rand -base64 32)
 #   export JWT_REFRESH_SECRET=$(openssl rand -base64 32)
@@ -13,66 +16,39 @@
 version: '3.8'
 
 services:
-  # ---- PostgreSQL Database ----
-  db:
-    image: postgres:16-alpine
-    container_name: edulearn-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: edulearn
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-edulearn_dev_password}
-      POSTGRES_DB: edulearn_pro
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U edulearn -d edulearn_pro"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ---- Next.js Application ----
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: edulearn-app
+    container_name: nwk-app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      # Database (uses the db service)
-      DATABASE_URL: postgresql://edulearn:${DB_PASSWORD:-edulearn_dev_password}@db:5432/edulearn_pro?sslmode=disable
+      # SQLite database (file-based, no external DB needed)
+      DATABASE_URL: "file:/app/data/custom.db"
 
-      # Auth secrets (set in .env or shell environment)
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      # Auth secrets (MUST be set — no fallbacks in production)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
 
       # App config
       NODE_ENV: production
       APP_URL: ${APP_URL:-http://localhost:3000}
 
       # Admin bootstrap
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@edulearn.pro}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@nayawallahkanoon.com}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-Admin@12345}
-      ADMIN_NAME: ${ADMIN_NAME:-System Administrator}
-
-      # Upload config
-      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-20}
-
-      # Rate limiting
-      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
-      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      ADMIN_NAME: ${ADMIN_NAME:-Adv. Akash Faujdar}
 
       # Feature flags
       FEATURE_CERTIFICATES: ${FEATURE_CERTIFICATES:-false}
       FEATURE_REVENUE: ${FEATURE_REVENUE:-false}
     volumes:
+      # Persist SQLite database file
+      - dbdata:/app/data
+      # Persist uploaded files (if any module uses local storage)
       - uploads:/app/private-uploads
-    depends_on:
-      db:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
       interval: 30s
@@ -81,7 +57,7 @@ services:
       start_period: 40s
 
 volumes:
-  pgdata:
+  dbdata:
     driver: local
   uploads:
     driver: local

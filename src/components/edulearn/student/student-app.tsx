@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   LayoutDashboard, GraduationCap, BookOpen, FolderOpen, FileQuestion,
-  Trophy, Megaphone, MessageSquare, User, LogOut, Menu, Bell, ChevronRight, ChevronDown,
+  Trophy, Megaphone, MessageSquare, User, LogOut, Menu, ChevronRight, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { View } from '@/stores/app-store'
@@ -161,10 +161,6 @@ export function StudentApp() {
             <span className="font-semibold text-slate-900 truncate">{currentLabel}</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="icon" aria-label="Notifications" className="relative text-slate-500 hover:text-slate-900">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 transition-colors" aria-label="Account menu">

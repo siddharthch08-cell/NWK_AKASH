@@ -36,10 +36,10 @@ export async function GET(req: NextRequest) {
 
   const filters = `testId=${testId || '-'}, batchId=${batchId || '-'}`
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'EDULEARN PRO'
+  wb.creator = 'Naya Wallah Kanoon'
   wb.created = new Date()
   const ws = wb.addWorksheet('Test Attempts')
-  ws.addRow(['EDULEARN PRO — Test Attempts Export'])
+  ws.addRow(['Naya Wallah Kanoon — Test Attempts Export'])
   ws.addRow([`Generated: ${new Date().toISOString()}`])
   ws.addRow([`Filters: ${filters}`])
   ws.addRow([])
