@@ -2,39 +2,63 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
 import { ok, unauthorized } from '@/lib/api-response'
+import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
 
-  // Materials from batches the student is enrolled in (BATCH or BATCH_AND_COURSE visibility),
-  // plus materials for COURSE visibility assigned to courses in those batches.
+  const url = new URL(req.url)
+  const courseId = url.searchParams.get('courseId')
+  const chapterId = url.searchParams.get('chapterId')
+  const topicId = url.searchParams.get('topicId')
+  const materialType = url.searchParams.get('materialType')
+  const platform = url.searchParams.get('platform')
+  const search = url.searchParams.get('search')
+
+  // Get student's accessible batches (ACTIVE only)
   const enrollments = await db.batchEnrollment.findMany({
-    where: { userId: ctx.user.id },
+    where: {
+      userId: ctx.user.id,
+      batch: { status: 'ACTIVE' },
+    },
     select: { batchId: true },
   })
   const batchIds = enrollments.map((e) => e.batchId)
 
-  const courseIdsInBatches = await db.batchCourse.findMany({
+  // Get course IDs assigned to those active batches
+  const courseAssignments = await db.batchCourse.findMany({
     where: { batchId: { in: batchIds } },
     select: { courseId: true },
   })
-  const courseIds = courseIdsInBatches.map((bc) => bc.courseId)
+  const accessibleCourseIds = [...new Set(courseAssignments.map((c) => c.courseId))]
+
+  if (accessibleCourseIds.length === 0) return ok({ materials: [] }, 'No materials available')
+
+  // Build where clause
+  const where: Prisma.MaterialWhereInput = {
+    published: true,
+    archived: false,
+    courseId: { in: accessibleCourseIds },
+    course: { status: 'PUBLISHED' },
+  }
+
+  if (courseId) where.courseId = courseId
+  if (chapterId) where.chapterId = chapterId
+  if (topicId) where.topicId = topicId
+  if (materialType) where.materialType = materialType
+  if (platform) where.platform = platform
+  if (search) where.title = { contains: search }
 
   const materials = await db.material.findMany({
-    where: {
-      archived: false,
-      OR: [
-        { batchId: { in: batchIds } },
-        { courseId: { in: courseIds }, visibility: 'COURSE' },
-      ],
-    },
+    where,
     orderBy: { createdAt: 'desc' },
     include: {
-      batch: { select: { id: true, name: true } },
       course: { select: { id: true, title: true } },
+      chapter: { select: { id: true, title: true } },
+      topic: { select: { id: true, title: true } },
     },
   })
 
-  return ok({ materials }, 'My materials')
+  return ok({ materials }, 'Study Materials')
 }

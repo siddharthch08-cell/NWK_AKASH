@@ -69,20 +69,14 @@ export function StudentBatchDetail({ id }: { id: string }) {
         <Card className="mt-4"><CardHeader><CardTitle className="text-base flex items-center gap-2"><FolderOpen className="w-5 h-5 text-violet-600" /> Study Material</CardTitle></CardHeader>
           <CardContent><div className="space-y-1">{b.materials.map((m: any) => (
             <div key={m.id} className="flex items-center justify-between p-2 rounded border">
-              <div><div className="text-sm font-medium">{m.title}</div><div className="text-xs text-slate-500">{m.fileName} · {m.materialType}</div></div>
-              <Button variant="outline" size="sm" onClick={() => downloadMaterial(m.id, m.fileName)}>Download</Button>
+              <div><div className="text-sm font-medium">{m.title}</div><div className="text-xs text-slate-500">{m.materialType} · {m.platform}</div></div>
+              <a href={m.externalUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">Open</Button>
+              </a>
             </div>
           ))}</div></CardContent>
         </Card>
       )}
     </div>
   )
-}
-
-async function downloadMaterial(id: string, name: string) {
-  const token = window.localStorage.getItem('edulearn_access_token')
-  const res = await fetch(`/api/student/materials/${id}/download`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-  if (!res.ok) { alert('Download failed'); return }
-  const blob = await res.blob()
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click()
 }

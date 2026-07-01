@@ -44,7 +44,7 @@ model User {
   notifications     Notification[]
   auditLogs         AuditLog[]
   sessions          UserSession[]
-  uploadedMaterials Material[]  @relation("MaterialUploader")
+  createdMaterials Material[]  @relation("MaterialCreator")
   createdBatches    Batch[]     @relation("BatchCreator")
   createdCourses    Course[]    @relation("CourseCreator")
   createdVideos     Video[]     @relation("VideoCreator")
@@ -113,7 +113,6 @@ model Batch {
   enrollments BatchEnrollment[]
   courses     BatchCourse[]
   tests       TestBatch[]
-  materials   Material[]
   announcements AnnouncementBatch[]
   creator     User     @relation("BatchCreator", fields: [createdBy], references: [id])
 }
@@ -225,33 +224,39 @@ model VideoProgress {
 }
 
 // ---------------------------------------------------------------------------
-// MATERIALS
+// MATERIALS — External Link System (Telegram, WhatsApp, Google Drive, Other)
 // ---------------------------------------------------------------------------
 
 model Material {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  fileName    String
-  fileType    String
-  fileSize    Int
-  storageKey  String
-  visibility  String   @default("BATCH") // BATCH | COURSE | BATCH_AND_COURSE
-  batchId     String?
-  courseId    String?
-  chapterId   String?
-  topicId     String?
-  materialType String  @default("NOTES") // NOTES | ASSIGNMENT | TEST_PAPER | REFERENCE
-  uploadedBy  String
-  archived    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt @default(now())
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
 
-  batch       Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  chapter     Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  topic       Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
-  uploader    User     @relation("MaterialUploader", fields: [uploadedBy], references: [id])
+  platform     String   @default("OTHER") // TELEGRAM | WHATSAPP | GOOGLE_DRIVE | OTHER
+  externalUrl  String
+  materialType String   @default("PDF") // NOTES | PDF | QUESTION_PAPER | REFERENCE | OTHER
+
+  courseId     String
+  chapterId    String
+  topicId      String?
+
+  archived     Boolean  @default(false)
+  published    Boolean  @default(true)
+  sortOrder    Int      @default(0)
+
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt @default(now())
+
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter      Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  topic        Topic?   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  creator      User?    @relation("MaterialCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([courseId])
+  @@index([chapterId])
+  @@index([topicId])
+  @@index([published, archived])
 }
 
 // ---------------------------------------------------------------------------

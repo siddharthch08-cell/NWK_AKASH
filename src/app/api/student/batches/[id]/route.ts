@@ -54,27 +54,21 @@ export async function GET(req: NextRequest, { params }: Params) {
           },
         },
       },
-      materials: {
-        where: {
-          archived: false,
-          // Only materials for THIS batch, OR COURSE-visibility materials for courses assigned to this batch
-          OR: [
-            { batchId: id },
-            {
-              visibility: 'COURSE',
-              course: {
-                batches: { some: { batchId: id } },
-                status: 'PUBLISHED',
-              },
-            },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, title: true, fileName: true, fileType: true, fileSize: true, materialType: true, createdAt: true },
-      },
     },
   })
   if (!batch) return notFound('Batch not found')
+
+  // Fetch materials separately (they belong to courses, not batches)
+  const courseIds = batch.courses.map((bc) => bc.course.id)
+  const materials = courseIds.length > 0 ? await db.material.findMany({
+    where: {
+      archived: false,
+      published: true,
+      courseId: { in: courseIds },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, title: true, platform: true, externalUrl: true, materialType: true, courseId: true, chapterId: true, topicId: true, createdAt: true },
+  }) : []
 
   // Fetch announcements separately (they go through AnnouncementBatch join table)
   const now = new Date()
@@ -97,5 +91,5 @@ export async function GET(req: NextRequest, { params }: Params) {
     select: { id: true, title: true, message: true, priority: true, pinned: true, publishAt: true },
   })
 
-  return ok({ batch: { ...batch, announcements } }, 'Batch detail')
+  return ok({ batch: { ...batch, materials, announcements } }, 'Batch detail')
 }

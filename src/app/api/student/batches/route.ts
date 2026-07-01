@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     include: {
       batch: {
         include: {
-          _count: { select: { courses: true, tests: true, materials: true } },
+          _count: { select: { courses: true, tests: true } },
           courses: { include: { course: { select: { id: true, title: true, thumbnail: true, status: true } } } },
           tests: {
             include: {
@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
         endDate: e.batch.endDate,
         courseCount: e.batch._count.courses,
         testCount: e.batch._count.tests,
-        materialCount: e.batch._count.materials,
         enrolledAt: e.enrolledAt,
         courses: e.batch.courses.map((bc) => bc.course),
         tests: e.batch.tests.map((bt) => bt.test),

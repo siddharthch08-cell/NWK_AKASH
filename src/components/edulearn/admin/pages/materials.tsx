@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api, ApiError } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
@@ -11,17 +11,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Search, FolderOpen, Loader2, Download, Trash2, FileText, UploadCloud } from 'lucide-react'
+import { Plus, Search, FolderOpen, Loader2, ExternalLink, Trash2, Edit3, Archive } from 'lucide-react'
 import { fmtDate } from '@/lib/format'
+import { getPlatformLabel, getPlatformColor, type MaterialPlatform } from '@/lib/material-url'
 import { toast } from 'sonner'
 
 interface Material {
-  id: string; title: string; description?: string | null; fileName: string; fileType: string; fileSize: number
-  materialType: string; visibility: string; createdAt: string
-  batch?: { id: string; name: string } | null
-  course?: { id: string; title: string } | null
-  uploader: { name: string }
+  id: string; title: string; description?: string | null
+  platform: string; externalUrl: string; materialType: string
+  courseId: string; chapterId: string; topicId?: string | null
+  archived: boolean; published: boolean; createdAt: string
+  course: { id: string; title: string }
+  chapter: { id: string; title: string }
+  topic: { id: string; title: string } | null
 }
 interface ListResp { items: Material[]; page: number; pageSize: number; total: number; totalPages: number }
 
@@ -31,7 +35,7 @@ export function AdminMaterials() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState<ListResp | null>(null)
   const [loading, setLoading] = useState(true)
-  const [uploadOpen, setUploadOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const pageSize = 10
 
   const load = () => {
@@ -42,110 +46,244 @@ export function AdminMaterials() {
   }
   useEffect(load, [page, search])
 
-  const download = async (id: string, name: string) => {
-    const token = window.localStorage.getItem('edulearn_access_token')
-    const res = await fetch(`/api/admin/materials/${id}/download`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-    if (!res.ok) return toast.error('Download failed')
-    const blob = await res.blob()
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click()
+  const archive = async (id: string) => {
+    if (!confirm('Archive this resource? Students will no longer see it.')) return
+    try { await api.del(`/api/admin/materials/${id}`); toast.success('Resource archived'); load() }
+    catch (e) { toastAction.error(e) }
   }
 
-  const remove = async (id: string) => {
-    if (!confirm('Archive this material? Students will no longer be able to access it.')) return
-    try { await api.del(`/api/admin/materials/${id}`); toast.success('Material archived'); load() }
+  const deletePermanent = async (id: string) => {
+    if (!confirm('Permanently delete this resource? This cannot be undone.')) return
+    try { await api.del(`/api/admin/materials/${id}?permanent=true`); toast.success('Resource deleted'); load() }
     catch (e) { toastAction.error(e) }
   }
 
   return (
     <div>
-      <PageHeader title="Study Material" subtitle="Upload and manage PDFs, assignments, and reference files"
-        actions={<Button size="sm" onClick={() => setUploadOpen(true)} className="bg-blue-700 hover:bg-blue-800"><Plus className="w-4 h-4 mr-1" /> Upload Material</Button>} />
+      <PageHeader title="Study Materials" subtitle="Manage Notes/PDF links (Telegram, WhatsApp, Google Drive)"
+        actions={<Button size="sm" onClick={() => setCreateOpen(true)} className="bg-blue-700 hover:bg-blue-800"><Plus className="w-4 h-4 mr-1" /> Add Notes / PDF Link</Button>} />
 
       <Card className="mb-4"><CardContent className="pt-4">
         <div className="relative"><Search className="absolute left-2 top-2.5 w-4 h-4 text-slate-400" /><Input placeholder="Search materials…" className="pl-8" onChange={(e) => { setSearch(e.target.value); setPage(1) }} /></div>
       </CardContent></Card>
 
       <Card><CardContent className="p-0">
-        {loading ? <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></div> : !data || data.items.length === 0 ? <EmptyState icon={FolderOpen} title="No materials found" message="Upload your first PDF, assignment, or reference file." /> : (
+        {loading ? <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></div> : !data || data.items.length === 0 ? <EmptyState icon={FolderOpen} title="No study materials found" message="Add your first Notes/PDF link with a Telegram, WhatsApp, or Google Drive URL." /> : (
           <div className="divide-y">
             {data.items.map((m) => (
               <div key={m.id} className="flex items-center gap-3 p-3">
-                <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-rose-600" /></div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{m.title}</div>
-                  <div className="text-xs text-slate-500 truncate">{m.fileName} · {(m.fileSize / 1024).toFixed(0)} KB · {m.materialType} · {fmtDate(m.createdAt)}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium truncate">{m.title}</span>
+                    <Badge variant="outline" className={`text-xs ${getPlatformColor(m.platform)}`}>{getPlatformLabel(m.platform)}</Badge>
+                    <Badge variant="outline" className="text-xs">{m.materialType}</Badge>
+                    {!m.published && <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">Draft</Badge>}
+                    {m.archived && <Badge variant="outline" className="text-xs bg-slate-100 text-slate-500">Archived</Badge>}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate mt-0.5">
+                    {m.course.title} → {m.chapter.title}{m.topic ? ` → ${m.topic.title}` : ''} · {fmtDate(m.createdAt)}
+                  </div>
                 </div>
-                {m.batch && <Badge variant="outline" className="hidden sm:inline-flex">{m.batch.name}</Badge>}
-                <Button variant="ghost" size="sm" onClick={() => download(m.id, m.fileName)}><Download className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="sm" onClick={() => remove(m.id)}><Trash2 className="w-4 h-4 text-rose-500" /></Button>
+                <a href={m.externalUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="ghost" size="sm" title="Open resource"><ExternalLink className="w-4 h-4" /></Button>
+                </a>
+                <Button variant="ghost" size="sm" onClick={() => archive(m.id)} title="Archive"><Archive className="w-4 h-4 text-amber-600" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => deletePermanent(m.id)} title="Delete permanently"><Trash2 className="w-4 h-4 text-rose-500" /></Button>
               </div>
             ))}
           </div>
         )}
       </CardContent></Card>
 
-      <UploadDialog open={uploadOpen} onClose={() => setUploadOpen(false)} onUploaded={() => { setUploadOpen(false); load() }} />
+      <AddMaterialDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); load() }} />
     </div>
   )
 }
 
-function UploadDialog({ open, onClose, onUploaded }: { open: boolean; onClose: () => void; onUploaded: () => void }) {
+// ---------------------------------------------------------------------------
+// Add Material Dialog — dependent selectors: Batch → Course → Chapter → Topic
+// ---------------------------------------------------------------------------
+function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const toastAction = useToastAction()
-  const [meta, setMeta] = useState({ title: '', description: '', materialType: 'NOTES', visibility: 'BATCH', batchId: '', courseId: '' })
-  const [file, setFile] = useState<File | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [batches, setBatches] = useState<{ id: string; name: string }[]>([])
-  const [courses, setCourses] = useState<{ id: string; title: string }[]>([])
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [form, setForm] = useState({
+    title: '', description: '', platform: 'TELEGRAM' as MaterialPlatform,
+    externalUrl: '', materialType: 'PDF', published: true,
+  })
+  const [batchId, setBatchId] = useState('')
+  const [courseId, setCourseId] = useState('')
+  const [chapterId, setChapterId] = useState('')
+  const [topicId, setTopicId] = useState('')
 
+  const [batches, setBatches] = useState<any[]>([])
+  const [courses, setCourses] = useState<any[]>([])
+  const [chapters, setChapters] = useState<any[]>([])
+  const [topics, setTopics] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
+
+  // Load active batches when dialog opens
   useEffect(() => {
     if (open) {
-      api.get<{ items: any[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
-      api.get<{ items: any[] }>('/api/admin/courses?pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
+      api.get<{ items: any[] }>('/api/admin/batches?status=ACTIVE&pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
+      // Reset form
+      setForm({ title: '', description: '', platform: 'TELEGRAM', externalUrl: '', materialType: 'PDF', published: true })
+      setBatchId(''); setCourseId(''); setChapterId(''); setTopicId('')
+      setCourses([]); setChapters([]); setTopics([])
     }
   }, [open])
 
+  // When batch changes, load assigned published courses
+  useEffect(() => {
+    if (!batchId) { setCourses([]); setCourseId(''); return }
+    setCourseId(''); setChapterId(''); setTopicId(''); setChapters([]); setTopics([])
+    api.get<{ items: any[] }>(`/api/admin/courses?batchId=${batchId}&status=PUBLISHED&pageSize=100`).then((d) => setCourses(d.items)).catch(() => {})
+  }, [batchId])
+
+  // When course changes, load chapters
+  useEffect(() => {
+    if (!courseId) { setChapters([]); setChapterId(''); return }
+    setChapterId(''); setTopicId(''); setTopics([])
+    api.get<{ chapters: any[] }>(`/api/admin/courses/${courseId}/chapters`).then((d) => setChapters(d.chapters)).catch(() => {})
+  }, [courseId])
+
+  // When chapter changes, load topics
+  useEffect(() => {
+    if (!chapterId) { setTopics([]); setTopicId(''); return }
+    setTopicId('')
+    api.get<{ topics: any[] }>(`/api/admin/chapters/${chapterId}/topics`).then((d) => setTopics(d.topics)).catch(() => {})
+  }, [chapterId])
+
   const submit = async () => {
-    if (!file) { toast.error('Please select a file'); return }
-    if (meta.visibility !== 'COURSE' && !meta.batchId) { toast.error('Please select a batch'); return }
-    if (meta.visibility !== 'BATCH' && !meta.courseId) { toast.error('Please select a course'); return }
+    if (!batchId || !courseId || !chapterId || !form.title || !form.externalUrl) {
+      toast.error('Please fill all required fields')
+      return
+    }
     setSaving(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('meta', JSON.stringify(meta))
-      await api.upload('/api/admin/materials', fd)
-      toast.success('Material uploaded')
-      setMeta({ title: '', description: '', materialType: 'NOTES', visibility: 'BATCH', batchId: '', courseId: '' })
-      setFile(null)
-      if (fileRef.current) fileRef.current.value = ''
-      onUploaded()
+      await api.post('/api/admin/materials', {
+        batchId, courseId, chapterId, topicId: topicId || null,
+        title: form.title, description: form.description || null,
+        platform: form.platform, externalUrl: form.externalUrl,
+        materialType: form.materialType, published: form.published,
+      })
+      toast.success('Study Material created')
+      onCreated()
     } catch (e) { toastAction.error(e) } finally { setSaving(false) }
+  }
+
+  const platformPlaceholder: Record<MaterialPlatform, string> = {
+    TELEGRAM: 'https://t.me/...',
+    WHATSAPP: 'https://chat.whatsapp.com/... or https://wa.me/...',
+    GOOGLE_DRIVE: 'https://drive.google.com/file/d/...',
+    OTHER: 'https://...',
   }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Upload Study Material</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Add Notes / PDF Link</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>File *</Label>
-            <div className="mt-1 border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500" onClick={() => fileRef.current?.click()}>
-              <input ref={fileRef} type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); setMeta((m) => ({ ...m, title: m.title || f.name })) } }} />
-              {file ? <div className="text-sm"><FileText className="w-6 h-6 mx-auto text-rose-500 mb-1" />{file.name}<div className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</div></div> : <div className="text-sm text-slate-500"><UploadCloud className="w-6 h-6 mx-auto mb-1" />Click to select a file (max 20MB)</div>}
+          {/* Step 1: Active Batch */}
+          <div>
+            <Label>Active Batch *</Label>
+            <Select value={batchId} onValueChange={setBatchId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Select an active batch" /></SelectTrigger>
+              <SelectContent>
+                {batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500 mt-1">Resource will be available to all active batches assigned to the selected course.</p>
+          </div>
+
+          {/* Step 2: Course (filtered by batch) */}
+          <div>
+            <Label>Course *</Label>
+            <Select value={courseId} onValueChange={setCourseId} disabled={!batchId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder={batchId ? 'Select a course' : 'Select a batch first'} /></SelectTrigger>
+              <SelectContent>
+                {courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Step 3: Chapter (filtered by course) */}
+          <div>
+            <Label>Chapter *</Label>
+            <Select value={chapterId} onValueChange={setChapterId} disabled={!courseId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder={courseId ? 'Select a chapter' : 'Select a course first'} /></SelectTrigger>
+              <SelectContent>
+                {chapters.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Step 4: Topic (optional, filtered by chapter) */}
+          <div>
+            <Label>Topic (optional)</Label>
+            <Select value={topicId} onValueChange={setTopicId} disabled={!chapterId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder={chapterId ? 'Select a topic (optional)' : 'Select a chapter first'} /></SelectTrigger>
+              <SelectContent>
+                {topics.map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Step 5: Resource details */}
+          <div>
+            <Label>Notes / PDF Name *</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Indian Penal Code Chapter 1 Notes" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Resource Type</Label>
+              <Select value={form.materialType} onValueChange={(v) => setForm({ ...form, materialType: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NOTES">Notes</SelectItem>
+                  <SelectItem value="PDF">PDF</SelectItem>
+                  <SelectItem value="QUESTION_PAPER">Question Paper</SelectItem>
+                  <SelectItem value="REFERENCE">Reference</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Link Platform</Label>
+              <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v as MaterialPlatform })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TELEGRAM">Telegram</SelectItem>
+                  <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+                  <SelectItem value="GOOGLE_DRIVE">Google Drive</SelectItem>
+                  <SelectItem value="OTHER">Other Link</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div><Label>Title *</Label><Input value={meta.title} onChange={(e) => setMeta({ ...meta, title: e.target.value })} /></div>
-          <div><Label>Description</Label><Textarea rows={2} value={meta.description} onChange={(e) => setMeta({ ...meta, description: e.target.value })} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Type</Label><Select value={meta.materialType} onValueChange={(v) => setMeta({ ...meta, materialType: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NOTES">Notes</SelectItem><SelectItem value="ASSIGNMENT">Assignment</SelectItem><SelectItem value="TEST_PAPER">Test Paper</SelectItem><SelectItem value="REFERENCE">Reference</SelectItem></SelectContent></Select></div>
-            <div><Label>Visibility</Label><Select value={meta.visibility} onValueChange={(v) => setMeta({ ...meta, visibility: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BATCH">Batch</SelectItem><SelectItem value="COURSE">Course</SelectItem><SelectItem value="BATCH_AND_COURSE">Both</SelectItem></SelectContent></Select></div>
+
+          <div>
+            <Label>Telegram, WhatsApp or Drive Link *</Label>
+            <Input value={form.externalUrl} onChange={(e) => setForm({ ...form, externalUrl: e.target.value })} placeholder={platformPlaceholder[form.platform]} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Batch {meta.visibility !== 'COURSE' ? '*' : ''}</Label><Select value={meta.batchId} onValueChange={(v) => setMeta({ ...meta, batchId: v })}><SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger><SelectContent>{batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Course {meta.visibility !== 'BATCH' ? '*' : ''}</Label><Select value={meta.courseId} onValueChange={(v) => setMeta({ ...meta, courseId: v })}><SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger><SelectContent>{courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent></Select></div>
+
+          <div>
+            <Label>Description (optional)</Label>
+            <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="published" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} className="rounded" />
+            <Label htmlFor="published" className="text-sm font-normal cursor-pointer">Publish immediately (students can see it)</Label>
           </div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !file || !meta.title} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Upload</Button></DialogFooter>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving || !batchId || !courseId || !chapterId || !form.title || !form.externalUrl} className="bg-blue-700 hover:bg-blue-800">
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+            Add Resource
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

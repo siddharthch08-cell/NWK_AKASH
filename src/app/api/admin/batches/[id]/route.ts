@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     where: { id },
     include: {
       creator: { select: { name: true, email: true } },
-      _count: { select: { enrollments: true, courses: true, tests: true, materials: true, announcements: true } },
+      _count: { select: { enrollments: true, courses: true, tests: true, announcements: true } },
       courses: { include: { course: { select: { id: true, title: true, slug: true, status: true, thumbnail: true } } } },
       tests: { include: { test: { select: { id: true, title: true, status: true, durationMins: true } } } },
       enrollments: {
