@@ -71,22 +71,44 @@ export async function POST(req: NextRequest) {
   const existing = await db.course.findUnique({ where: { slug } })
   if (existing) return conflict('Course slug already exists')
 
-  const course = await db.course.create({
-    data: {
-      title: parsed.data.title,
-      slug,
-      description: parsed.data.description || null,
-      thumbnail: parsed.data.thumbnail || null,
-      category: parsed.data.category || null,
-      status: parsed.data.status || 'DRAFT',
-      createdBy: ctx.user.id,
-      batches: parsed.data.batchIds?.length
-        ? { create: parsed.data.batchIds.map((batchId) => ({ batchId })) }
-        : undefined,
-    },
-    include: { batches: true },
-  })
-  await audit({ ctx, action: 'COURSE_CREATED', entityType: 'COURSE', entityId: course.id, after: { title: course.title, slug: course.slug } })
+  // Validate that all selected batches exist and are ACTIVE
+  if (parsed.data.batchIds && parsed.data.batchIds.length > 0) {
+    const batches = await db.batch.findMany({
+      where: { id: { in: parsed.data.batchIds } },
+      select: { id: true, status: true, name: true },
+    })
+    if (batches.length !== parsed.data.batchIds.length) {
+      return fail('NOT_FOUND', 'One or more batches not found', 404)
+    }
+    const inactiveBatches = batches.filter((b) => b.status !== 'ACTIVE')
+    if (inactiveBatches.length > 0) {
+      return fail('VALIDATION_ERROR', `Cannot assign course to non-active batches: ${inactiveBatches.map((b) => b.name).join(', ')}`, 422, {
+        batchIds: 'All selected batches must be ACTIVE',
+      })
+    }
+  }
 
-  return ok({ course }, 'Course created', undefined, 201)
+  // Create course and batch assignments in one transaction
+  const course = await db.$transaction(async (tx) => {
+    const newCourse = await tx.course.create({
+      data: {
+        title: parsed.data.title,
+        slug,
+        description: parsed.data.description || null,
+        thumbnail: parsed.data.thumbnail || null,
+        category: parsed.data.category || null,
+        status: parsed.data.status || 'DRAFT',
+        createdBy: ctx.user.id,
+        batches: parsed.data.batchIds?.length
+          ? { create: parsed.data.batchIds.map((batchId) => ({ batchId })) }
+          : undefined,
+      },
+      include: { batches: true },
+    })
+    return newCourse
+  })
+
+  await audit({ ctx, action: 'COURSE_CREATED', entityType: 'COURSE', entityId: course.id, after: { title: course.title, slug: course.slug, batchIds: parsed.data.batchIds } })
+
+  return ok({ course }, `Course created${parsed.data.batchIds?.length ? ` and assigned to ${parsed.data.batchIds.length} batch(es)` : ''}`, undefined, 201)
 }

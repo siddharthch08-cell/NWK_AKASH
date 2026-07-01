@@ -58,39 +58,8 @@ export function AdminCourseDetail({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Assigned Batches — quick navigation + assign */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-blue-700" /> Assigned to Batches ({data.batches.length})</span>
-            <Button size="sm" variant="outline" onClick={() => setView({ name: 'admin/batches' })}>
-              <Plus className="w-3.5 h-3.5 mr-1" /> Manage Batches
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.batches.length === 0 ? (
-            <div className="text-center py-4 text-sm text-slate-500">
-              This course is not assigned to any batch. Go to a batch's detail page and use "Assign Courses" to make it available to students.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {data.batches.map((bc) => (
-                <button
-                  key={bc.batch.id}
-                  onClick={() => setView({ name: 'admin/batches/detail', id: bc.batch.id })}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-slate-50 transition-colors text-sm"
-                >
-                  <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="font-medium">{bc.batch.name}</span>
-                  <Badge variant="outline" className={`text-xs ${statusColor(bc.batch.status)}`}>{bc.batch.status}</Badge>
-                  <ChevronRight className="w-3 h-3 text-slate-400" />
-                </button>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Active Batch Availability — full sync management */}
+      <ActiveBatchAvailability courseId={id} assignedBatches={data.batches} onChanged={load} />
 
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">Content Structure</h2>
