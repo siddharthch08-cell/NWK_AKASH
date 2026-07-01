@@ -16,33 +16,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EDULEARN PRO — Advanced Learning Management System",
+  title: "Naya Wallah Kanoon — Judicial Classes | New Law, New Way",
   description:
-    "EDULEARN PRO is a production-ready Learning Management System for educational institutes. Manage students, batches, courses, video lectures, timed MCQ tests, leaderboards, and analytics.",
+    "Naya Wallah Kanoon Judicial Classes — judicial services preparation, now at your doorstep. Courses for Judiciary, ADJ, and APO. Morning and evening batches. New Law ~ New Way.",
   keywords: [
-    "EDULEARN PRO",
-    "LMS",
-    "Learning Management System",
-    "Online Courses",
-    "Education",
-    "MCQ Tests",
-    "E-Learning",
+    "Naya Wallah Kanoon",
+    "Judicial Classes",
+    "Judiciary Preparation",
+    "ADJ",
+    "APO",
+    "Law Coaching",
+    "Rajasthan High Court",
+    "Jaipur",
   ],
-  authors: [{ name: "EDULEARN PRO" }],
+  authors: [{ name: "Adv. Akash Faujdar" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "EDULEARN PRO — Advanced Learning Management System",
+    title: "Naya Wallah Kanoon — Judicial Classes",
     description:
-      "Manage students, batches, courses, video lectures, timed MCQ tests, leaderboards, and analytics.",
-    siteName: "EDULEARN PRO",
+      "Judicial services preparation, now at your doorstep. Courses for Judiciary, ADJ, and APO.",
+    siteName: "Naya Wallah Kanoon",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "EDULEARN PRO",
-    description: "Advanced Learning Management System",
+    title: "Naya Wallah Kanoon",
+    description: "Judicial Classes — New Law, New Way",
   },
 };
 

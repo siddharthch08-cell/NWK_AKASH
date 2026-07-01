@@ -34,10 +34,10 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
             </div>
             <div className="flex flex-col items-start leading-tight">
               <span className="font-bold text-slate-900 tracking-tight">
-                {settings?.instituteName || 'EDULEARN PRO'}
+                {settings?.instituteName || 'Naya Wallah Kanoon'}
               </span>
               <span className="text-[10px] text-slate-500 hidden sm:block">
-                {settings?.tagline || 'Advanced Learning Management System'}
+                {settings?.tagline || 'Judicial Classes — New Law, New Way'}
               </span>
             </div>
           </button>

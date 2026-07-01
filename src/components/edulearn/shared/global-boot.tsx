@@ -15,8 +15,8 @@ export function GlobalBoot() {
             </svg>
           </div>
           <div>
-            <div className="text-2xl font-bold tracking-tight">EDULEARN PRO</div>
-            <div className="text-xs text-white/70">Advanced Learning Management System</div>
+            <div className="text-2xl font-bold tracking-tight">Naya Wallah Kanoon</div>
+            <div className="text-xs text-white/70">Judicial Classes — New Law, New Way</div>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2 text-sm text-white/80">

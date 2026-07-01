@@ -20,7 +20,7 @@ function required(name: string, fallback?: string): string {
 export const config = {
   app: {
     name: process.env.APP_NAME || 'EDULEARN PRO',
-    tagline: process.env.APP_TAGLINE || 'Advanced Learning Management System',
+    tagline: process.env.APP_TAGLINE || 'Judicial Classes — New Law, New Way',
     url: process.env.APP_URL || 'http://localhost:3000',
     apiUrl: process.env.API_URL || '/api',
     nodeEnv: process.env.NODE_ENV || 'development',

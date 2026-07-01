@@ -151,7 +151,7 @@ export function AdminApp() {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-bold tracking-tight text-sm text-white">EDULEARN PRO</div>
+              <div className="font-bold tracking-tight text-sm text-white">Naya Wallah Kanoon</div>
               <div className="text-[9px] text-white/40 uppercase tracking-wider">Admin Console</div>
             </div>
           </button>
@@ -175,7 +175,7 @@ export function AdminApp() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="font-bold text-sm text-white">EDULEARN PRO</div>
+                <div className="font-bold text-sm text-white">Naya Wallah Kanoon</div>
                 <div className="text-[9px] text-white/40 uppercase tracking-wider">Admin</div>
               </div>
             </div>

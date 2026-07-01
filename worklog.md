@@ -219,3 +219,64 @@ Stage Summary:
 - Batch capacity enforced transactionally
 - Leaderboard access authorized
 - All cross-panel state changes propagate through API → DB → refetch
+
+---
+Task ID: 17
+Agent: main
+Task: Implement Naya Wallah Kanoon Judicial Classes branding and content from PDFs
+
+Work Log:
+- Extracted content from 2 PDFs: Naya_Wallah_Kanoon_About_Us.pdf and Naya_Wallah_Kanoon_Website_Brief.pdf
+- Updated seed.ts with complete NWK branding:
+  - Institute name: "Naya Wallah Kanoon", tagline: "Judicial Classes — New Law, New Way"
+  - Contact: phone 9660315644, email nayawallahkanoon@gmail.com, address Jaipur Rajasthan
+  - Social: Facebook, LinkedIn, Instagram links
+  - Hero: "Naya Wallah Kanoon Judicial Classes" with NWK subtitle
+  - About: Full NWK about text including founder Adv. Akash Faujdar
+  - Stats: 500 students, 3 courses, 92% pass rate, 4 years experience
+  - Admin: admin@nayawallahkanoon.com / Admin@12345 (name: Adv. Akash Faujdar)
+- Updated batches: 6 batches (3 tracks × 2 shifts):
+  - Judiciary Morning (6:30-7:30 AM) + Evening (8-9 PM major + 9-10 PM minor)
+  - ADJ Morning + Evening
+  - APO Morning + Evening (with group discussion 10 PM onwards)
+- Updated course: "Judiciary Comprehensive Preparation" with law-related chapters:
+  - Constitutional Law (Fundamental Rights, DPSP)
+  - Criminal Procedure Code (Arrest and Detention)
+  - Indian Penal Code (Offences Against Body, Offences Against Property)
+- Updated test: "Constitutional Law — Fundamentals Quiz" with 5 law questions (Article 14, Part IV DPSP, Right to Property, Article 32, IPC Section 300)
+- Updated announcements: Welcome NWK, "Join Soon" offer (₹2,200/month), new quiz published
+- Rewrote homepage with all PDF content:
+  - Hero with stacked taglines (Hindi "कर लो दुनिया मुठ्ठी में", "New Law ~ New Way", "Beginning | Consistency | Result")
+  - Three course tracks with morning/evening batch timings
+  - Fee structure section (₹2,200/month, 12% discount, security deposit, "Join Soon" offer)
+  - "What Sets Us Apart" section (6 differentiators from PDF)
+  - Weekly Test Series section (100 questions: 90 objective + 10 descriptive)
+  - Free Resources section (Free Probation Course, Free Question Paper, Free Counselling)
+  - Free Counselling form (Name, Subject, Contact Number → saves to contact messages)
+  - About preview with mission/vision
+  - FAQ section (6 FAQs from PDF)
+  - CTA with Hindi text "Aao humein join karo, milke kuch crazy karte hain law mein"
+- Rewrote About page with full NWK content:
+  - Hero with taglines
+  - Mission/Vision cards
+  - "Examinations We Prepare You For" section (ADJ, Judiciary, APO, JLO, Law Students)
+  - "What Sets Us Apart" section (6 differentiators)
+  - Weekly Test Series section
+  - Personalised Mentorship section
+  - Our Founder section (Adv. Akash Faujdar, Rajasthan High Court since 2021)
+  - "We Are a Family" section with Hindi quote
+  - Join Us CTA with contact number
+- Updated all hardcoded "EDULEARN PRO" → "Naya Wallah Kanoon" across 6 component files
+- Updated layout.tsx metadata (title, description, keywords, OpenGraph, Twitter)
+- Updated login page demo credentials (admin@nayawallahkanoon.com)
+- Force-updated database settings (Prisma upsert update:{} didn't overwrite existing record)
+- Browser-verified: header shows "Naya Wallah Kanoon", all sections visible, no errors
+
+Stage Summary:
+- Complete rebranding from EDULEARN PRO to Naya Wallah Kanoon Judicial Classes
+- All content from both PDFs implemented: taglines, courses, batch timings, fees, free resources, counselling form, FAQ, founder, about text
+- 6 law-related batches (Judiciary/ADJ/APO × Morning/Evening)
+- Law-related course content (Constitutional Law, CrPC, IPC)
+- Law-related test questions (5 Constitutional Law questions)
+- VLM-verified: all key elements visible on homepage
+- Lint: 0 errors

@@ -117,7 +117,7 @@ export function StudentApp() {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-bold tracking-tight text-sm text-slate-900">EDULEARN PRO</div>
+              <div className="font-bold tracking-tight text-sm text-slate-900">Naya Wallah Kanoon</div>
               <div className="text-[9px] text-slate-400 uppercase tracking-wider">Student Portal</div>
             </div>
           </button>
@@ -141,7 +141,7 @@ export function StudentApp() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="font-bold text-sm text-slate-900">EDULEARN PRO</div>
+                <div className="font-bold text-sm text-slate-900">Naya Wallah Kanoon</div>
                 <div className="text-[9px] text-slate-400 uppercase tracking-wider">Student</div>
               </div>
             </div>

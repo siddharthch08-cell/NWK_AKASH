@@ -64,7 +64,7 @@ export function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center shadow-lg">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-lg">EDULEARN PRO</span>
+            <span className="font-bold text-lg">Naya Wallah Kanoon</span>
           </div>
           <h2 className="text-4xl font-bold leading-tight mb-4">Welcome back to your<br />learning journey.</h2>
           <p className="text-blue-100 max-w-md">Sign in to access your courses, video lectures, timed assessments, and detailed progress analytics — all in one place.</p>
@@ -84,7 +84,7 @@ export function LoginPage() {
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
-            <p className="text-sm text-slate-600">Sign in to your EDULEARN PRO account</p>
+            <p className="text-sm text-slate-600">Sign in to your Naya Wallah Kanoon account</p>
           </div>
           <div className="hidden lg:block mb-6">
             <h1 className="text-2xl font-bold text-slate-900">Sign in</h1>
@@ -142,7 +142,7 @@ export function LoginPage() {
               <div className="mt-4 p-3 rounded-lg bg-slate-50 border text-xs text-slate-600">
                 <div className="font-semibold mb-1">Demo Accounts</div>
                 <div className="grid grid-cols-1 gap-1">
-                  <div>Admin: <code className="text-blue-700">admin@edulearn.pro</code> / <code className="text-blue-700">Admin@12345</code></div>
+                  <div>Admin: <code className="text-blue-700">admin@nayawallahkanoon.com</code> / <code className="text-blue-700">Admin@12345</code></div>
                   <div>Student: <code className="text-blue-700">aarav@example.com</code> / <code className="text-blue-700">Student@12345</code></div>
                 </div>
               </div>

@@ -16,9 +16,9 @@ export function PublicFooter({ settings }: { settings: PublicSettings | null }) 
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-white">{settings?.instituteName || 'EDULEARN PRO'}</span>
+              <span className="font-bold text-white">{settings?.instituteName || 'Naya Wallah Kanoon'}</span>
             </div>
-            <p className="text-sm text-slate-400">{settings?.tagline || 'Advanced Learning Management System'}</p>
+            <p className="text-sm text-slate-400">{settings?.tagline || 'Judicial Classes — New Law, New Way'}</p>
             <div className="mt-4 flex gap-2">
               {settings?.socialFacebook && <a href={settings.socialFacebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-slate-400 hover:text-white"><Facebook className="w-5 h-5" /></a>}
               {settings?.socialTwitter && <a href={settings.socialTwitter} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-slate-400 hover:text-white"><Twitter className="w-5 h-5" /></a>}
@@ -59,7 +59,7 @@ export function PublicFooter({ settings }: { settings: PublicSettings | null }) 
         </div>
 
         <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} {settings?.instituteName || 'EDULEARN PRO'}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {settings?.instituteName || 'Naya Wallah Kanoon'}. All rights reserved.</p>
           <div className="flex gap-4">
             <button className="hover:text-white">Privacy Policy</button>
             <button className="hover:text-white">Terms</button>
