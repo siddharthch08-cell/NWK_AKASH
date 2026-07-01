@@ -44,6 +44,40 @@ export function AdminCourseDetail({ id }: { id: string }) {
   }
   useEffect(load, [id])
 
+  // --- Delete handlers with child-count warnings ---
+  const deleteChapter = async (chapterId: string, title: string, topicCount: number) => {
+    const msg = topicCount > 0
+      ? `Delete chapter "${title}"?\n\nThis will permanently delete ${topicCount} topic(s) and ALL videos inside them. This cannot be undone.`
+      : `Delete chapter "${title}"?\n\nThis action cannot be undone.`
+    if (!confirm(msg)) return
+    try {
+      await api.del(`/api/admin/chapters/${chapterId}`)
+      toast.success('Chapter deleted')
+      load()
+    } catch (e) { toastAction.error(e) }
+  }
+
+  const deleteTopic = async (topicId: string, title: string, videoCount: number) => {
+    const msg = videoCount > 0
+      ? `Delete topic "${title}"?\n\nThis will permanently delete ${videoCount} video(s) inside it. This cannot be undone.`
+      : `Delete topic "${title}"?\n\nThis action cannot be undone.`
+    if (!confirm(msg)) return
+    try {
+      await api.del(`/api/admin/topics/${topicId}`)
+      toast.success('Topic deleted')
+      load()
+    } catch (e) { toastAction.error(e) }
+  }
+
+  const deleteVideo = async (videoId: string, title: string) => {
+    if (!confirm(`Delete video "${title}"?\n\nThis will permanently remove it from the course. Student progress for this video will also be removed. This cannot be undone.`)) return
+    try {
+      await api.del(`/api/admin/videos/${videoId}`)
+      toast.success('Video deleted')
+      load()
+    } catch (e) { toastAction.error(e) }
+  }
+
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading…</div>
 
   return (
@@ -81,7 +115,18 @@ export function AdminCourseDetail({ id }: { id: string }) {
                       <span className="font-medium">{ch.title}</span>
                       <Badge variant="secondary" className="text-xs">{ch.topics.length} topics</Badge>
                     </div>
-                    <div className="text-xs text-slate-500">Order #{ch.order}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-slate-500">Order #{ch.order}</div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                        onClick={(e) => { e.stopPropagation(); deleteChapter(ch.id, ch.title, ch.topics.length) }}
+                        title={`Delete chapter "${ch.title}"`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -94,8 +139,22 @@ export function AdminCourseDetail({ id }: { id: string }) {
                         {ch.topics.map((t) => (
                           <div key={t.id} className="border rounded-lg p-2">
                             <div className="flex items-center justify-between">
-                              <div className="text-sm font-medium">{t.title}</div>
-                              <Button size="sm" variant="ghost" onClick={() => setVideoFor(t.id)}><Plus className="w-3 h-3 mr-1" /> Video</Button>
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium">{t.title}</div>
+                                {t.videos.length > 0 && <Badge variant="secondary" className="text-xs">{t.videos.length} videos</Badge>}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => setVideoFor(t.id)}><Plus className="w-3 h-3 mr-1" /> Video</Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  onClick={() => deleteTopic(t.id, t.title, t.videos.length)}
+                                  title={`Delete topic "${t.title}"`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
                             </div>
                             {t.videos.length > 0 && (
                               <div className="mt-2 space-y-1">
@@ -104,6 +163,15 @@ export function AdminCourseDetail({ id }: { id: string }) {
                                     <VideoIcon className="w-4 h-4 text-rose-500 shrink-0" />
                                     <div className="flex-1 min-w-0"><div className="text-xs font-medium truncate">{v.title}</div><div className="text-[10px] text-slate-500">YouTube ID: {v.youtubeId}</div></div>
                                     <Badge variant="outline" className={`text-xs ${statusColor(v.status)}`}>{v.status}</Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-100"
+                                      onClick={() => deleteVideo(v.id, v.title)}
+                                      title={`Delete video "${v.title}"`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
                                   </div>
                                 ))}
                               </div>
