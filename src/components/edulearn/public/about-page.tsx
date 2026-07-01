@@ -25,7 +25,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
   const exams = [
     { icon: Scale, name: 'Additional District Judge (ADJ)' },
     { icon: Gavel, name: 'All State Comprehensive Judiciary' },
-    { icon: Shield, name: 'Assistant Prosecution Officer (APO)' },
+    { icon: ShieldCheck, name: 'Assistant Prosecution Officer (APO)' },
     { icon: BookOpen, name: 'Junior Legal Officer (JLO)' },
     { icon: Users, name: 'Law Students' },
   ]

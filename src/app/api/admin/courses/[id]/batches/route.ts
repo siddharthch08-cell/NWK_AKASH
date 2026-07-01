@@ -110,10 +110,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
       })
     }
     if (toAdd.length > 0) {
-      await tx.batchCourse.createMany({
-        data: toAdd.map((batchId) => ({ courseId: id, batchId })),
-        skipDuplicates: true,
-      })
+      for (const batchId of toAdd) {
+        await tx.batchCourse.create({ data: { courseId: id, batchId } })
+      }
     }
   })
 

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Plus, ChevronDown, Trash2, Video as VideoIcon, BookOpen, FolderOpen, Edit3, Loader2, GraduationCap, ChevronRight } from 'lucide-react'
 import { statusColor, fmtDate } from '@/lib/format'
 import { toast } from 'sonner'
@@ -200,5 +201,74 @@ function CreateVideoDialog({ topicId, onClose, onCreated }: { topicId: string | 
         <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !form.title || !form.youtubeUrl} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Add Video</Button></DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ActiveBatchAvailability — shows all ACTIVE batches with toggle assignment
+// ---------------------------------------------------------------------------
+function ActiveBatchAvailability({ courseId, assignedBatches, onChanged }: { courseId: string; assignedBatches: { batch: { id: string; name: string; status: string } }[]; onChanged: () => void }) {
+  const toastAction = useToastAction()
+  const { setView } = useApp()
+  const [batches, setBatches] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+
+  const load = () => {
+    setLoading(true)
+    api.get<{ batches: any[] }>(`/api/admin/courses/${courseId}/batches`).then((d) => {
+      setBatches(d.batches)
+      setHasChanges(false)
+    }).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
+  }
+  useEffect(load, [courseId])
+
+  const toggle = (batchId: string) => {
+    setBatches(prev => prev.map(b => b.id === batchId ? { ...b, assigned: !b.assigned } : b))
+    setHasChanges(true)
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const batchIds = batches.filter((b) => b.assigned).map((b) => b.id)
+      const res = await api.put<{ added: number; removed: number }>(`/api/admin/courses/${courseId}/batches`, { batchIds })
+      toast.success(`Synced (+${res.added} -${res.removed})`)
+      setHasChanges(false)
+      onChanged()
+    } catch (e) { toastAction.error(e) } finally { setSaving(false) }
+  }
+
+  const assignedCount = batches.filter((b) => b.assigned).length
+
+  return (
+    <Card className="mb-6 border-2">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
+          <span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-blue-700" /> Active Batch Availability ({assignedCount}/{batches.length})</span>
+          {hasChanges && <Button size="sm" onClick={save} disabled={saving} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}Save Assignments</Button>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-6"><Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" /></div>
+        ) : batches.length === 0 ? (
+          <div className="text-center py-4 text-sm text-slate-500">No active batches available. <button onClick={() => setView({ name: 'admin/batches' })} className="text-blue-700 hover:underline">Create one</button> first.</div>
+        ) : (
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500 mb-2">Toggle which active batches receive this course. Content is shared across all assigned batches.</p>
+            {batches.map((b) => (
+              <div key={b.id} className={`flex items-center gap-3 p-2.5 rounded-lg border transition-colors ${b.assigned ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
+                <Checkbox checked={b.assigned} onCheckedChange={() => toggle(b.id)} />
+                <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{b.name}</div><div className="text-xs text-slate-500 truncate">{b.description?.slice(0, 80) || b.slug}</div></div>
+                <div className="text-xs text-slate-500 shrink-0">{b.enrolledCount} students</div>
+                <Badge variant="outline" className={`text-xs shrink-0 ${b.assigned ? 'bg-emerald-100 text-emerald-700' : ''}`}>{b.assigned ? 'Assigned' : 'Unassigned'}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
