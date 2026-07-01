@@ -37,12 +37,34 @@ export function AdminCourseDetail({ id }: { id: string }) {
   const [chapterOpen, setChapterOpen] = useState(false)
   const [topicFor, setTopicFor] = useState<string | null>(null)
   const [videoFor, setVideoFor] = useState<string | null>(null)
+  const [editChapter, setEditChapter] = useState<{ id: string; title: string } | null>(null)
+  const [editTopic, setEditTopic] = useState<{ id: string; title: string } | null>(null)
 
   const load = () => {
     setLoading(true)
     api.get<{ course: CourseDetail }>(`/api/admin/courses/${id}`).then((d) => setData(d.course)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
   useEffect(load, [id])
+
+  // --- Edit handler for chapter ---
+  const handleEditChapter = async (chapterId: string, newTitle: string) => {
+    try {
+      await api.patch(`/api/admin/chapters/${chapterId}`, { title: newTitle })
+      toast.success('Chapter renamed')
+      setEditChapter(null)
+      load()
+    } catch (e) { toastAction.error(e) }
+  }
+
+  // --- Edit handler for topic ---
+  const handleEditTopic = async (topicId: string, newTitle: string) => {
+    try {
+      await api.patch(`/api/admin/topics/${topicId}`, { title: newTitle })
+      toast.success('Topic renamed')
+      setEditTopic(null)
+      load()
+    } catch (e) { toastAction.error(e) }
+  }
 
   // --- Delete handlers with child-count warnings ---
   const deleteChapter = async (chapterId: string, title: string, topicCount: number) => {
@@ -120,6 +142,15 @@ export function AdminCourseDetail({ id }: { id: string }) {
                       <Button
                         size="sm"
                         variant="ghost"
+                        className="h-7 w-7 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={(e) => { e.stopPropagation(); setEditChapter({ id: ch.id, title: ch.title }) }}
+                        title="Rename chapter"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
                         className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
                         onClick={(e) => { e.stopPropagation(); deleteChapter(ch.id, ch.title, ch.topics.length) }}
                         title={`Delete chapter "${ch.title}"`}
@@ -145,6 +176,15 @@ export function AdminCourseDetail({ id }: { id: string }) {
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setVideoFor(t.id)}><Plus className="w-3 h-3 mr-1" /> Video</Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                  onClick={() => setEditTopic({ id: t.id, title: t.title })}
+                                  title="Rename topic"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -191,6 +231,26 @@ export function AdminCourseDetail({ id }: { id: string }) {
       <CreateChapterDialog courseId={id} open={chapterOpen} onClose={() => setChapterOpen(false)} onCreated={load} />
       <CreateTopicDialog chapterId={topicFor} onClose={() => setTopicFor(null)} onCreated={load} />
       <CreateVideoDialog topicId={videoFor} onClose={() => setVideoFor(null)} onCreated={load} />
+
+      {/* Edit Chapter Dialog */}
+      {editChapter && (
+        <EditNameDialog
+          title="Rename Chapter"
+          initialName={editChapter.title}
+          onClose={() => setEditChapter(null)}
+          onSave={(newName) => handleEditChapter(editChapter.id, newName)}
+        />
+      )}
+
+      {/* Edit Topic Dialog */}
+      {editTopic && (
+        <EditNameDialog
+          title="Rename Topic"
+          initialName={editTopic.title}
+          onClose={() => setEditTopic(null)}
+          onSave={(newName) => handleEditTopic(editTopic.id, newName)}
+        />
+      )}
     </div>
   )
 }
@@ -338,5 +398,28 @@ function ActiveBatchAvailability({ courseId, assignedBatches, onChanged }: { cou
         )}
       </CardContent>
     </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// EditNameDialog — reusable rename dialog for chapters and topics
+// ---------------------------------------------------------------------------
+function EditNameDialog({ title, initialName, onClose, onSave }: { title: string; initialName: string; onClose: () => void; onSave: (newName: string) => void }) {
+  const [name, setName] = useState(initialName)
+  const [saving, setSaving] = useState(false)
+
+  return (
+    <Dialog open={true} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        <div><Label>Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" autoFocus /></div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => { setSaving(true); onSave(name) }} disabled={saving || !name.trim()} className="bg-blue-700 hover:bg-blue-800">
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null} Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

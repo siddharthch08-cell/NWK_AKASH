@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, GraduationCap, Loader2, Edit, Archive, Eye, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, GraduationCap, Loader2, Edit, Archive, Eye, Download, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react'
 import { fmtDate, statusColor } from '@/lib/format'
 import { slugify } from '@/lib/format'
 import { toast } from 'sonner'
@@ -34,6 +34,7 @@ export function AdminBatches() {
   const [data, setData] = useState<ListResp | null>(null)
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const [editBatch, setEditBatch] = useState<Batch | null>(null)
   const pageSize = 10
 
   const load = () => {
@@ -82,7 +83,12 @@ export function AdminBatches() {
                     <TableCell className="text-sm">{b.enrolledCount}{b.capacity ? `/${b.capacity}` : ''}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm">{b.courseCount}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm">{b.testCount}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/batches/detail', id: b.id })}><Eye className="w-4 h-4" /></Button></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/batches/detail', id: b.id })} title="View"><Eye className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditBatch(b)} title="Edit" className="text-blue-600"><Edit3 className="w-4 h-4" /></Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -96,6 +102,7 @@ export function AdminBatches() {
       </CardContent></Card>
 
       <CreateBatchDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); load() }} />
+      {editBatch && <EditBatchDialog batch={editBatch} onClose={() => setEditBatch(null)} onSaved={() => { setEditBatch(null); load() }} />}
     </div>
   )
 }
@@ -140,6 +147,73 @@ function CreateBatchDialog({ open, onClose, onCreated }: { open: boolean; onClos
           </div>
         </div>
         <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !form.name} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Create</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// EditBatchDialog — edit batch with merged date validation
+// ---------------------------------------------------------------------------
+function EditBatchDialog({ batch, onClose, onSaved }: { batch: Batch; onClose: () => void; onSaved: () => void }) {
+  const toastAction = useToastAction()
+  const [form, setForm] = useState({
+    name: batch.name,
+    slug: batch.slug,
+    description: batch.description || '',
+    thumbnail: batch.thumbnail || '',
+    startDate: batch.startDate ? new Date(batch.startDate).toISOString().slice(0, 10) : '',
+    endDate: batch.endDate ? new Date(batch.endDate).toISOString().slice(0, 10) : '',
+    status: batch.status,
+    capacity: batch.capacity ? String(batch.capacity) : '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    // Merged date validation: check final start/end pair
+    const startDate = form.startDate || null
+    const endDate = form.endDate || null
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      toast.error('End date must be after start date')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await api.patch(`/api/admin/batches/${batch.id}`, {
+        name: form.name,
+        slug: form.slug || slugify(form.name),
+        description: form.description || undefined,
+        thumbnail: form.thumbnail || undefined,
+        startDate: form.startDate || undefined,
+        endDate: form.endDate || undefined,
+        status: form.status,
+        capacity: form.capacity ? parseInt(form.capacity) : undefined,
+      })
+      toast.success('Batch updated')
+      onSaved()
+    } catch (e) { toastAction.error(e) } finally { setSaving(false) }
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit Batch</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Batch Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div><Label>Slug</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></div>
+          <div><Label>Description</Label><Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div><Label>Thumbnail URL</Label><Input value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Start Date</Label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+            <div><Label>End Date</Label><Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Status</Label><Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="UPCOMING">Upcoming</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="COMPLETED">Completed</SelectItem><SelectItem value="ARCHIVED">Archived</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem></SelectContent></Select></div>
+            <div><Label>Capacity</Label><Input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} /></div>
+          </div>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !form.name} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Save Changes</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   )

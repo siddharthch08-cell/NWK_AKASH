@@ -100,10 +100,13 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  // Course progress: compute per enrolled course
-  const courseProgress = await Promise.all(
+  // Course progress: compute per unique enrolled course (deduplicate by courseId)
+  const seenCourseIds = new Set<string>()
+  const courseProgressRaw = await Promise.all(
     enrollments.flatMap((e) =>
       e.batch.courses.map(async (bc) => {
+        if (seenCourseIds.has(bc.course.id)) return null // deduplicate
+        seenCourseIds.add(bc.course.id)
         const courseVideos = await db.video.findMany({
           where: {
             status: 'PUBLISHED',
@@ -131,6 +134,7 @@ export async function GET(req: NextRequest) {
       })
     )
   )
+  const courseProgress = courseProgressRaw.filter((c): c is NonNullable<typeof c> => c !== null)
 
   return ok(
     {

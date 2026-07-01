@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
@@ -83,6 +83,40 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const batch = await db.batch.findUnique({ where: { id } })
   if (!batch) return notFound('Batch not found')
 
+  const url = new URL(req.url)
+  const permanent = url.searchParams.get('permanent') === 'true'
+
+  if (permanent) {
+    // Check for protected dependencies before permanent deletion
+    const [enrollments, courseAssignments, testAssignments, announcements] = await Promise.all([
+      db.batchEnrollment.count({ where: { batchId: id } }),
+      db.batchCourse.count({ where: { batchId: id } }),
+      db.testBatch.count({ where: { batchId: id } }),
+      db.announcementBatch.count({ where: { batchId: id } }),
+    ])
+
+    const totalDeps = enrollments + courseAssignments + testAssignments + announcements
+    if (totalDeps > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'CONFLICT',
+            message: `Cannot delete batch with dependencies. Archive instead.`,
+          },
+          dependencies: { enrollments, courseAssignments, testAssignments, announcements, total: totalDeps },
+        },
+        { status: 409 }
+      )
+    }
+
+    // Safe to permanently delete — no dependencies
+    await db.batch.delete({ where: { id } })
+    await audit({ ctx, action: 'BATCH_DELETED', entityType: 'BATCH', entityId: id, before: { name: batch.name } })
+    return ok({}, 'Batch permanently deleted')
+  }
+
+  // Archive by default (soft delete)
   const updated = await db.batch.update({ where: { id }, data: { status: 'ARCHIVED' } })
   await audit({ ctx, action: 'BATCH_ARCHIVED', entityType: 'BATCH', entityId: id, before: { status: batch.status }, after: { status: 'ARCHIVED' } })
   return ok({ batch: updated }, 'Batch archived')
