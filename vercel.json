@@ -1,12 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx prisma migrate deploy && prisma generate && next build",
+  "buildCommand": "prisma generate && next build",
   "outputDirectory": ".next",
   "installCommand": "npm ci",
-  "env": {
-    "NODE_ENV": "production"
-  },
   "headers": [
     {
       "source": "/api/(.*)",

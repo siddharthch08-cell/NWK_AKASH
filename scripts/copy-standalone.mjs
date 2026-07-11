@@ -3,7 +3,10 @@ import { resolve } from 'node:path'
 
 const root = process.cwd()
 const standalone = resolve(root, '.next', 'standalone')
-if (!existsSync(standalone)) throw new Error('Standalone build output is missing')
+if (!existsSync(standalone)) {
+  console.log('Standalone output not found — skipping copy (expected for Vercel)')
+  process.exit(0)
+}
 
 mkdirSync(resolve(standalone, '.next'), { recursive: true })
 cpSync(resolve(root, '.next', 'static'), resolve(standalone, '.next', 'static'), { recursive: true, force: true })

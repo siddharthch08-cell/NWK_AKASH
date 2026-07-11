@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       _count: { select: { questions: true } },
       attempts: {
         where: { userId },
-        select: { id: true, attemptNumber: true, status: true, startedAt: true, submittedAt: true, percentage: true },
+        select: { id: true, attemptNumber: true, status: true, startedAt: true, expiresAt: true, submittedAt: true, percentage: true },
         orderBy: { attemptNumber: 'desc' },
       },
     },
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       attemptsUsed,
       attemptsRemaining: Math.max(0, t.maxAttempts - attemptsUsed),
       inProgressAttempt: inProgress
-        ? { id: inProgress.id, startedAt: inProgress.startedAt, expiresAt: inProgress.startedAt ? new Date(inProgress.startedAt.getTime() + t.durationMins * 60 * 1000) : null }
+        ? { id: inProgress.id, startedAt: inProgress.startedAt, expiresAt: inProgress.expiresAt }
         : null,
       lastAttempt: submittedAttempts[0] || null,
     }

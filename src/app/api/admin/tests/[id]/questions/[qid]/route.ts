@@ -25,15 +25,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // If options are being updated, replace them entirely
   if (parsed.data.options) {
-    await db.questionOption.deleteMany({ where: { questionId: qid } })
-    await db.questionOption.createMany({
-      data: parsed.data.options.map((o, idx) => ({
-        questionId: qid,
-        text: o.text,
-        isCorrect: o.isCorrect,
-        order: idx,
-      })),
-    })
+    await db.$transaction([
+      db.questionOption.deleteMany({ where: { questionId: qid } }),
+      db.questionOption.createMany({
+        data: parsed.data.options.map((o, idx) => ({
+          questionId: qid,
+          text: o.text,
+          isCorrect: o.isCorrect,
+          order: idx,
+        })),
+      }),
+    ])
   }
 
   const updated = await db.question.update({

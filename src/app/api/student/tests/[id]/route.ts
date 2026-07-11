@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           ? {
               id: inProgress.id,
               startedAt: inProgress.startedAt,
-              expiresAt: new Date(inProgress.startedAt.getTime() + test.durationMins * 60 * 1000),
+              expiresAt: inProgress.expiresAt,
               attemptNumber: inProgress.attemptNumber,
             }
           : null,
