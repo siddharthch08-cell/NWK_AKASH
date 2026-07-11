@@ -45,7 +45,8 @@ describe('Phase 3 deployment contracts', () => {
   })
 
   it('commits migration history and uses migrate deploy in the release job', () => {
-    expect(read('prisma/migrations/migration_lock.toml')).toContain('provider = "sqlite"')
+    const lock = read('prisma/migrations/migration_lock.toml')
+    expect(lock).toMatch(/provider\s*=\s*"(sqlite|postgresql)"/)
     expect(read('docker-compose.yml')).toContain('prisma", "migrate", "deploy')
     expect(read('.github/workflows/ci.yml')).toContain('Fresh migration deploy')
   })

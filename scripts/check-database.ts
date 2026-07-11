@@ -3,22 +3,19 @@ import { PrismaClient } from '@prisma/client'
 const db = new PrismaClient()
 
 async function main() {
-  const integrity = await db.$queryRawUnsafe<Array<Record<string, string>>>('PRAGMA integrity_check')
-  if (integrity.length !== 1 || Object.values(integrity[0])[0] !== 'ok') {
-    throw new Error(`SQLite integrity check failed: ${JSON.stringify(integrity)}`)
-  }
-  const foreignKeys = await db.$queryRawUnsafe<Array<Record<string, unknown>>>('PRAGMA foreign_key_check')
-  if (foreignKeys.length) throw new Error(`Foreign-key check found ${foreignKeys.length} violation(s)`)
+  // PostgreSQL: verify connection is alive
+  await db.$queryRaw`SELECT 1`
 
+  // Check foreign key constraints via Prisma raw query
   const orphanRows = await db.$queryRawUnsafe<Array<{ count: bigint }>>(`
     SELECT
-      (SELECT COUNT(*) FROM BatchEnrollment WHERE userId NOT IN (SELECT id FROM User) OR batchId NOT IN (SELECT id FROM Batch)) +
-      (SELECT COUNT(*) FROM BatchCourse WHERE batchId NOT IN (SELECT id FROM Batch) OR courseId NOT IN (SELECT id FROM Course)) +
-      (SELECT COUNT(*) FROM AttemptAnswer WHERE attemptId NOT IN (SELECT id FROM TestAttempt) OR questionId NOT IN (SELECT id FROM Question))
+      (SELECT COUNT(*)::int FROM "BatchEnrollment" WHERE "userId" NOT IN (SELECT id FROM "User") OR "batchId" NOT IN (SELECT id FROM "Batch")) +
+      (SELECT COUNT(*)::int FROM "BatchCourse" WHERE "batchId" NOT IN (SELECT id FROM "Batch") OR "courseId" NOT IN (SELECT id FROM "Course")) +
+      (SELECT COUNT(*)::int FROM "AttemptAnswer" WHERE "attemptId" NOT IN (SELECT id FROM "TestAttempt") OR "questionId" NOT IN (SELECT id FROM "Question"))
       AS count
   `)
   const orphanCount = Number(orphanRows[0]?.count || 0)
-  if (orphanCount) throw new Error(`Critical relation validation found ${orphanCount} orphan(s)`)
+  if (orphanCount) throw new Error(`Relation validation found ${orphanCount} orphan(s)`)
 
   const counts = await Promise.all([
     db.user.count(),

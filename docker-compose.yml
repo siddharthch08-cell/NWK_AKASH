@@ -1,4 +1,19 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nwk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-nwk}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nwk}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
@@ -15,7 +30,7 @@ services:
     user: "1001:1001"
     command: ["npx", "prisma", "migrate", "deploy"]
     environment: &app_environment
-      DATABASE_URL: file:/app/data/custom.db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nwk}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-nwk}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
       REDIS_URL: redis://redis:6379
@@ -24,8 +39,8 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?required}
       TRUST_PROXY: "true"
       PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?required}
-    volumes: ["dbdata:/app/data"]
     depends_on:
+      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: "no"
 
@@ -37,7 +52,6 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:?required}
       ADMIN_NAME: ${ADMIN_NAME:-System Administrator}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
-    volumes: ["dbdata:/app/data"]
     depends_on:
       migrate: { condition: service_completed_successfully }
     profiles: ["tools"]
@@ -47,12 +61,12 @@ services:
     restart: unless-stopped
     ports: ["${APP_PORT:-3000}:3000"]
     environment: *app_environment
-    volumes: ["dbdata:/app/data", "uploads:/app/private-uploads"]
+    volumes: ["uploads:/app/private-uploads"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
 
 volumes:
-  dbdata:
+  pgdata:
   uploads:
   redisdata:
