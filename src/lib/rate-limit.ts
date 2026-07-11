@@ -31,7 +31,7 @@ export const RATE_LIMIT_POLICIES = {
 type Bucket = { count: number; resetAt: number }
 const memoryBuckets = new Map<string, Bucket>()
 let redisClient: RedisClientType | null = null
-let redisConnecting: Promise<RedisClientType> | null = null
+let redisConnecting: Promise<RedisClientType | null> | null = null
 
 async function redis(): Promise<RedisClientType | null> {
   const url = process.env.REDIS_URL
@@ -46,8 +46,8 @@ async function redis(): Promise<RedisClientType | null> {
     })
     redisConnecting = client.connect().then(() => {
       redisClient = client as RedisClientType
-      return redisClient
-    }).catch(() => null).finally(() => { redisConnecting = null })
+      return redisClient as RedisClientType | null
+    }).catch((): null => null).finally(() => { redisConnecting = null })
   }
   return redisConnecting
 }
