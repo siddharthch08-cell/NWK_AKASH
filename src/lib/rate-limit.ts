@@ -35,18 +35,19 @@ let redisConnecting: Promise<RedisClientType> | null = null
 
 async function redis(): Promise<RedisClientType | null> {
   const url = process.env.REDIS_URL
-  if (!url) {
-    if (process.env.NODE_ENV === 'production') throw new Error('REDIS_URL is required for production rate limiting')
-    return null
-  }
+  if (!url) return null
   if (redisClient?.isReady) return redisClient
   if (!redisConnecting) {
     const client = createClient({ url })
-    client.on('error', error => console.error('[rate-limit] Redis error', error instanceof Error ? error.message : 'unknown'))
+    client.on('error', error => {
+      console.error('[rate-limit] Redis error', error instanceof Error ? error.message : 'unknown')
+      redisClient = null
+      redisConnecting = null
+    })
     redisConnecting = client.connect().then(() => {
       redisClient = client as RedisClientType
       return redisClient
-    }).finally(() => { redisConnecting = null })
+    }).catch(() => null).finally(() => { redisConnecting = null })
   }
   return redisConnecting
 }
