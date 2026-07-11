@@ -1,69 +1,34 @@
 import { NextRequest } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, unauthorized, parsePagination } from '@/lib/api-response'
-import { Prisma } from '@prisma/client'
-
-function csvEscape(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  const s = String(v)
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`
-  }
-  return s
-}
+import { parsePagination, tooMany, unauthorized } from '@/lib/api-response'
+import { audit } from '@/lib/audit'
+import { createCsv, downloadResponse } from '@/lib/export-security'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireAdmin(req)
   if (!ctx) return unauthorized()
-
+  const limit = await enforceRateLimit(req, 'export', ctx.user.id)
+  if (!limit.ok) return tooMany('Too many export requests.', limit.retryAfterMs, ctx.requestId)
   const p = parsePagination(req)
-  // Export ignores pagination, returns all matching
   const where: Prisma.UserWhereInput = { role: 'STUDENT', deletedAt: null }
-  if (p.search) {
-    where.OR = [
-      { name: { contains: p.search } },
-      { email: { contains: p.search } },
-      { phone: { contains: p.search } },
-    ]
-  }
+  if (p.search) where.OR = [{ name: { contains: p.search } }, { email: { contains: p.search } }, { phone: { contains: p.search } }]
   if (p.status) where.status = String(p.status)
   if (p.batchId) where.enrollments = { some: { batchId: String(p.batchId) } }
-
   const users = await db.user.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    select: {
-      name: true,
-      email: true,
-      phone: true,
-      status: true,
-      createdAt: true,
-      lastLoginAt: true,
-      enrollments: { include: { batch: { select: { name: true } } } },
-    },
+    select: { name: true, email: true, phone: true, status: true, createdAt: true, lastLoginAt: true, enrollments: { include: { batch: { select: { name: true } } } } },
   })
-
-  const header = ['Name', 'Email', 'Phone', 'Status', 'CreatedAt', 'LastLogin', 'Batches']
-  const rows = users.map((u) => [
-    u.name,
-    u.email,
-    u.phone || '',
-    u.status,
-    u.createdAt.toISOString(),
-    u.lastLoginAt ? u.lastLoginAt.toISOString() : '',
-    u.enrollments.map((e) => e.batch.name).join('; '),
-  ])
-  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(',')).join('\r\n')
-
+  const rows = users.map(user => [user.name, user.email, user.phone || '', user.status, user.createdAt.toISOString(), user.lastLoginAt?.toISOString() || '', user.enrollments.map(item => item.batch.name).join('; ')])
   const generatedAt = new Date().toISOString()
-  const meta = `# EDULEARN PRO — Students Export\r\n# Generated: ${generatedAt}\r\n# Filter: search=${p.search || '-'} status=${p.status || '-'} batchId=${p.batchId || '-'}\r\n`
-
-  return new Response(meta + csv, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="students-${generatedAt}.csv"`,
-    },
-  })
+  const csv = createCsv([
+    ['Naya Wallah Kanoon Students Export'], ['Generated', generatedAt],
+    ['Search filter', p.search || '-'], ['Status filter', p.status || '-'], ['Batch filter', p.batchId || '-'], [],
+    ['Name', 'Email', 'Phone', 'Status', 'CreatedAt', 'LastLogin', 'Batches'], ...rows,
+  ])
+  await audit({ ctx, action: 'REPORT_EXPORTED', entityType: 'STUDENT_EXPORT', after: { outcome: 'SUCCESS', format: 'csv', rows: rows.length } })
+  return downloadResponse(csv, `students-${Date.now()}.csv`, 'text/csv; charset=utf-8')
 }

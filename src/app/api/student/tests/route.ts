@@ -14,11 +14,11 @@ export async function GET(req: NextRequest) {
   const tests = await db.test.findMany({
     where: {
       status: 'PUBLISHED',
-      batches: { some: { batch: { enrollments: { some: { userId } } } } },
+      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
     },
     orderBy: { startAt: 'asc' },
     include: {
-      batches: { include: { batch: { select: { id: true, name: true } } } },
+      batches: { where: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } }, include: { batch: { select: { id: true, name: true } } } },
       _count: { select: { questions: true } },
       attempts: {
         where: { userId },
@@ -68,9 +68,8 @@ export async function GET(req: NextRequest) {
       categorized.upcoming.push(entry)
     } else if (attemptsUsed >= t.maxAttempts && !inProgress) {
       categorized.attemptLimitReached.push(entry)
-    } else if (attemptsUsed > 0 && !inProgress && (!ended || attemptsUsed > 0)) {
+    } else if (attemptsUsed > 0 && !inProgress && ended) {
       categorized.completed.push(entry)
-      if (!ended) categorized.active.push(entry)
     } else {
       categorized.active.push(entry)
     }

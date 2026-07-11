@@ -1,104 +1,24 @@
 import { NextRequest } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { unauthorized } from '@/lib/api-response'
+import { tooMany, unauthorized } from '@/lib/api-response'
 import { audit } from '@/lib/audit'
-import ExcelJS from 'exceljs'
-
-// Helper: prevent formula injection by prefixing cell text with a single quote
-// if it begins with =, +, -, or @
-function safe(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  let s = String(v)
-  if (/^[=+\-@]/.test(s)) s = `'${s}`
-  return s
-}
-
-async function exportWorkbook(
-  filename: string,
-  sheetName: string,
-  filtersLabel: string,
-  columns: Partial<ExcelJS.Column>[],
-  rows: Record<string, unknown>[]
-) {
-  const wb = new ExcelJS.Workbook()
-  wb.creator = 'Naya Wallah Kanoon'
-  wb.created = new Date()
-  const ws = wb.addWorksheet(sheetName)
-
-  // Add a meta header row at the top
-  ws.addRow(['Naya Wallah Kanoon — Export'])
-  ws.addRow([`Generated: ${new Date().toISOString()}`])
-  ws.addRow([`Filters: ${filtersLabel}`])
-  ws.addRow([])
-
-  ws.columns = columns
-  for (const r of rows) {
-    const row: Record<string, string> = {}
-    for (const c of columns) {
-      const key = c.key as string
-      row[key] = safe(r[key])
-    }
-    ws.addRow(row)
-  }
-
-  // Style header row (row 5 — after meta rows)
-  const headerRow = ws.getRow(5)
-  headerRow.font = { bold: true }
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FF1E3A8A' },
-  }
-  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-
-  // Auto width
-  ws.columns.forEach((c) => {
-    let max = (c.header as string)?.length || 10
-    for (const r of rows) {
-      const v = safe(r[c.key as string])
-      if (v.length > max) max = v.length
-    }
-    c.width = Math.min(60, max + 2)
-  })
-
-  const buf = await wb.xlsx.writeBuffer()
-
-  await audit({
-    ctx: null,
-    action: 'REPORT_EXPORTED',
-    entityType: 'REPORT',
-    entityId: filename,
-    after: { format: 'xlsx', sheetName, rows: rows.length, filters: filtersLabel },
-  })
-
-  return new Response(buf, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
-  })
-}
-
-export { exportWorkbook }
+import { enforceRateLimit } from '@/lib/rate-limit'
+import { createXlsxDownload } from '@/lib/xlsx-export'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireAdmin(req)
   if (!ctx) return unauthorized()
+  const limit = await enforceRateLimit(req, 'export', ctx.user.id)
+  if (!limit.ok) return tooMany('Too many export requests.', limit.retryAfterMs, ctx.requestId)
 
   const url = new URL(req.url)
   const status = url.searchParams.get('status') || ''
   const search = url.searchParams.get('search') || ''
-
-  const where: any = { role: 'STUDENT', deletedAt: null }
+  const where: Prisma.UserWhereInput = { role: 'STUDENT', deletedAt: null }
   if (status) where.status = status
-  if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { email: { contains: search } },
-    ]
-  }
+  if (search) where.OR = [{ name: { contains: search } }, { email: { contains: search } }]
 
   const users = await db.user.findMany({
     where,
@@ -114,24 +34,24 @@ export async function GET(req: NextRequest) {
     },
     take: 10000,
   })
-
   const filters = `status=${status || '-'}, search=${search || '-'}`
-  const rows = users.map((u, i) => ({
-    sno: i + 1,
-    name: u.name,
-    email: u.email,
-    phone: u.phone || '',
-    status: u.status,
-    batches: u.enrollments.map((e) => e.batch.name).join('; '),
-    createdAt: u.createdAt.toISOString(),
-    lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : '',
+  const rows = users.map((user, index) => ({
+    sno: index + 1,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || '',
+    status: user.status,
+    batches: user.enrollments.map(item => item.batch.name).join('; '),
+    createdAt: user.createdAt.toISOString(),
+    lastLoginAt: user.lastLoginAt?.toISOString() || '',
   }))
-
-  return exportWorkbook(
-    `students-${Date.now()}.xlsx`,
-    'Students',
+  await audit({ ctx, action: 'REPORT_EXPORTED', entityType: 'REPORT', entityId: 'students', after: { format: 'xlsx', rows: rows.length, filters } })
+  return createXlsxDownload({
+    filename: `students-${Date.now()}.xlsx`,
+    sheetName: 'Students',
+    title: 'Naya Wallah Kanoon — Students Export',
     filters,
-    [
+    columns: [
       { header: '#', key: 'sno', width: 6 },
       { header: 'Name', key: 'name' },
       { header: 'Email', key: 'email' },
@@ -141,12 +61,6 @@ export async function GET(req: NextRequest) {
       { header: 'Created At', key: 'createdAt' },
       { header: 'Last Login', key: 'lastLoginAt' },
     ],
-    rows
-  ).then((r) => {
-    // Also record audit with ctx
-    if (ctx) {
-      audit({ ctx, action: 'REPORT_EXPORTED', entityType: 'REPORT', entityId: 'students', after: { rows: rows.length, filters } })
-    }
-    return r
+    rows,
   })
 }

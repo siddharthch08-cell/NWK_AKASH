@@ -1,4 +1,4 @@
-# API Reference — EDULEARN PRO
+# API Reference — Naya Wallah Kanoon
 
 All API routes follow a standard response envelope:
 
@@ -16,6 +16,7 @@ All API routes follow a standard response envelope:
 |--------|----------|-------------|------|
 | POST | `/api/auth/register` | Student registration (PENDING status) | Public |
 | POST | `/api/auth/login` | Login (admin or student) | Public |
+| POST | `/api/auth/refresh` | Rotate the refresh-token family and issue a new access token | Refresh cookie |
 | POST | `/api/auth/logout` | Revoke refresh token + clear cookies | Authenticated |
 | GET | `/api/auth/me` | Get current user session | Authenticated |
 | POST | `/api/auth/change-password` | Change password (revokes all refresh tokens) | Authenticated |
@@ -36,7 +37,6 @@ All API routes follow a standard response envelope:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/admin/dashboard` | Dashboard stats + charts data |
-| GET | `/api/admin/analytics` | Extended analytics |
 | GET | `/api/admin/leaderboard` | Aggregated student leaderboard |
 
 ### Students
@@ -76,11 +76,11 @@ All API routes follow a standard response envelope:
 | GET/PATCH/DELETE | `/api/admin/courses/[id]` | Detail / Update / Archive |
 | POST | `/api/admin/courses/[id]/assign-batches` | Assign to batches |
 | GET/POST | `/api/admin/courses/[id]/chapters` | List / Add chapter |
-| PATCH/DELETE | `/api/admin/chapters/[id]` | Update / Delete chapter |
+| PATCH/DELETE | `/api/admin/chapters/[id]` | Update / archive; hard-delete only safe unreferenced draft history |
 | GET/POST | `/api/admin/chapters/[id]/topics` | List / Add topic |
-| PATCH/DELETE | `/api/admin/topics/[id]` | Update / Delete topic |
+| PATCH/DELETE | `/api/admin/topics/[id]` | Update / archive; hard-delete only safe unreferenced draft history |
 | GET/POST | `/api/admin/topics/[id]/videos` | List / Add video |
-| PATCH/DELETE | `/api/admin/videos/[id]` | Update / Delete video |
+| PATCH/DELETE | `/api/admin/videos/[id]` | Update / archive; hard-delete only safe unreferenced draft history |
 | POST | `/api/admin/videos/[id]/publish` | Change status |
 | POST | `/api/admin/videos/[id]/reorder` | Reorder videos |
 

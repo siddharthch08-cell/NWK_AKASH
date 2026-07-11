@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
 import { ok, unauthorized } from '@/lib/api-response'
 import { Prisma } from '@prisma/client'
+import { StudentContentAccessPolicy } from '@/domain'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireActiveStudent(req)
@@ -17,21 +18,7 @@ export async function GET(req: NextRequest) {
   const search = url.searchParams.get('search')
 
   // Get student's accessible batches (ACTIVE only)
-  const enrollments = await db.batchEnrollment.findMany({
-    where: {
-      userId: ctx.user.id,
-      batch: { status: 'ACTIVE' },
-    },
-    select: { batchId: true },
-  })
-  const batchIds = enrollments.map((e) => e.batchId)
-
-  // Get course IDs assigned to those active batches
-  const courseAssignments = await db.batchCourse.findMany({
-    where: { batchId: { in: batchIds } },
-    select: { courseId: true },
-  })
-  const accessibleCourseIds = [...new Set(courseAssignments.map((c) => c.courseId))]
+  const accessibleCourseIds = await StudentContentAccessPolicy.getAccessibleCourseIds(ctx.user.id)
 
   if (accessibleCourseIds.length === 0) return ok({ materials: [] }, 'No materials available')
 
@@ -40,6 +27,8 @@ export async function GET(req: NextRequest) {
     published: true,
     archived: false,
     course: { status: 'PUBLISHED' },
+    chapter: { archivedAt: null },
+    OR: [{ topicId: null }, { topic: { archivedAt: null } }],
   }
 
   // If courseId filter is provided, validate it's in the authorized set

@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, fromZodError, unauthorized, fail, serverError, parsePagination } from '@/lib/api-response'
-import { audit } from '@/lib/audit'
+import { ok, unauthorized, fail, parsePagination } from '@/lib/api-response'
 import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
@@ -27,8 +26,13 @@ export async function GET(req: NextRequest) {
     if (p.toDate) where.createdAt.lte = new Date(String(p.toDate))
   }
 
-  const sortBy = (p.sortBy as string) || 'createdAt'
-  const sortDir = (p.sortDir as string) === 'asc' ? 'asc' : 'desc'
+  const sortableFields = new Set(['createdAt', 'updatedAt', 'name', 'email', 'status', 'lastLoginAt'])
+  const requestedSort = String(p.sortBy || 'createdAt')
+  if (!sortableFields.has(requestedSort)) return fail('VALIDATION_ERROR', 'Unsupported sort field', 422, { sortBy: 'Allowed: createdAt, updatedAt, name, email, status, lastLoginAt' })
+  const requestedDirection = String(p.sortDir || 'desc')
+  if (requestedDirection !== 'asc' && requestedDirection !== 'desc') return fail('VALIDATION_ERROR', 'Unsupported sort direction', 422, { sortDir: 'Allowed: asc, desc' })
+  const sortBy = requestedSort as 'createdAt' | 'updatedAt' | 'name' | 'email' | 'status' | 'lastLoginAt'
+  const sortDir = requestedDirection
   const orderBy: Prisma.UserOrderByWithRelationInput = { [sortBy]: sortDir }
 
   const [total, items] = await Promise.all([
@@ -84,29 +88,35 @@ export async function POST(req: NextRequest) {
   }
 
   const { userIds } = (body || {}) as { userIds?: string[] }
-  if (!Array.isArray(userIds) || userIds.length === 0) {
+  if (!Array.isArray(userIds) || userIds.length === 0 || userIds.length > 100 || userIds.some(id => typeof id !== 'string' || !id)) {
     return fail('VALIDATION_ERROR', 'userIds is required', 400, { userIds: 'Required' })
   }
+  const uniqueUserIds = [...new Set(userIds)]
 
   let successCount = 0
   let failedCount = 0
   const errors: { userId: string; error: string }[] = []
 
   await db.$transaction(async (tx) => {
-    for (const userId of userIds) {
+    for (const userId of uniqueUserIds) {
       try {
-        const user = await tx.user.findFirst({ where: { id: userId, role: 'STUDENT' } })
+        const user = await tx.user.findFirst({ where: { id: userId, role: 'STUDENT', deletedAt: null } })
         if (!user) {
           failedCount++
           errors.push({ userId, error: 'Student not found' })
           continue
         }
-        if (user.status === 'APPROVED' || user.status === 'ACTIVE') {
+        if (!['PENDING', 'REJECTED', 'INACTIVE'].includes(user.status)) {
           failedCount++
           errors.push({ userId, error: `Already ${user.status}` })
           continue
         }
-        await tx.user.update({ where: { id: userId }, data: { status: 'APPROVED' } })
+        const approvedAt = new Date()
+        await tx.user.update({ where: { id: userId }, data: {
+          status: 'APPROVED', approvedAt, approvedById: ctx.user.id,
+          rejectionReason: null, rejectedAt: null, rejectedById: null,
+          suspensionReason: null, suspendedAt: null, suspendedById: null,
+        } })
         await tx.auditLog.create({
           data: {
             actorId: ctx.user.id,
@@ -115,7 +125,7 @@ export async function POST(req: NextRequest) {
             entityType: 'USER',
             entityId: userId,
             before: JSON.stringify({ status: user.status }),
-            after: JSON.stringify({ status: 'APPROVED' }),
+            after: JSON.stringify({ status: 'APPROVED', approvedAt, approvedById: ctx.user.id }),
             ip: ctx.ip,
             userAgent: ctx.userAgent,
             requestId: ctx.requestId,

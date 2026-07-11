@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from './db'
 import { SignJWT, jwtVerify } from 'jose'
+import { createHash } from 'node:crypto'
+import { getJwtSecrets } from '@/config'
+import { getTrustedClientIp, requestId } from './request-security'
+import type { SessionUser } from '@/types'
 
-const ACCESS_SECRET = new TextEncoder().encode(
-  process.env.JWT_ACCESS_SECRET || 'edulearn-pro-access-secret-dev-only-change-in-prod'
-)
-const REFRESH_SECRET = new TextEncoder().encode(
-  process.env.JWT_REFRESH_SECRET || 'edulearn-pro-refresh-secret-dev-only-change-in-prod'
-)
+export type { SessionUser }
 
 export const ACCESS_TOKEN_TTL = '15m'
 export const REFRESH_TOKEN_TTL_DAYS = 7
-
-export interface SessionUser {
-  id: string
-  email: string
-  role: 'ADMIN' | 'STUDENT'
-  name: string
-  status: string
-}
 
 export async function signAccessToken(user: SessionUser): Promise<string> {
   return new SignJWT({ ...user })
@@ -26,20 +17,25 @@ export async function signAccessToken(user: SessionUser): Promise<string> {
     .setSubject(user.id)
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_TTL)
-    .sign(ACCESS_SECRET)
+    .sign(getJwtSecrets().accessSecret)
 }
 
-export async function signRefreshToken(userId: string): Promise<string> {
+export async function signRefreshToken(userId: string, tokenId = crypto.randomUUID()): Promise<string> {
   return new SignJWT({ sub: userId, kind: 'refresh' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
+    .setJti(tokenId)
     .setExpirationTime(`${REFRESH_TOKEN_TTL_DAYS}d`)
-    .sign(REFRESH_SECRET)
+    .sign(getJwtSecrets().refreshSecret)
+}
+
+export function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('hex')
 }
 
 export async function verifyAccessToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, ACCESS_SECRET)
+    const { payload } = await jwtVerify(token, getJwtSecrets().accessSecret)
     return payload as unknown as SessionUser
   } catch {
     return null
@@ -65,7 +61,7 @@ export interface AuthContext {
 
 /**
  * Resolve the authenticated user from a request. Accepts `Authorization: Bearer <token>`
- * or a non-httpOnly `access_token` cookie. Refresh tokens are stored httpOnly and
+ * or the httpOnly `access_token` cookie. Refresh tokens are stored httpOnly and
  * rotated via /api/auth/refresh — kept simple here for the single-page sandbox.
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
@@ -95,22 +91,19 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     role: dbUser.role as 'ADMIN' | 'STUDENT',
     name: dbUser.name,
     status: dbUser.status,
+    mustChangePassword: dbUser.mustChangePassword,
   }
 
   return {
     user: sessionUser,
-    requestId: req.headers.get('x-request-id') || cryptoRandomId(),
-    ip: getClientIp(req),
+    requestId: requestId(req),
+    ip: getTrustedClientIp(req),
     userAgent: req.headers.get('user-agent') || 'unknown',
   }
 }
 
 export function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    '127.0.0.1'
-  )
+  return getTrustedClientIp(req)
 }
 
 export function cryptoRandomId(): string {
@@ -118,30 +111,25 @@ export function cryptoRandomId(): string {
 }
 
 function nanoidSafe(): string {
-  // Avoid ESM import edge cases; use crypto.randomUUID when available
-  try {
-    if (typeof globalThis.crypto?.randomUUID === 'function') {
-      return globalThis.crypto.randomUUID()
-    }
-  } catch {
-    /* noop */
-  }
-  return Math.random().toString(36).slice(2) + Date.now().toString(36)
+  // Use Node.js crypto for secure randomness — never fall back to Math.random()
+  return crypto.randomUUID()
 }
 
 export async function requireAdmin(req: NextRequest): Promise<AuthContext | null> {
   const ctx = await getAuthContext(req)
   if (!ctx) return null
   if (ctx.user.role !== 'ADMIN') return null
+  if (ctx.user.mustChangePassword) return null
   return ctx
 }
+
+export const LOGINABLE_STATUSES = new Set(['APPROVED', 'ACTIVE'])
 
 export async function requireActiveStudent(req: NextRequest): Promise<AuthContext | null> {
   const ctx = await getAuthContext(req)
   if (!ctx) return null
   if (ctx.user.role !== 'STUDENT') return null
-  // ACTIVE or APPROVED both can access learning content per spec; we treat APPROVED as ready
-  if (ctx.user.status !== 'ACTIVE' && ctx.user.status !== 'APPROVED') return null
+  if (!LOGINABLE_STATUSES.has(ctx.user.status)) return null
   return ctx
 }
 
@@ -154,13 +142,13 @@ export async function requireStudent(req: NextRequest): Promise<AuthContext | nu
 }
 
 /**
- * Set auth cookies (access + refresh) on a NextResponse. Access token is also
- * exposed to client via a non-httpOnly cookie so the SPA can read it for API calls.
+ * Set auth cookies (access + refresh) on a NextResponse. Both cookies are
+ * inaccessible to browser JavaScript.
  */
 export function setAuthCookies(res: NextResponse, accessToken: string, refreshToken: string) {
   const isProd = process.env.NODE_ENV === 'production'
   res.cookies.set('access_token', accessToken, {
-    httpOnly: false, // SPA needs to send via Authorization header
+    httpOnly: true,
     secure: isProd,
     sameSite: 'lax',
     path: '/',

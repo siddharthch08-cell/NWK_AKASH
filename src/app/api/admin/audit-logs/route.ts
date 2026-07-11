@@ -9,11 +9,12 @@ export async function GET(req: NextRequest) {
   if (!ctx) return unauthorized()
 
   const p = parsePagination(req)
-  const where: Prisma.AuditLogWhereInput = {}
-  if (p.search) where.action = { contains: String(p.search).toUpperCase() }
-  if (p.action) where.action = String(p.action)
-  if (p.entityType) where.entityType = String(p.entityType)
-  if (p.actorId) where.actorId = String(p.actorId)
+  const conditions: Prisma.AuditLogWhereInput[] = []
+  if (p.search) conditions.push({ action: { contains: String(p.search).toUpperCase() } })
+  if (p.action) conditions.push({ action: String(p.action) })
+  if (p.entityType) conditions.push({ entityType: String(p.entityType) })
+  if (p.actorId) conditions.push({ actorId: String(p.actorId) })
+  const where: Prisma.AuditLogWhereInput = conditions.length > 0 ? { AND: conditions } : {}
 
   const [total, items] = await Promise.all([
     db.auditLog.count({ where }),

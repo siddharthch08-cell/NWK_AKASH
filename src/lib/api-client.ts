@@ -1,18 +1,13 @@
 /**
- * Typed fetch wrapper for the EDULEARN PRO API.
+ * Typed fetch wrapper for the Naya Wallah Kanoon API.
  * Always uses relative URLs so the gateway can route correctly.
  * Reads the access token from localStorage (set on login).
  */
 'use client'
 
-export interface ApiEnvelope<T> {
-  success: boolean
-  data?: T
-  message?: string
-  meta?: Record<string, unknown>
-  error?: { code: string; message: string; fields?: Record<string, string> }
-  requestId?: string
-}
+import type { ApiEnvelope } from '@/types'
+
+export type { ApiEnvelope }
 
 const TOKEN_KEY = 'edulearn_access_token'
 
@@ -84,7 +79,7 @@ async function request<T>(
   let res: Response
   try {
     res = await fetch(url, { ...options, headers, credentials: 'include' })
-  } catch (e) {
+  } catch {
     throw new ApiError('NETWORK_ERROR', 'Network request failed. Please check your connection.', 0)
   }
 

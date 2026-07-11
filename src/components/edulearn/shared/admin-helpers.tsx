@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api, ApiError } from '@/lib/api-client'
 import { toast } from 'sonner'
-import { Skeleton } from '@/components/ui/skeleton'
 
 export function useApi<T>(url: string | null, deps: any[] = []) {
   const [data, setData] = useState<T | null>(null)
@@ -28,7 +27,6 @@ export function useApi<T>(url: string | null, deps: any[] = []) {
         else setError('Failed to load data')
       })
       .finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, refreshKey, ...deps])
 
   return { data, loading, error, refetch, setData }
@@ -71,15 +69,6 @@ export function StatCard({ label, value, icon: Icon, color = 'blue', hint }: { l
   )
 }
 
-export function LoadingRows({ rows = 5 }: { rows?: number }) {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: rows }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full" />
-      ))}
-    </div>
-  )
-}
 
 export function EmptyState({ icon: Icon, title, message, action }: { icon: any; title: string; message: string; action?: React.ReactNode }) {
   return (

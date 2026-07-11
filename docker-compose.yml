@@ -1,63 +1,58 @@
-# =============================================================================
-# EDULEARN PRO / Naya Wallah Kanoon — Docker Compose (SQLite, single container)
-# =============================================================================
-# This project uses SQLite (file-based) for both development and production.
-# PostgreSQL is NOT required. The database file is persisted via a volume.
-#
-# Usage:
-#   export JWT_ACCESS_SECRET=$(openssl rand -base64 32)
-#   export JWT_REFRESH_SECRET=$(openssl rand -base64 32)
-#   docker-compose up -d --build
-#
-# Run seed (first time only):
-#   docker-compose exec app bun run scripts/seed.ts
-# =============================================================================
-
-version: '3.8'
-
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: nwk-app
+  redis:
+    image: redis:7.4-alpine
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
-    environment:
-      # SQLite database (file-based, no external DB needed)
-      DATABASE_URL: "file:/app/data/custom.db"
-
-      # Auth secrets (MUST be set — no fallbacks in production)
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
-
-      # App config
-      NODE_ENV: production
-      APP_URL: ${APP_URL:-http://localhost:3000}
-
-      # Admin bootstrap
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@nayawallahkanoon.com}
-      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-Admin@12345}
-      ADMIN_NAME: ${ADMIN_NAME:-Adv. Akash Faujdar}
-
-      # Feature flags
-      FEATURE_CERTIFICATES: ${FEATURE_CERTIFICATES:-false}
-      FEATURE_REVENUE: ${FEATURE_REVENUE:-false}
-    volumes:
-      # Persist SQLite database file
-      - dbdata:/app/data
-      # Persist uploaded files (if any module uses local storage)
-      - uploads:/app/private-uploads
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redisdata:/data"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    user: "1001:1001"
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment: &app_environment
+      DATABASE_URL: file:/app/data/custom.db
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
+      REDIS_URL: redis://redis:6379
+      APP_URL: ${APP_URL:?required}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?required}
+      TRUST_PROXY: "true"
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?required}
+    volumes: ["dbdata:/app/data"]
+    depends_on:
+      redis: { condition: service_healthy }
+    restart: "no"
+
+  bootstrap-admin:
+    build: .
+    command: ["npm", "run", "db:bootstrap-admin"]
+    environment:
+      <<: *app_environment
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?required}
+      ADMIN_NAME: ${ADMIN_NAME:-System Administrator}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
+    volumes: ["dbdata:/app/data"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    profiles: ["tools"]
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports: ["${APP_PORT:-3000}:3000"]
+    environment: *app_environment
+    volumes: ["dbdata:/app/data", "uploads:/app/private-uploads"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
 
 volumes:
   dbdata:
-    driver: local
   uploads:
-    driver: local
+  redisdata:

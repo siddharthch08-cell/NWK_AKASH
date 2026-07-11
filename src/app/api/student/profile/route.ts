@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { requireStudent, requireActiveStudent } from '@/lib/auth'
+import { requireStudent } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
 import { profileUpdateSchema } from '@/lib/validation'
 

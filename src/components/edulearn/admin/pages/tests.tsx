@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -55,6 +54,10 @@ export function AdminTests() {
     if (!confirm('Archive this test?')) return
     try { await api.post(`/api/admin/tests/${id}/archive`); toast.success('Test archived'); load() } catch (e) { toastAction.error(e) }
   }
+  const deleteTest = async (id: string) => {
+    if (!confirm('Delete this test? This action cannot be undone.')) return
+    try { await api.del(`/api/admin/tests/${id}`); toast.success('Test deleted'); load() } catch (e) { toastAction.error(e) }
+  }
 
   return (
     <div>
@@ -87,7 +90,8 @@ export function AdminTests() {
                       <div className="flex gap-1">
                         {t.status === 'DRAFT' && <Button variant="ghost" size="icon" className="h-7 w-7" title="Publish" onClick={() => publish(t.id)}><Send className="w-3.5 h-3.5 text-emerald-600" /></Button>}
                         <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicate" onClick={() => duplicate(t.id)}><Copy className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Archive" onClick={() => archive(t.id)}><ArchiveIcon /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Archive" onClick={() => archive(t.id)}><Trash2 className="w-3.5 h-3.5 text-slate-500" /></Button>
+                        {t.status === 'DRAFT' && t.attemptCount === 0 && <Button variant="ghost" size="icon" className="h-7 w-7" title="Delete" onClick={() => deleteTest(t.id)}><Trash2 className="w-3.5 h-3.5 text-rose-500" /></Button>}
                         <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/tests/detail', id: t.id })}><Eye className="w-4 h-4" /></Button>
                       </div>
                     </TableCell>
@@ -108,13 +112,9 @@ export function AdminTests() {
   )
 }
 
-function ArchiveIcon() {
-  return <Trash2 className="w-3.5 h-3.5 text-slate-500" />
-}
-
 function CreateTestDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
   const toastAction = useToastAction()
-  const [form, setForm] = useState({ title: '', description: '', instructions: 'This is a timed quiz. Read each question carefully before answering.', durationMins: '15', maxAttempts: '2', maxQuestions: '20', startAt: '', endAt: '', status: 'DRAFT', passingPct: '50', showAnswerKey: true, showResultImmediately: true })
+  const [form, setForm] = useState({ title: '', description: '', instructions: 'This is a timed quiz. Read each question carefully before answering.', durationMins: '15', maxAttempts: '2', maxQuestions: '20', startAt: '', endAt: '', passingPct: '50', showAnswerKey: true, showResultImmediately: true })
   const [batches, setBatches] = useState<{ id: string; name: string }[]>([])
   const [selectedBatches, setSelectedBatches] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
@@ -132,7 +132,7 @@ function CreateTestDialog({ open, onClose, onCreated }: { open: boolean; onClose
         title: form.title, description: form.description || undefined, instructions: form.instructions || undefined,
         durationMins: parseInt(form.durationMins), maxAttempts: parseInt(form.maxAttempts), maxQuestions: parseInt(form.maxQuestions),
         startAt: form.startAt ? new Date(form.startAt).toISOString() : undefined, endAt: form.endAt ? new Date(form.endAt).toISOString() : undefined,
-        status: form.status, passingPct: form.passingPct ? parseInt(form.passingPct) : undefined,
+        passingPct: form.passingPct ? parseInt(form.passingPct) : undefined,
         showAnswerKey: form.showAnswerKey, showResultImmediately: form.showResultImmediately,
         batchIds: Array.from(selectedBatches),
       })
@@ -158,9 +158,6 @@ function CreateTestDialog({ open, onClose, onCreated }: { open: boolean; onClose
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Start At</Label><Input type="datetime-local" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} /></div>
             <div><Label>End At</Label><Input type="datetime-local" value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Status</Label><Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="PUBLISHED">Published</SelectItem><SelectItem value="ARCHIVED">Archived</SelectItem></SelectContent></Select></div>
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.showAnswerKey} onCheckedChange={(v) => setForm({ ...form, showAnswerKey: !!v })} /> Show answer key after submission</label>

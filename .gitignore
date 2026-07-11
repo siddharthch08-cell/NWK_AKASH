@@ -1,4 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =============================================================================
+# NWK_AKASH .gitignore
+# =============================================================================
 
 # dependencies
 node_modules
@@ -22,7 +24,9 @@ node_modules
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+*.key
 
 # debug
 npm-debug.log*
@@ -30,25 +34,60 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — NEVER commit secrets
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+tsconfig.tsbuildinfo
 local-*
+
+# editor / AI
 .claude
 .z-ai-config
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# logs
 *.log
 dev.log
 dev.out.log
-test
-prompt
-
 server.log
-# Skills directory
+
+# databases
+/db/*.db
+/prisma/data/*.db
+*.db
+*.db-wal
+*.db-shm
+
+# uploads and private files
+/private-uploads/
+/upload/
+/download/
+/tool-results/
+/release/
+/test-results/
+/.zscripts/*.pid
+/worklog.md
+/.codex_tmp/
 /skills/
+
+# archives and temporary
+*.zip
+*.tar.gz
+*.tgz
+/tmp/
+/temp/
+
+# docker
+docker-compose.override.yml

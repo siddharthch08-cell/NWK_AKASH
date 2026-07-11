@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Save } from 'lucide-react'
 import { toast } from 'sonner'
@@ -77,6 +76,7 @@ export function AdminSettings() {
           <div><Label>LinkedIn</Label><Input value={data.socialLinkedin || ''} onChange={(e) => set('socialLinkedin', e.target.value)} /></div>
           <div><Label>YouTube</Label><Input value={data.socialYoutube || ''} onChange={(e) => set('socialYoutube', e.target.value)} /></div>
           <div><Label>Instagram</Label><Input value={data.socialInstagram || ''} onChange={(e) => set('socialInstagram', e.target.value)} /></div>
+          <div><Label>WhatsApp (phone number or link)</Label><Input value={data.socialWhatsApp || ''} onChange={(e) => set('socialWhatsApp', e.target.value)} placeholder="e.g. 919876543210 or https://wa.me/919876543210" /></div>
         </CardContent></Card></TabsContent>
 
         <TabsContent value="stats"><Card><CardHeader><CardTitle className="text-base">Statistics (shown on landing page)</CardTitle></CardHeader><CardContent className="space-y-3">
@@ -91,13 +91,8 @@ export function AdminSettings() {
         <TabsContent value="platform"><Card><CardHeader><CardTitle className="text-base">Platform Behavior</CardTitle></CardHeader><CardContent className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Video Completion Threshold (%)</Label><Input type="number" value={data.videoCompletionThreshold} onChange={(e) => set('videoCompletionThreshold', parseInt(e.target.value) || 90)} /></div>
-            <div><Label>Default Max Attempts</Label><Input type="number" value={data.defaultMaxAttempts} onChange={(e) => set('defaultMaxAttempts', parseInt(e.target.value) || 2)} /></div>
-            <div><Label>Max Upload (MB)</Label><Input type="number" value={data.maxUploadMb} onChange={(e) => set('maxUploadMb', parseInt(e.target.value) || 20)} /></div>
           </div>
           <div className="space-y-2 pt-3">
-            <label className="flex items-center gap-2 text-sm"><Switch checked={data.maintenanceMode} onCheckedChange={(v) => set('maintenanceMode', v)} /> Maintenance mode</label>
-            <label className="flex items-center gap-2 text-sm"><Switch checked={data.revenueEnabled} onCheckedChange={(v) => set('revenueEnabled', v)} /> Enable revenue widget (future-ready)</label>
-            <label className="flex items-center gap-2 text-sm"><Switch checked={data.certificatesEnabled} onCheckedChange={(v) => set('certificatesEnabled', v)} /> Enable certificates (Phase 2)</label>
           </div>
         </CardContent></Card></TabsContent>
       </Tabs>

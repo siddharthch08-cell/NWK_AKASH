@@ -1,24 +1,46 @@
 /**
- * Seed script for EDULEARN PRO.
- * Usage: `bun run db:seed`
+ * Seed script for Naya Wallah Kanoon.
+ * Usage: `ALLOW_DEMO_SEED=true SEED_MODE=dev npm run db:seed`
  *
- * Seeds:
- *  - Default admin (admin@edulearn.pro / Admin@12345)
- *  - Institute settings singleton
- *  - A handful of demo students (PENDING/APPROVED/ACTIVE/BLOCKED)
- *  - One ACTIVE batch + one course with chapters/topics/videos
- *  - One PUBLISHED timed MCQ test with 5 sample questions
- *  - A few announcements + contact messages
+ * Requires explicit SEED_MODE env var:
+ *   - "dev"   → seeds development data with generated passwords
+ *   - "test"  → seeds minimal test data
+ *   - "demo"  → seeds full demo (requires SEED_MODE=demo explicitly)
+ *
+ * REJECTED in production mode (NODE_ENV=production).
  *
  * Idempotent — safe to re-run.
  */
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 const db = new PrismaClient()
 
+const SEED_MODE = process.env.SEED_MODE || ''
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+
+function generateRandomPassword(): string {
+  return crypto.randomBytes(12).toString('base64url').slice(0, 16) + 'A1'
+}
+
 async function main() {
-  console.log('Seeding Naya Wallah Kanoon Judicial Classes...')
+  if (process.env.NODE_ENV === 'production') throw new Error('Demo seed is disabled in production')
+  if (process.env.ALLOW_DEMO_SEED !== 'true') throw new Error('Set ALLOW_DEMO_SEED=true to create local demo data')
+  if (IS_PRODUCTION) {
+    console.error('ERROR: Seed script is rejected in production mode.')
+    console.error('Set NODE_ENV=development and SEED_MODE=dev to seed.')
+    process.exit(1)
+  }
+
+  if (!SEED_MODE || !['dev', 'test', 'demo'].includes(SEED_MODE)) {
+    console.error('ERROR: SEED_MODE environment variable is required.')
+    console.error('Usage: ALLOW_DEMO_SEED=true SEED_MODE=dev npm run db:seed')
+    console.error('Valid modes: dev, test, demo')
+    process.exit(1)
+  }
+
+  console.log(`Seeding in "${SEED_MODE}" mode...`)
 
   // --- Institute settings ---
   await db.instituteSetting.upsert({
@@ -61,7 +83,8 @@ async function main() {
   })
 
   // --- Admin ---
-  const adminPass = await bcrypt.hash('Admin@12345', 12)
+  const adminPassword = generateRandomPassword()
+  const adminPass = await bcrypt.hash(adminPassword, 12)
   const admin = await db.user.upsert({
     where: { email: 'admin@nayawallahkanoon.com' },
     update: {},
@@ -77,7 +100,8 @@ async function main() {
   })
 
   // --- Demo students ---
-  const studentPass = await bcrypt.hash('Student@12345', 12)
+  const studentPassword = generateRandomPassword()
+  const studentPass = await bcrypt.hash(studentPassword, 12)
   const studentDefs = [
     { name: 'Aarav Sharma', email: 'aarav@example.com', status: 'ACTIVE' },
     { name: 'Priya Patel', email: 'priya@example.com', status: 'ACTIVE' },
@@ -127,7 +151,7 @@ async function main() {
     },
   })
 
-  const batch2 = await db.batch.upsert({
+  const _batch2 = await db.batch.upsert({
     where: { slug: 'judiciary-evening-2025' },
     update: {},
     create: {
@@ -144,7 +168,7 @@ async function main() {
     },
   })
 
-  const batch3 = await db.batch.upsert({
+  const _batch3 = await db.batch.upsert({
     where: { slug: 'adj-morning-2025' },
     update: {},
     create: {
@@ -161,7 +185,7 @@ async function main() {
     },
   })
 
-  const batch4 = await db.batch.upsert({
+  const _batch4 = await db.batch.upsert({
     where: { slug: 'adj-evening-2025' },
     update: {},
     create: {
@@ -178,7 +202,7 @@ async function main() {
     },
   })
 
-  const batch5 = await db.batch.upsert({
+  const _batch5 = await db.batch.upsert({
     where: { slug: 'apo-morning-2025' },
     update: {},
     create: {
@@ -195,7 +219,7 @@ async function main() {
     },
   })
 
-  const batch6 = await db.batch.upsert({
+  const _batch6 = await db.batch.upsert({
     where: { slug: 'apo-evening-2025' },
     update: {},
     create: {
@@ -246,31 +270,33 @@ async function main() {
     create: { batchId: batch.id, courseId: course.id },
   })
 
-  const chapter1 = await db.chapter.create({
-    data: { courseId: course.id, title: 'Constitutional Law', order: 1 },
-  })
-  const chapter2 = await db.chapter.create({
-    data: { courseId: course.id, title: 'Criminal Procedure Code (CrPC)', order: 2 },
-  })
-  const chapter3 = await db.chapter.create({
-    data: { courseId: course.id, title: 'Indian Penal Code (IPC)', order: 3 },
-  })
+  const chapterDefs = [
+    { title: 'Constitutional Law', order: 1 },
+    { title: 'Criminal Procedure Code (CrPC)', order: 2 },
+    { title: 'Indian Penal Code (IPC)', order: 3 },
+  ]
+  const chapters: any[] = []
+  for (const cd of chapterDefs) {
+    let ch = await db.chapter.findFirst({ where: { courseId: course.id, title: cd.title } })
+    if (!ch) ch = await db.chapter.create({ data: { courseId: course.id, title: cd.title, order: cd.order } })
+    chapters.push(ch)
+  }
+  const [chapter1, chapter2, chapter3] = chapters
 
-  const topic1 = await db.topic.create({
-    data: { chapterId: chapter1.id, title: 'Fundamental Rights', order: 1 },
-  })
-  const topic2 = await db.topic.create({
-    data: { chapterId: chapter1.id, title: 'Directive Principles of State Policy', order: 2 },
-  })
-  const topic3 = await db.topic.create({
-    data: { chapterId: chapter2.id, title: 'Arrest and Detention', order: 1 },
-  })
-  const topic4 = await db.topic.create({
-    data: { chapterId: chapter3.id, title: 'Offences Against the Body', order: 1 },
-  })
-  const topic5 = await db.topic.create({
-    data: { chapterId: chapter3.id, title: 'Offences Against Property', order: 2 },
-  })
+  const topicDefs = [
+    { chapterId: chapter1.id, title: 'Fundamental Rights', order: 1 },
+    { chapterId: chapter1.id, title: 'Directive Principles of State Policy', order: 2 },
+    { chapterId: chapter2.id, title: 'Arrest and Detention', order: 1 },
+    { chapterId: chapter3.id, title: 'Offences Against the Body', order: 1 },
+    { chapterId: chapter3.id, title: 'Offences Against Property', order: 2 },
+  ]
+  const topics: any[] = []
+  for (const td of topicDefs) {
+    let tp = await db.topic.findFirst({ where: { chapterId: td.chapterId, title: td.title } })
+    if (!tp) tp = await db.topic.create({ data: { chapterId: td.chapterId, title: td.title, order: td.order } })
+    topics.push(tp)
+  }
+  const [topic1, topic2, topic3, topic4, topic5] = topics
 
   const videos = [
     { topicId: topic1.id, title: 'Fundamental Rights — Complete Overview', youtubeId: 'Q10s5gT3xdQ', order: 1 },
@@ -519,11 +545,11 @@ async function main() {
   })
 
   console.log('✓ Seed complete')
-  console.log('  Admin login: admin@nayawallahkanoon.com / Admin@12345')
-  console.log('  Student login (ACTIVE): aarav@example.com / Student@12345')
-  console.log('  Student login (PENDING): ananya@example.com / Student@12345')
-  console.log('  Student login (BLOCKED): sneha@example.com / Student@12345')
-  console.log('  Student login (REJECTED): karthik@example.com / Student@12345')
+  console.log(`  Admin login: admin@nayawallahkanoon.com / ${adminPassword}`)
+  console.log(`  Student login (ACTIVE): aarav@example.com / ${studentPassword}`)
+  console.log(`  Student login (PENDING): ananya@example.com / ${studentPassword}`)
+  console.log(`  Student login (BLOCKED): sneha@example.com / ${studentPassword}`)
+  console.log(`  Student login (REJECTED): karthik@example.com / ${studentPassword}`)
 }
 
 main()

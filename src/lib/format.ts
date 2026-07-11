@@ -55,8 +55,8 @@ export function fmtDuration(seconds: number): string {
 export function relativeTime(d: Date | string | null | undefined): string {
   if (!d) return '—'
   const date = typeof d === 'string' ? new Date(d) : d
-  const diff = Date.now() - date.getTime()
-  const sec = Math.round(diff / 1000)
+  const diff = date.getTime() - Date.now()
+  const sec = Math.abs(Math.round(diff / 1000))
   if (sec < 60) return 'just now'
   const min = Math.round(sec / 60)
   if (min < 60) return `${min}m ago`

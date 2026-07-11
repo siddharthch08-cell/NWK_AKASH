@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
-import { ok, unauthorized, notFound, forbidden, fail } from '@/lib/api-response'
+import { ok, unauthorized, notFound, forbidden } from '@/lib/api-response'
+import { StudentContentAccessPolicy } from '@/domain'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -9,6 +10,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
   const { id } = await params
+  const access = await StudentContentAccessPolicy.canAccessTest(ctx.user.id, id)
+  if (!access.allowed) return forbidden(access.reason)
 
   const test = await db.test.findUnique({
     where: { id },
@@ -22,15 +25,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     },
   })
   if (!test || test.status !== 'PUBLISHED') return notFound('Test not found')
-
-  // Verify access
-  const hasAccess = await db.batchEnrollment.findFirst({
-    where: {
-      userId: ctx.user.id,
-      batch: { tests: { some: { testId: id } } },
-    },
-  })
-  if (!hasAccess) return forbidden('You do not have access to this test')
 
   const submittedAttempts = test.attempts.filter((a) => a.status === 'SUBMITTED')
   const inProgress = test.attempts.find((a) => a.status === 'IN_PROGRESS')

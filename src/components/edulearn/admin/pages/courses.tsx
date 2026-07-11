@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Search, BookOpen, Loader2, Eye, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Plus, Search, BookOpen, Loader2, Eye, ChevronLeft, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react'
 import { fmtDate, statusColor, slugify } from '@/lib/format'
 import { toast } from 'sonner'
 
@@ -44,6 +44,11 @@ export function AdminCourses() {
     api.get<ListResp>(`/api/admin/courses?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
   useEffect(load, [page, search, statusFilter])
+
+  const deleteCourse = async (id: string, title: string) => {
+    if (!confirm(`Archive course "${title}"?\n\nThis will hide it from students but content will be preserved.`)) return
+    try { await api.del(`/api/admin/courses/${id}`); toast.success('Course archived'); load() } catch (e) { toastAction.error(e) }
+  }
 
   return (
     <div>
@@ -90,7 +95,12 @@ export function AdminCourses() {
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-slate-500">{fmtDate(c.createdAt)}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/courses/detail', id: c.id })}><Eye className="w-4 h-4" /></Button></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/courses/detail', id: c.id })} title="View"><Eye className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteCourse(c.id, c.title)} title="Archive" className="text-rose-500 hover:text-rose-600"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

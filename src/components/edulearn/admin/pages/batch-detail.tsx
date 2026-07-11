@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, GraduationCap, BookOpen, FileQuestion, FolderOpen, Users, Download, UserPlus, UserMinus, Plus, BookPlus, Trash2, ExternalLink, ChevronRight } from 'lucide-react'
+import { ArrowLeft, GraduationCap, BookOpen, FileQuestion, FolderOpen, Users, Download, UserPlus, UserMinus, Plus, BookPlus, Trash2, ExternalLink } from 'lucide-react'
 import { fmtDate, statusColor, relativeTime } from '@/lib/format'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -22,7 +22,8 @@ interface BatchDetail {
   courses: { course: { id: string; title: string; slug: string; status: string; thumbnail?: string | null } }[]
   tests: { test: { id: string; title: string; status: string; durationMins: number } }[]
   enrollments: { user: { id: string; name: string; email: string; status: string }; enrolledAt: string }[]
-  _count: { enrollments: number; courses: number; tests: number; materials: number; announcements: number }
+  _count: { enrollments: number; courses: number; tests: number; publishedCourseMaterials: number; announcements: number }
+  enrollmentPagination: { page: number; pageSize: number; total: number; totalPages: number }
 }
 
 export function AdminBatchDetail({ id }: { id: string }) {
@@ -30,14 +31,15 @@ export function AdminBatchDetail({ id }: { id: string }) {
   const toastAction = useToastAction()
   const [data, setData] = useState<BatchDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [studentPage, setStudentPage] = useState(1)
   const [assignStudentsOpen, setAssignStudentsOpen] = useState(false)
   const [assignCoursesOpen, setAssignCoursesOpen] = useState(false)
 
   const load = () => {
     setLoading(true)
-    api.get<{ batch: BatchDetail }>(`/api/admin/batches/${id}`).then((d) => setData(d.batch)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
+    api.get<{ batch: BatchDetail }>(`/api/admin/batches/${id}?page=${studentPage}&pageSize=20`).then((d) => setData(d.batch)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [id])
+  useEffect(load, [id, studentPage])
 
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading…</div>
 
@@ -66,12 +68,7 @@ export function AdminBatchDetail({ id }: { id: string }) {
       toast.success('Course unassigned')
       load()
     } catch (e) {
-      // If no delete endpoint, try posting empty array
-      try {
-        await api.post(`/api/admin/batches/${id}/assign-courses`, { courseIds: [] })
-        toast.success('Course unassigned')
-        load()
-      } catch (e2) { toastAction.error(e2) }
+      toastAction.error(e)
     }
   }
 
@@ -97,13 +94,13 @@ export function AdminBatchDetail({ id }: { id: string }) {
         <Card><CardContent className="pt-4 text-center"><Users className="w-5 h-5 mx-auto text-blue-600 mb-1" /><div className="text-xl font-bold">{data._count.enrollments}</div><div className="text-xs text-slate-500">Students</div></CardContent></Card>
         <Card><CardContent className="pt-4 text-center"><BookOpen className="w-5 h-5 mx-auto text-teal-600 mb-1" /><div className="text-xl font-bold">{data._count.courses}</div><div className="text-xs text-slate-500">Courses</div></CardContent></Card>
         <Card><CardContent className="pt-4 text-center"><FileQuestion className="w-5 h-5 mx-auto text-amber-600 mb-1" /><div className="text-xl font-bold">{data._count.tests}</div><div className="text-xs text-slate-500">Tests</div></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><FolderOpen className="w-5 h-5 mx-auto text-violet-600 mb-1" /><div className="text-xl font-bold">{data._count.materials}</div><div className="text-xs text-slate-500">Materials</div></CardContent></Card>
+        <Card><CardContent className="pt-4 text-center"><FolderOpen className="w-5 h-5 mx-auto text-violet-600 mb-1" /><div className="text-xl font-bold">{data._count.publishedCourseMaterials}</div><div className="text-xs text-slate-500">Published course materials</div></CardContent></Card>
         <Card><CardContent className="pt-4 text-center"><Plus className="w-5 h-5 mx-auto text-slate-600 mb-1" /><div className="text-xl font-bold">{data._count.announcements}</div><div className="text-xs text-slate-500">Announcements</div></CardContent></Card>
       </div>
 
       <Tabs defaultValue="students">
         <TabsList>
-          <TabsTrigger value="students">Students ({data.enrollments.length})</TabsTrigger>
+          <TabsTrigger value="students">Students ({data.enrollmentPagination.total})</TabsTrigger>
           <TabsTrigger value="courses">Courses ({data.courses.length})</TabsTrigger>
           <TabsTrigger value="tests">Tests ({data.tests.length})</TabsTrigger>
         </TabsList>
@@ -112,7 +109,7 @@ export function AdminBatchDetail({ id }: { id: string }) {
         <TabsContent value="students">
           <Card><CardHeader><CardTitle className="text-base flex justify-between items-center">Enrolled Students<Button size="sm" onClick={() => setAssignStudentsOpen(true)}><UserPlus className="w-4 h-4 mr-1" /> Assign Students</Button></CardTitle></CardHeader>
             <CardContent>
-              {data.enrollments.length === 0 ? <div className="text-center py-8 text-sm text-slate-500">No students enrolled yet. Click "Assign Students" to add them.</div> : (
+              {data.enrollments.length === 0 ? <div className="text-center py-8 text-sm text-slate-500">No students enrolled yet. Click &quot;Assign Students&quot; to add them.</div> : (
                 <div className="space-y-1">
                   {data.enrollments.map((e) => (
                     <div key={e.user.id} className="flex items-center justify-between p-2 rounded hover:bg-slate-50">
@@ -129,6 +126,13 @@ export function AdminBatchDetail({ id }: { id: string }) {
                 </div>
               )}
               {data.enrollments.length > 0 && <Button variant="outline" size="sm" className="mt-3" onClick={exportEnrollment}><Download className="w-4 h-4 mr-1" /> Export CSV</Button>}
+              {data.enrollmentPagination.totalPages > 1 && (
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" disabled={studentPage <= 1} onClick={() => setStudentPage((page) => page - 1)}>Previous</Button>
+                  <span className="text-xs text-slate-500">Page {data.enrollmentPagination.page} of {data.enrollmentPagination.totalPages}</span>
+                  <Button variant="outline" size="sm" disabled={studentPage >= data.enrollmentPagination.totalPages} onClick={() => setStudentPage((page) => page + 1)}>Next</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

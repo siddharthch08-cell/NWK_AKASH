@@ -15,6 +15,7 @@ export async function finalizeAttempt(
   userId: string
 ) {
   return await db.$transaction(async (tx) => {
+    await tx.$executeRaw`UPDATE TestAttempt SET score = score WHERE id = ${attemptId}`
     const attempt = await tx.testAttempt.findUnique({ where: { id: attemptId } })
     if (!attempt) throw new Error('Attempt not found')
     if (attempt.status === 'SUBMITTED') return attempt
@@ -32,6 +33,7 @@ export async function finalizeAttempt(
     if (!test) throw new Error('Test not found')
 
     const existingAnswers = await tx.attemptAnswer.findMany({ where: { attemptId } })
+    const answerByQuestion = new Map(existingAnswers.map(answer => [answer.questionId, answer]))
 
     let score = 0
     let totalMarks = 0
@@ -41,9 +43,10 @@ export async function finalizeAttempt(
       Math.max(0, Math.floor((now.getTime() - attempt.startedAt.getTime()) / 1000))
     )
 
-    for (const q of test.questions) {
+    const attemptedQuestionIds = attempt.questionOrder ? new Set<string>(JSON.parse(attempt.questionOrder)) : null
+    for (const q of test.questions.filter(question => !attemptedQuestionIds || attemptedQuestionIds.has(question.id))) {
       totalMarks += q.marks
-      const ans = existingAnswers.find((a) => a.questionId === q.id)
+      const ans = answerByQuestion.get(q.id)
       if (!ans || !ans.selectedOptionId) {
         if (ans) {
           await tx.attemptAnswer.update({

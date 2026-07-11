@@ -36,6 +36,7 @@ export interface PublicSettings {
   socialLinkedin?: string
   socialYoutube?: string
   socialInstagram?: string
+  socialWhatsApp?: string
   maintenanceMode?: boolean
 }
 

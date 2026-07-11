@@ -8,15 +8,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowRight, BookOpen, Users, Award, Clock, PlayCircle, Megaphone, ChevronRight,
-  Scale, Gavel, Shield, CheckCircle2, Star, Phone, Mail, MapPin, Send, Loader2,
-  Calendar, TrendingUp, Gift, MessageCircle, HelpCircle, Sun, Moon,
+  Scale, Gavel, Shield, CheckCircle2, Send, Loader2,
+  Calendar, Gift, MessageCircle, HelpCircle, Sun, Moon,
 } from 'lucide-react'
 import type { PublicSettings, PublicAnnouncement } from './public-site'
 import type { PublicBatch } from './public-site'
-import { fmtDate } from '@/lib/format'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -107,13 +105,13 @@ export function HomePage({
   announcements: PublicAnnouncement[]
 }) {
   const { setView, user } = useApp()
-  const [batches, setBatches] = useState<PublicBatch[]>([])
-  const [loading, setLoading] = useState(true)
+  const [_batches, setBatches] = useState<PublicBatch[]>([])
+  const [_loading, setLoading] = useState(true)
 
   useEffect(() => {
     api.get<{ batches: PublicBatch[] }>('/api/public/batches')
       .then((d) => setBatches(d.batches))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
 
@@ -137,7 +135,7 @@ export function HomePage({
                   कर लो दुनिया मुठ्ठी में
                 </div>
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
-                  New Law ~ New Way
+                  {settings?.heroTitle || 'New Law ~ New Way'}
                 </h1>
                 <div className="text-lg text-teal-200 font-medium mt-2">
                   Beginning | Consistency | Result
@@ -165,7 +163,7 @@ export function HomePage({
             <div className="hidden lg:block animate-fade-in">
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                 <img
-                  src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80"
+                  src={settings?.heroImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80'}
                   alt="Legal education"
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -296,7 +294,7 @@ export function HomePage({
                 </div>
               </div>
               <div className="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-center">
-                <span className="text-sm font-semibold text-rose-700">🔥 "Join Soon" Offer — Limited Time Launch Discount. Offer ends soon!</span>
+                <span className="text-sm font-semibold text-rose-700">🔥 &quot;Join Soon&quot; Offer — Limited Time Launch Discount. Offer ends soon!</span>
               </div>
             </CardContent>
           </Card>
@@ -364,7 +362,7 @@ export function HomePage({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <Badge variant="outline" className="mb-3 border-emerald-200 text-emerald-700">Free Resources</Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Try Before You Enroll</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">नाम लिखवाने से पहले आज़माएं</h2>
             <p className="text-slate-600 mt-2">Get a feel of our classes before you commit.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -389,9 +387,9 @@ export function HomePage({
           <div className="text-center mb-8">
             <Badge variant="secondary" className="mb-3 bg-white/10 text-white border-white/20">Free Counselling</Badge>
             <h2 className="text-2xl sm:text-3xl font-bold">Get free counselling within 24 hours</h2>
-            <p className="text-blue-100 mt-2">Clear all your doubts before joining. Fill the form and we'll contact you within 24 hours.</p>
+            <p className="text-blue-100 mt-2">Clear all your doubts before joining. Fill the form and we&apos;ll contact you within 24 hours.</p>
           </div>
-          <CounsellingForm />
+          <CounsellingFormSection />
         </div>
       </section>
 
@@ -475,7 +473,7 @@ export function HomePage({
   )
 }
 
-function CounsellingForm() {
+function CounsellingFormSection() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CounsellingForm>({
     resolver: zodResolver(counsellingSchema),
   })

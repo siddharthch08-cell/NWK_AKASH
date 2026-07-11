@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ArrowLeft, BookOpen, ChevronDown, PlayCircle, CheckCircle2, Clock } from 'lucide-react'
-import { fmtDateTime, relativeTime } from '@/lib/format'
+import { ArrowLeft, BookOpen, ChevronDown, PlayCircle, CheckCircle2 } from 'lucide-react'
+import { relativeTime } from '@/lib/format'
 
 export function StudentCourseDetail({ id }: { id: string }) {
   const { setView } = useApp()

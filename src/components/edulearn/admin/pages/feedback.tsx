@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Star, MessageSquare, Loader2 } from 'lucide-react'
+import { Star, MessageSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 
@@ -21,8 +21,11 @@ export function AdminFeedback() {
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<Feedback | null>(null)
 
-  const load = () => { setLoading(true); api.get<{ items: Feedback[] }>('/api/admin/feedback?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const load = () => { setLoading(true); api.get<{ items: Feedback[]; totalPages: number }>(`/api/admin/feedback?page=${page}&pageSize=20`).then((d) => { setData(d.items); setTotalPages(d.totalPages) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
+  useEffect(load, [page])
 
   const update = async (id: string, status: string, notes?: string) => {
     try { await api.patch(`/api/admin/feedback/${id}`, { status, notes }); toast.success('Updated'); load() } catch (e) { toastAction.error(e) }
@@ -50,6 +53,14 @@ export function AdminFeedback() {
               </div>
             </CardContent></Card>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}><ChevronLeft className="w-4 h-4" /></Button>
+          <span className="text-sm text-slate-600">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}><ChevronRight className="w-4 h-4" /></Button>
         </div>
       )}
 

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { api, setToken, ApiError } from '@/lib/api-client'
+import type { CurrentUser } from '@/types'
 
 export type View =
   // public
@@ -17,6 +18,7 @@ export type View =
   | { name: 'auth/rejected' }
   | { name: 'auth/blocked' }
   | { name: 'auth/inactive' }
+  | { name: 'auth/change-password' }
   // admin
   | { name: 'admin/dashboard' }
   | { name: 'admin/students' }
@@ -54,19 +56,6 @@ export type View =
   | { name: 'student/feedback' }
   | { name: 'student/profile' }
 
-export interface CurrentUser {
-  id: string
-  email: string
-  name: string
-  role: 'ADMIN' | 'STUDENT'
-  status: string
-  phone?: string | null
-  photo?: string | null
-  rejectionReason?: string | null
-  lastLoginAt?: string | null
-  createdAt?: string
-}
-
 interface AppState {
   user: CurrentUser | null
   loading: boolean
@@ -81,7 +70,7 @@ interface AppState {
 
 const initialView: View = { name: 'public/home' }
 
-export const useApp = create<AppState>((set, get) => ({
+export const useApp = create<AppState>((set, _get) => ({
   user: null,
   loading: true,
   view: initialView,
@@ -111,7 +100,7 @@ export const useApp = create<AppState>((set, get) => ({
       // Route based on role + status
       const u = data.user
       if (u.role === 'ADMIN') {
-        set({ view: { name: 'admin/dashboard' } })
+        set({ view: u.mustChangePassword ? { name: 'auth/change-password' } : { name: 'admin/dashboard' } })
       } else {
         set({ view: viewForStudent(u.status) })
       }
@@ -132,6 +121,7 @@ export function viewForStudent(status: string): View {
     case 'REJECTED':
       return { name: 'auth/rejected' }
     case 'BLOCKED':
+    case 'SUSPENDED':
       return { name: 'auth/blocked' }
     case 'INACTIVE':
       return { name: 'auth/inactive' }
@@ -140,16 +130,5 @@ export function viewForStudent(status: string): View {
   }
 }
 
-export function isPublicView(v: View): boolean {
-  return v.name.startsWith('public/')
-}
-
-export function isAdminView(v: View): boolean {
-  return v.name.startsWith('admin/')
-}
-
-export function isStudentView(v: View): boolean {
-  return v.name.startsWith('student/')
-}
 
 export { ApiError }

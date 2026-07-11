@@ -8,13 +8,13 @@ export async function GET(req: NextRequest) {
   if (!ctx) return unauthorized()
 
   const enrollments = await db.batchEnrollment.findMany({
-    where: { userId: ctx.user.id },
+    where: { userId: ctx.user.id, batch: { status: 'ACTIVE' } },
     include: {
       batch: {
         include: {
           _count: { select: { courses: true, tests: true } },
-          courses: { include: { course: { select: { id: true, title: true, thumbnail: true, status: true } } } },
-          tests: {
+          courses: { where: { course: { status: 'PUBLISHED' } }, include: { course: { select: { id: true, title: true, thumbnail: true, status: true } } } },
+          tests: { where: { test: { status: 'PUBLISHED' } },
             include: {
               test: {
                 select: { id: true, title: true, status: true, startAt: true, endAt: true, durationMins: true },

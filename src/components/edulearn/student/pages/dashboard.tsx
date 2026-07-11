@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { GraduationCap, BookOpen, Video, FileQuestion, Award, Clock, PlayCircle, Megaphone, ArrowRight, Calendar, Trophy } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { fmtDate, fmtDateTime, relativeTime, statusColor } from '@/lib/format'
+import { fmtDate, fmtDateTime, relativeTime } from '@/lib/format'
 
 interface DashboardData {
   user: { id: string; name: string; email: string; status: string }

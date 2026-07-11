@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Search, Users, MoreVertical, Check, X, Ban, RotateCcw, Download, Loader2, UserPlus, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Users, MoreVertical, Check, X, Ban, RotateCcw, Download, Loader2, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 

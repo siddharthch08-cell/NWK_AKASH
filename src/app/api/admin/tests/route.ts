@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, fromZodError, unauthorized, fail, conflict, notFound, parsePagination } from '@/lib/api-response'
+import { ok, fromZodError, unauthorized, fail, parsePagination } from '@/lib/api-response'
 import { testSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
 import { Prisma } from '@prisma/client'
+import { assertDateRange, parseApiDate } from '@/domain/shared/date'
+import { DomainError } from '@/domain'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireAdmin(req)
@@ -63,8 +65,17 @@ export async function POST(req: NextRequest) {
   const parsed = testSchema.safeParse(body)
   if (!parsed.success) return fromZodError(parsed.error)
 
-  if (parsed.data.startAt && parsed.data.endAt && new Date(parsed.data.startAt) > new Date(parsed.data.endAt)) {
-    return fail('VALIDATION_ERROR', 'End date must be after start date', 400, { endAt: 'Must be after startAt' })
+  if (parsed.data.status === 'PUBLISHED') return fail('VALIDATION_ERROR', 'Create the test as DRAFT, add valid questions and batches, then publish it', 422)
+
+  let startAt: Date | null
+  let endAt: Date | null
+  try {
+    startAt = parseApiDate(parsed.data.startAt, 'startAt')
+    endAt = parseApiDate(parsed.data.endAt, 'endAt')
+    assertDateRange(startAt, endAt)
+  } catch (error) {
+    if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+    throw error
   }
 
   const test = await db.test.create({
@@ -75,16 +86,16 @@ export async function POST(req: NextRequest) {
       durationMins: parsed.data.durationMins,
       maxAttempts: parsed.data.maxAttempts,
       maxQuestions: parsed.data.maxQuestions,
-      startAt: parsed.data.startAt ? new Date(parsed.data.startAt) : null,
-      endAt: parsed.data.endAt ? new Date(parsed.data.endAt) : null,
-      status: parsed.data.status || 'DRAFT',
+      startAt,
+      endAt,
+      status: 'DRAFT',
       passingPct: parsed.data.passingPct ?? null,
       shuffleQuestions: parsed.data.shuffleQuestions ?? false,
       shuffleOptions: parsed.data.shuffleOptions ?? false,
       showAnswerKey: parsed.data.showAnswerKey ?? true,
       showResultImmediately: parsed.data.showResultImmediately ?? true,
       createdBy: ctx.user.id,
-      publishedAt: parsed.data.status === 'PUBLISHED' ? new Date() : null,
+      publishedAt: null,
       batches: parsed.data.batchIds?.length
         ? { create: parsed.data.batchIds.map((batchId) => ({ batchId })) }
         : undefined,

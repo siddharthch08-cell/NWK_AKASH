@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, unauthorized, fromZodError, fail, parsePagination } from '@/lib/api-response'
-import { z } from 'zod'
+import { ok, unauthorized, parsePagination } from '@/lib/api-response'
 import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {

@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,9 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Search, FolderOpen, Loader2, ExternalLink, Trash2, Edit3, Archive } from 'lucide-react'
+import { Plus, Search, FolderOpen, Loader2, ExternalLink, Trash2, Archive } from 'lucide-react'
 import { fmtDate } from '@/lib/format'
 import { getPlatformLabel, getPlatformColor, type MaterialPlatform } from '@/lib/material-url'
 import { toast } from 'sonner'
@@ -120,23 +118,17 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
   const [topics, setTopics] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
 
-  // Load active batches when dialog opens
+  // Materials are course-owned. Batch is optional eligibility context only.
   useEffect(() => {
     if (open) {
       api.get<{ items: any[] }>('/api/admin/batches?status=ACTIVE&pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
+      api.get<{ items: any[] }>('/api/admin/courses?status=PUBLISHED&pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
       // Reset form
       setForm({ title: '', description: '', platform: 'TELEGRAM', externalUrl: '', materialType: 'PDF', published: true })
       setBatchId(''); setCourseId(''); setChapterId(''); setTopicId('')
-      setCourses([]); setChapters([]); setTopics([])
+      setChapters([]); setTopics([])
     }
   }, [open])
-
-  // When batch changes, load assigned published courses
-  useEffect(() => {
-    if (!batchId) { setCourses([]); setCourseId(''); return }
-    setCourseId(''); setChapterId(''); setTopicId(''); setChapters([]); setTopics([])
-    api.get<{ items: any[] }>(`/api/admin/courses?batchId=${batchId}&status=PUBLISHED&pageSize=100`).then((d) => setCourses(d.items)).catch(() => {})
-  }, [batchId])
 
   // When course changes, load chapters
   useEffect(() => {
@@ -153,14 +145,14 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
   }, [chapterId])
 
   const submit = async () => {
-    if (!batchId || !courseId || !chapterId || !form.title || !form.externalUrl) {
+    if (!courseId || !chapterId || !form.title || !form.externalUrl) {
       toast.error('Please fill all required fields')
       return
     }
     setSaving(true)
     try {
       await api.post('/api/admin/materials', {
-        batchId, courseId, chapterId, topicId: topicId || null,
+        batchId: batchId || undefined, courseId, chapterId, topicId: topicId || null,
         title: form.title, description: form.description || null,
         platform: form.platform, externalUrl: form.externalUrl,
         materialType: form.materialType, published: form.published,
@@ -182,23 +174,23 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add Notes / PDF Link</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          {/* Step 1: Active Batch */}
+          {/* Optional batch context; ownership remains with the course. */}
           <div>
-            <Label>Active Batch *</Label>
+            <Label>Eligibility batch context (optional)</Label>
             <Select value={batchId} onValueChange={setBatchId}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Select an active batch" /></SelectTrigger>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Optional: validate against a batch" /></SelectTrigger>
               <SelectContent>
                 {batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-500 mt-1">Resource will be available to all active batches assigned to the selected course.</p>
+            <p className="text-xs text-slate-500 mt-1">This does not own the material. The resource is shared through its course with every eligible assigned batch.</p>
           </div>
 
-          {/* Step 2: Course (filtered by batch) */}
+          {/* Course is the authoritative content owner. */}
           <div>
             <Label>Course *</Label>
-            <Select value={courseId} onValueChange={setCourseId} disabled={!batchId}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder={batchId ? 'Select a course' : 'Select a batch first'} /></SelectTrigger>
+            <Select value={courseId} onValueChange={setCourseId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Select the owning course" /></SelectTrigger>
               <SelectContent>
                 {courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
               </SelectContent>

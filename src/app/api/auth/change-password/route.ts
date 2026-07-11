@@ -2,17 +2,16 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthContext, verifyPassword, hashPassword } from '@/lib/auth'
 import { changePasswordSchema } from '@/lib/validation'
-import { ok, fromZodError, unauthorized, fail, serverError } from '@/lib/api-response'
+import { ok, fromZodError, unauthorized, fail, tooMany } from '@/lib/api-response'
 import { audit } from '@/lib/audit'
-import { rateLimit } from '@/lib/rate-limit'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   const ctx = await getAuthContext(req)
   if (!ctx) return unauthorized('Authentication required')
 
-  const ip = ctx.ip
-  const rl = rateLimit(`pwchange:${ip}`, 5, 60 * 60 * 1000)
-  if (!rl.ok) return fail('RATE_LIMITED', 'Too many password change attempts.', 429)
+  const rl = await enforceRateLimit(req, 'passwordChange', ctx.user.id)
+  if (!rl.ok) return tooMany('Too many password change attempts.', rl.retryAfterMs, ctx.requestId)
 
   let body: unknown
   try {
@@ -39,12 +38,12 @@ export async function POST(req: NextRequest) {
   }
 
   const newHash = await hashPassword(parsed.data.newPassword)
-  await db.user.update({ where: { id: user.id }, data: { passwordHash: newHash } })
-
-  // Revoke all existing refresh tokens (force re-login on other devices)
-  await db.refreshToken.updateMany({
-    where: { userId: user.id, revokedAt: null },
-    data: { revokedAt: new Date() },
+  await db.$transaction(async tx => {
+    await tx.user.update({ where: { id: user.id }, data: { passwordHash: newHash, mustChangePassword: false } })
+    await tx.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    })
   })
 
   await audit({ ctx, action: 'PASSWORD_CHANGED', entityType: 'USER', entityId: user.id })

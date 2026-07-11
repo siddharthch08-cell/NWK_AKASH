@@ -44,6 +44,7 @@ export interface AuditInput {
   entityId?: string
   before?: unknown
   after?: unknown
+  outcome?: 'SUCCESS' | 'DENIED' | 'FAILED'
 }
 
 export async function audit(input: AuditInput): Promise<void> {
@@ -60,18 +61,29 @@ export async function audit(input: AuditInput): Promise<void> {
         ip: input.ctx?.ip || null,
         userAgent: input.ctx?.userAgent || null,
         requestId: input.ctx?.requestId || null,
+        outcome: input.outcome || 'SUCCESS',
       },
     })
   } catch (e) {
     // Audit failures must NOT corrupt primary operations
-    console.error('[audit] failed to write log', e)
+    console.error('[audit] failed to write log', e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: 'Unknown audit error' })
   }
 }
 
 function safeJson(v: unknown): string {
   try {
-    return JSON.stringify(v)
+    return JSON.stringify(redact(v))
   } catch {
     return String(v)
   }
+}
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact)
+  if (!value || typeof value !== 'object') return value
+  const result: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = /password|token|secret|authorization|cookie|isCorrect|correctOption/i.test(key) ? '[REDACTED]' : redact(item)
+  }
+  return result
 }

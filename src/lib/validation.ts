@@ -179,6 +179,7 @@ export const settingsSchema = z.object({
   socialLinkedin: z.string().url().optional().or(z.literal('')),
   socialYoutube: z.string().url().optional().or(z.literal('')),
   socialInstagram: z.string().url().optional().or(z.literal('')),
+  socialWhatsApp: z.string().optional().or(z.literal('')),
   videoCompletionThreshold: z.number().int().min(1).max(100).optional(),
   defaultMaxAttempts: z.number().int().min(1).max(5).optional(),
   maxUploadMb: z.number().int().min(1).max(200).optional(),
@@ -200,6 +201,7 @@ export const attemptSubmitSchema = z.object({
       z.object({
         questionId: z.string().min(1),
         selectedOptionId: z.string().min(1).nullable(),
+        revision: z.number().int().min(0).optional(),
       })
     )
     .default([]),
@@ -212,4 +214,31 @@ export const progressHeartbeatSchema = z.object({
   position: z.number().int().min(0),
   percent: z.number().int().min(0).max(100),
   duration: z.number().int().min(0).optional(),
+  sessionId: z.string().min(8).max(100),
 })
+
+export interface VideoProgressInput {
+  position: number
+  percent: number
+  duration: number
+}
+
+export function validateVideoProgress(input: VideoProgressInput) {
+  const result = progressHeartbeatSchema.safeParse({
+    videoId: 'test',
+    position: input.position,
+    percent: input.percent,
+    duration: input.duration,
+    sessionId: 'test-session-id-placeholder',
+  })
+
+  if (!result.success) {
+    return { success: false as const, errors: result.error.flatten().fieldErrors }
+  }
+
+  if (input.duration > 0 && input.position > input.duration) {
+    return { success: false as const, errors: { position: ['Position cannot exceed duration'] } }
+  }
+
+  return { success: true as const }
+}

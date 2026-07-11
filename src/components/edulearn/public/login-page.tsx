@@ -38,7 +38,7 @@ export function LoginPage() {
       setUser(res.user)
       toast.success('Login successful')
       if (res.user.role === 'ADMIN') {
-        setView({ name: 'admin/dashboard' })
+        setView(res.user.mustChangePassword ? { name: 'auth/change-password' } : { name: 'admin/dashboard' })
       } else {
         setView(viewForStudent(res.user.status))
       }
@@ -139,13 +139,6 @@ export function LoginPage() {
                 </div>
               )}
 
-              <div className="mt-4 p-3 rounded-lg bg-slate-50 border text-xs text-slate-600">
-                <div className="font-semibold mb-1">Demo Accounts</div>
-                <div className="grid grid-cols-1 gap-1">
-                  <div>Admin: <code className="text-blue-700">admin@nayawallahkanoon.com</code> / <code className="text-blue-700">Admin@12345</code></div>
-                  <div>Student: <code className="text-blue-700">aarav@example.com</code> / <code className="text-blue-700">Student@12345</code></div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

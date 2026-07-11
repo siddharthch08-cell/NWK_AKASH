@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react'
 import { useApp } from '@/stores/app-store'
-import { setToken } from '@/lib/api-client'
 import { PublicSite } from '@/components/edulearn/public/public-site'
 import { AdminApp } from '@/components/edulearn/admin/admin-app'
 import { StudentApp } from '@/components/edulearn/student/student-app'
 import { AuthStatusScreens } from '@/components/edulearn/public/auth-status'
 import { GlobalBoot } from '@/components/edulearn/shared/global-boot'
+import { ForcedPasswordChange } from '@/components/edulearn/public/forced-password-change'
 
 export default function Home() {
   const { user, loading, view, bootstrap } = useApp()
@@ -28,6 +28,7 @@ export default function Home() {
   // Auth status screens (pending/rejected/blocked/inactive) — rendered inside
   // a minimal chrome with logout button
   if (view.name.startsWith('auth/')) {
+    if (view.name === 'auth/change-password') return <ForcedPasswordChange />
     return <AuthStatusScreens />
   }
 

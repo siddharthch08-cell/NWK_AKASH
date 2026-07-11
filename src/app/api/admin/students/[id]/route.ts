@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, unauthorized, notFound, conflict, fail, fromZodError } from '@/lib/api-response'
+import { ok, unauthorized, notFound, fail, fromZodError } from '@/lib/api-response'
 import { z } from 'zod'
 import { audit } from '@/lib/audit'
 

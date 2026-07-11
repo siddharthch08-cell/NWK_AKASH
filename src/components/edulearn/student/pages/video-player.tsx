@@ -12,7 +12,16 @@ import { toast } from 'sonner'
 
 declare global {
   interface Window {
-    YT?: any
+    YT?: {
+      Player: new (
+        id: string,
+        opts: Record<string, unknown>
+      ) => {
+        getCurrentTime?: () => number
+        getDuration?: () => number
+        destroy?: () => void
+      }
+    }
     onYouTubeIframeAPIReady?: () => void
   }
 }
@@ -45,28 +54,43 @@ function loadYouTubeAPI(): Promise<void> {
   })
 }
 
+interface VideoData {
+  id: string
+  title: string
+  description?: string | null
+  youtubeId: string
+  thumbnail?: string | null
+  duration?: number | null
+}
+
 export function StudentVideoPlayer({ id }: { id: string }) {
   const { setView } = useApp()
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<VideoData | null>(null)
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<{ percent: number; position: number; completed: boolean } | null>(null)
-  const playerRef = useRef<any>(null)
+  const playerRef = useRef<{ getCurrentTime?: () => number; getDuration?: () => number; destroy?: () => void } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null)
   const lastSaveRef = useRef(0)
+  const sessionIdRef = useRef(crypto.randomUUID())
+  const progressRef = useRef<{ percent: number; position: number; completed: boolean } | null>(null)
+  const dataRef = useRef<VideoData | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    api.get<{ video: any; progress: any }>(`/api/student/videos/${id}/progress`).then((d) => {
+    api.get<{ video: VideoData; progress: { percent: number; position: number; completed: boolean } | null }>(`/api/student/videos/${id}/progress`).then((d) => {
       setData(d.video)
-      setProgress(d.progress ? { percent: d.progress.percent, position: d.progress.position, completed: d.progress.completed } : null)
+      dataRef.current = d.video
+      const p = d.progress ? { percent: d.progress.percent, position: d.progress.position, completed: d.progress.completed } : null
+      setProgress(p)
+      progressRef.current = p
     }).catch((e) => {
       if (e instanceof ApiError) toast.error(e.message)
     }).finally(() => setLoading(false))
   }, [id])
 
   const sendHeartbeat = useCallback(async (force = false) => {
-    if (!playerRef.current || !data) return
+    if (!playerRef.current || !dataRef.current) return
     try {
       const pos = playerRef.current.getCurrentTime?.() || 0
       const dur = playerRef.current.getDuration?.() || 0
@@ -74,18 +98,21 @@ export function StudentVideoPlayer({ id }: { id: string }) {
       const pct = Math.min(100, Math.round((pos / dur) * 100))
       // Deduplicate: only send if position moved >5s or percent changed
       const now = Date.now()
-      if (!force && now - lastSaveRef.current < 5000 && Math.abs(pos - (progress?.position || 0)) < 5) return
+      if (!force && now - lastSaveRef.current < 5000 && Math.abs(pos - (progressRef.current?.position || 0)) < 5) return
       lastSaveRef.current = now
 
-      const res = await api.post<{ progress: any }>(`/api/student/videos/${id}/progress`, { videoId: id, position: Math.floor(pos), percent: pct, duration: Math.floor(dur) })
-      setProgress({ percent: res.progress.percent, position: res.progress.position, completed: res.progress.completed })
-      if (res.progress.completed && !progress?.completed) {
+      const res = await api.post<{ progress: { percent: number; position: number; completed: boolean } }>(`/api/student/videos/${id}/progress`, { videoId: id, position: Math.floor(pos), percent: pct, duration: Math.floor(dur), sessionId: sessionIdRef.current })
+      const newProgress = { percent: res.progress.percent, position: res.progress.position, completed: res.progress.completed }
+      setProgress(newProgress)
+      const wasCompleted = progressRef.current?.completed
+      progressRef.current = newProgress
+      if (res.progress.completed && !wasCompleted) {
         toast.success('Video marked as completed!')
       }
-    } catch (e) {
+    } catch {
       // Silent — heartbeats are best-effort
     }
-  }, [data, id, progress])
+  }, [id])
 
   useEffect(() => {
     if (!data) return
@@ -99,8 +126,9 @@ export function StudentVideoPlayer({ id }: { id: string }) {
       div.id = `yt-player-${id}`
       containerRef.current.appendChild(div)
 
+      if (!window.YT) return;
       playerRef.current = new window.YT.Player(`yt-player-${id}`, {
-        videoId: data.youtubeId,
+        videoId: data.youtubeId as string,
         width: '100%',
         height: '100%',
         playerVars: {
@@ -111,13 +139,13 @@ export function StudentVideoPlayer({ id }: { id: string }) {
           start: progress?.position || 0,
         },
         events: {
-          onReady: (e: any) => {
+          onReady: () => {
             // Don't auto-play — let the user click play
           },
-          onStateChange: (e: any) => {
+          onStateChange: (e: { data: number }) => {
             // 0 = ended, 1 = playing, 2 = paused
             if (e.data === 0 || e.data === 1 || e.data === 2) {
-              sendHeartbeat(true)
+              void sendHeartbeat(true)
             }
           },
         },
@@ -125,21 +153,23 @@ export function StudentVideoPlayer({ id }: { id: string }) {
     })
 
     // Heartbeat every 15 seconds while playing
-    heartbeatRef.current = setInterval(() => sendHeartbeat(), 15000)
+    heartbeatRef.current = setInterval(() => void sendHeartbeat(), 15000)
 
     return () => {
       cancelled = true
       if (heartbeatRef.current) clearInterval(heartbeatRef.current)
       // Save final progress
-      sendHeartbeat(true)
-      try { playerRef.current?.destroy?.() } catch {}
+      void sendHeartbeat(true)
+      try { playerRef.current?.destroy?.() } catch { /* ignore cleanup errors */ }
     }
+    // sendHeartbeat is stable (useCallback with [id]); data.youtubeId triggers re-init
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.youtubeId])
 
   // Save progress on unmount
   useEffect(() => {
-    return () => { sendHeartbeat(true) }
+    return () => { void sendHeartbeat(true) }
+    // sendHeartbeat is stable (useCallback with [id])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

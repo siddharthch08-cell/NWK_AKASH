@@ -1,91 +1,50 @@
 /**
- * EDULEARN PRO — Application Configuration
- * =========================================
- * Centralized app configuration. Reads from environment variables with
- * sensible defaults for local development.
- *
- * Usage:
- *   import { config } from '@/config'
- *   const dbUrl = config.database.url
+ * JWT Configuration
+ * ==================
+ * Validates JWT secrets at import time.
+ * JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are REQUIRED.
  */
 
-function required(name: string, fallback?: string): string {
-  const value = process.env[name] || fallback
+const KNOWN_DEFAULT_SECRETS = new Set([
+  'nwk-access-secret-dev-only-change-in-prod',
+  'nwk-refresh-secret-dev-only-change-in-prod',
+  'secret_for_local_dev_12345',
+  'secret_for_local_dev_67890',
+  'your-secret-here',
+  'change-me',
+  'jwt-secret',
+])
+
+function required(name: string): string {
+  const value = process.env[name]
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`)
   }
   return value
 }
 
-export const config = {
-  app: {
-    name: process.env.APP_NAME || 'EDULEARN PRO',
-    tagline: process.env.APP_TAGLINE || 'Judicial Classes — New Law, New Way',
-    url: process.env.APP_URL || 'http://localhost:3000',
-    apiUrl: process.env.API_URL || '/api',
-    nodeEnv: process.env.NODE_ENV || 'development',
-    isProduction: process.env.NODE_ENV === 'production',
-    isDevelopment: process.env.NODE_ENV !== 'production',
-  },
+function validateJwtSecret(value: string, name: string): void {
+  if (value.length < 32) {
+    throw new Error(`${name} must be at least 32 characters long`)
+  }
+  if (KNOWN_DEFAULT_SECRETS.has(value)) {
+    throw new Error(`${name} is a known default/placeholder value. Generate a secure random secret.`)
+  }
+}
 
-  database: {
-    url: required('DATABASE_URL', 'file:./db/custom.db'),
-  },
+const isTest = process.env.NODE_ENV === 'test'
 
-  auth: {
-    accessSecret: required(
-      'JWT_ACCESS_SECRET',
-      'edulearn-pro-access-secret-dev-only-change-in-prod'
-    ),
-    refreshSecret: required(
-      'JWT_REFRESH_SECRET',
-      'edulearn-pro-refresh-secret-dev-only-change-in-prod'
-    ),
-    accessTtl: '15m',
-    refreshTtlDays: 7,
-    bcryptRounds: 12,
-  },
-
-  storage: {
-    provider: process.env.STORAGE_PROVIDER || 'local',
-    uploadDir: process.env.UPLOAD_DIR || 'private-uploads',
-    maxUploadMb: parseInt(process.env.MAX_UPLOAD_SIZE_MB || '20', 10),
-  },
-
-  redis: {
-    url: process.env.REDIS_URL || null, // null = use in-memory caching
-  },
-
-  email: {
-    host: process.env.SMTP_HOST || null,
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    user: process.env.SMTP_USER || null,
-    password: process.env.SMTP_PASSWORD || null,
-    fromEmail: process.env.SMTP_FROM_EMAIL || null,
-    fromName: process.env.SMTP_FROM_NAME || 'EDULEARN PRO',
-  },
-
-  youtube: {
-    apiKey: process.env.YOUTUBE_API_KEY || null,
-  },
-
-  admin: {
-    email: process.env.ADMIN_EMAIL || 'admin@edulearn.pro',
-    initialPassword: process.env.ADMIN_INITIAL_PASSWORD || 'Admin@12345',
-    name: process.env.ADMIN_NAME || 'System Administrator',
-  },
-
-  rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
-  },
-
-  features: {
-    certificates: process.env.FEATURE_CERTIFICATES === 'true',
-    revenue: process.env.FEATURE_REVENUE === 'true',
-    liveClasses: process.env.FEATURE_LIVE_CLASSES === 'true',
-    aiRecommendations: process.env.FEATURE_AI_RECOMMENDATIONS === 'true',
-  },
-} as const
-
-export type AppConfig = typeof config
+export function getJwtSecrets() {
+  const access = isTest && !process.env.JWT_ACCESS_SECRET
+    ? 'test-access-secret-minimum-32-characters-long'
+    : required('JWT_ACCESS_SECRET')
+  const refresh = isTest && !process.env.JWT_REFRESH_SECRET
+    ? 'test-refresh-secret-minimum-32-characters-long'
+    : required('JWT_REFRESH_SECRET')
+  if (!isTest) {
+    validateJwtSecret(access, 'JWT_ACCESS_SECRET')
+    validateJwtSecret(refresh, 'JWT_REFRESH_SECRET')
+  }
+  if (access === refresh) throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values')
+  return { accessSecret: new TextEncoder().encode(access), refreshSecret: new TextEncoder().encode(refresh) }
+}

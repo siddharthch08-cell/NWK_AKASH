@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FileQuestion, Clock, Calendar, Play, CheckCircle2, Lock, AlertCircle } from 'lucide-react'
-import { fmtDateTime, relativeTime } from '@/lib/format'
+import { fmtDateTime } from '@/lib/format'
 
 export function StudentTests() {
   const { setView } = useApp()

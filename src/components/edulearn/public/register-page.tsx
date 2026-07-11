@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { api, setToken, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '@/lib/api-client'
 import { useApp } from '@/stores/app-store'
 import type { PublicSettings } from './public-site'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,31 +56,30 @@ function PasswordStrength({ password }: { password: string }) {
   )
 }
 
-export function RegisterPage({ settings }: { settings?: PublicSettings | null }) {
-  const { setUser, setView } = useApp()
+export function RegisterPage({ settings: _settings }: { settings?: PublicSettings | null }) {
+  const { setView } = useApp()
   const [submitting, setSubmitting] = useState(false)
   const [password, setPassword] = useState('')
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+  const termsAccepted = useWatch({ control, name: 'termsAccepted' })
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true)
     try {
-      const res = await api.post<{ user: any; accessToken: string }>('/api/auth/register', {
+      await api.post('/api/auth/register', {
         name: data.name,
         email: data.email,
         phone: data.phone,
         password: data.password,
         confirmPassword: data.confirmPassword,
-        termsAccepted: true,
+        termsAccepted: data.termsAccepted,
       })
-      setToken(res.accessToken)
-      setUser(res.user)
       toast.success('Registration successful! Your account is pending admin approval.')
       setView({ name: 'auth/pending' })
     } catch (e) {
@@ -151,7 +150,7 @@ export function RegisterPage({ settings }: { settings?: PublicSettings | null })
               <div className="flex items-start gap-2">
                 <Checkbox
                   id="terms"
-                  checked={!!watch('termsAccepted')}
+                  checked={!!termsAccepted}
                   onCheckedChange={(v) => setValue('termsAccepted', (v === true) as true, { shouldValidate: true })}
                 />
                 <Label htmlFor="terms" className="text-sm font-normal text-slate-600">

@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, fail, parsePagination } from '@/lib/api-response'
 import { announcementSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
+import { DomainError } from '@/domain'
+import { assertDateRange, parseApiDate } from '@/domain/shared/date'
 import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
@@ -61,9 +63,13 @@ export async function POST(req: NextRequest) {
     return fail('VALIDATION_ERROR', 'batchIds is required for BATCH audience', 400, { batchIds: 'Required for BATCH audience' })
   }
 
-  if (parsed.data.publishAt && parsed.data.expireAt && new Date(parsed.data.publishAt) > new Date(parsed.data.expireAt)) {
-    return fail('VALIDATION_ERROR', 'Expiry must be after publish time', 400, { expireAt: 'Must be after publishAt' })
-  }
+  let publishAt: Date
+  let expireAt: Date | null
+  try {
+    publishAt = parseApiDate(parsed.data.publishAt, 'publishAt') || new Date()
+    expireAt = parseApiDate(parsed.data.expireAt, 'expireAt')
+    assertDateRange(publishAt, expireAt, 'publishAt', 'expireAt')
+  } catch (error) { if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields); throw error }
 
   const ann = await db.announcement.create({
     data: {
@@ -73,8 +79,8 @@ export async function POST(req: NextRequest) {
       priority: parsed.data.priority,
       pinned: parsed.data.pinned,
       status: parsed.data.status,
-      publishAt: parsed.data.publishAt ? new Date(parsed.data.publishAt) : new Date(),
-      expireAt: parsed.data.expireAt ? new Date(parsed.data.expireAt) : null,
+      publishAt,
+      expireAt,
       createdBy: ctx.user.id,
       batches: parsed.data.batchIds?.length
         ? { create: parsed.data.batchIds.map((batchId) => ({ batchId })) }

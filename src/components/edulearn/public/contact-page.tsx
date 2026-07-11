@@ -121,21 +121,21 @@ export function ContactPage({ settings }: { settings: PublicSettings | null }) {
                   <Mail className="w-5 h-5 text-blue-700 mt-0.5" />
                   <div>
                     <div className="font-medium text-slate-900">Email</div>
-                    <div className="text-sm text-slate-600">{settings?.primaryEmail || 'contact@edulearn.pro'}</div>
+                    <div className="text-sm text-slate-600">{settings?.primaryEmail || 'nayawallahkanoon@gmail.com'}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-blue-700 mt-0.5" />
                   <div>
                     <div className="font-medium text-slate-900">Phone</div>
-                    <div className="text-sm text-slate-600">{settings?.primaryPhone || '+91 98765 43210'}</div>
+                    <div className="text-sm text-slate-600">{settings?.primaryPhone || '+91 9660315644'}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-blue-700 mt-0.5" />
                   <div>
                     <div className="font-medium text-slate-900">Address</div>
-                    <div className="text-sm text-slate-600">{settings?.address || '123 Knowledge Avenue, Bengaluru, India'}</div>
+                    <div className="text-sm text-slate-600">{settings?.address || 'Jaipur, Rajasthan, India'}</div>
                   </div>
                 </div>
               </CardContent>

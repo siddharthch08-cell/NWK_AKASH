@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Target, Eye, Users, BookOpen, Award, Clock, ShieldCheck, Sparkles, Scale, Gavel, Heart, Calendar, CheckCircle2, MessageCircle, PlayCircle, Star } from 'lucide-react'
+import { Target, Eye, Users, BookOpen, Award, Clock, ShieldCheck, Sparkles, Scale, Gavel, Heart, Calendar, CheckCircle2, MessageCircle, PlayCircle } from 'lucide-react'
 import type { PublicSettings } from './public-site'
 
 export function AboutPage({ settings }: { settings: PublicSettings | null }) {
@@ -211,10 +211,10 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
             At Naya Wallah Kanoon, every student is family — and we mean it literally.
           </p>
           <p className="text-xl text-amber-300 font-medium italic mb-6">
-            "Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai."
+            &quot;Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai.&quot;
           </p>
           <p className="text-blue-100">
-            This platform isn't built on our name. It's built on you — our students.
+            This platform isn&apos;t built on our name. It&apos;s built on you — our students.
           </p>
         </div>
       </section>
@@ -224,7 +224,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Join Us</h2>
           <p className="text-lg text-slate-600 mb-2">
-            Aao humein join karo, milke kuch crazy karte hain law mein.
+            <b> <i className="italic">&quot;Aao हमें join karo, मिलके kuch crazy करते hain Law mein.&quot;</i></b>
           </p>
           <p className="text-slate-500 max-w-xl mx-auto mb-6">
             Become a part of the Naya Wallah Kanoon family, and we promise to stand by you at every step of your preparation. Give us your effort and trust — and we assure you, you will never regret the decision to join us.

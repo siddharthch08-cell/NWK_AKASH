@@ -27,7 +27,7 @@ export function fail(code: string, message: string, status = 400, fields?: Recor
       error: { code, message, fields: fields || {} },
       requestId: requestId || 'n/a',
     },
-    { status }
+    { status, headers: { 'Cache-Control': 'no-store', ...(requestId ? { 'X-Request-ID': requestId } : {}) } }
   )
 }
 
@@ -47,8 +47,12 @@ export function conflict(message = 'Resource already exists') {
   return fail('CONFLICT', message, 409)
 }
 
-export function tooMany(message = 'Too many requests. Please slow down.') {
-  return fail('RATE_LIMITED', message, 429)
+export function tooMany(message = 'Too many requests. Please slow down.', retryAfterMs = 60_000, requestId?: string) {
+  const retryAfter = Math.max(1, Math.ceil(retryAfterMs / 1000))
+  return NextResponse.json(
+    { success: false, error: { code: 'RATE_LIMITED', message, fields: {} }, requestId: requestId || 'n/a' },
+    { status: 429, headers: { 'Retry-After': String(retryAfter), 'Cache-Control': 'no-store', ...(requestId ? { 'X-Request-ID': requestId } : {}) } },
+  )
 }
 
 export function fromZodError(e: ZodError, requestId?: string) {
@@ -83,12 +87,4 @@ export function parsePagination(req: Request): PaginationParams {
   return params
 }
 
-export function paginate<T>(items: T[], total: number, p: PaginationParams) {
-  return {
-    page: p.page,
-    pageSize: p.pageSize,
-    total,
-    totalPages: Math.max(1, Math.ceil(total / p.pageSize)),
-    items,
-  }
-}
+

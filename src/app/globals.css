@@ -43,7 +43,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* EDULEARN PRO — deep blue primary + teal/green accent */
+/* Naya Wallah Kanoon — deep blue primary + teal/green accent */
 :root {
   --radius: 0.625rem;
   --background: oklch(0.99 0.005 240);

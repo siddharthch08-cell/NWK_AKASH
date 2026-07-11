@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
-import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
+import { api } from '@/lib/api-client'
+import { useToastAction, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,9 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Check, X, Ban, RotateCcw, Mail, Phone, Calendar, Clock, BookOpen, FileQuestion, Save } from 'lucide-react'
+import { ArrowLeft, Check, Ban, RotateCcw, Mail, Phone, Calendar, Clock, BookOpen, FileQuestion, Save } from 'lucide-react'
 import { fmtDateTime, statusColor, relativeTime } from '@/lib/format'
-import { toast } from 'sonner'
 
 interface StudentDetail {
   id: string; name: string; email: string; phone?: string | null; photo?: string | null

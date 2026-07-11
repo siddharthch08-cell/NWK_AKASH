@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
 import { ok, unauthorized, notFound, forbidden } from '@/lib/api-response'
+import { StudentContentAccessPolicy } from '@/domain'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -11,26 +12,27 @@ export async function GET(req: NextRequest, { params }: Params) {
   const { id } = await params
 
   // Verify the student is enrolled in this batch
-  const enrollment = await db.batchEnrollment.findUnique({
-    where: { batchId_userId: { batchId: id, userId: ctx.user.id } },
-  })
-  if (!enrollment) return forbidden('You are not enrolled in this batch')
+  const access = await StudentContentAccessPolicy.canAccessBatch(ctx.user.id, id)
+  if (!access.allowed) return forbidden(access.reason)
 
   const batch = await db.batch.findUnique({
     where: { id },
     include: {
       courses: {
+        where: { course: { status: 'PUBLISHED' } },
         include: {
           course: {
             include: {
               chapters: {
+                where: { archivedAt: null },
                 orderBy: { order: 'asc' },
                 include: {
                   topics: {
+                    where: { archivedAt: null },
                     orderBy: { order: 'asc' },
                     include: {
                       videos: {
-                        where: { status: 'PUBLISHED' },
+                        where: { status: 'PUBLISHED', archivedAt: null },
                         orderBy: { order: 'asc' },
                         include: {
                           progress: {
@@ -48,6 +50,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         },
       },
       tests: {
+        where: { test: { status: 'PUBLISHED' } },
         include: {
           test: {
             select: { id: true, title: true, status: true, startAt: true, endAt: true, durationMins: true, maxAttempts: true },
@@ -65,6 +68,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       archived: false,
       published: true,
       courseId: { in: courseIds },
+      chapter: { archivedAt: null },
+      OR: [{ topicId: null }, { topic: { archivedAt: null } }],
     },
     orderBy: { createdAt: 'desc' },
     select: { id: true, title: true, platform: true, externalUrl: true, materialType: true, courseId: true, chapterId: true, topicId: true, createdAt: true },

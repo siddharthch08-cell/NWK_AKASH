@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,8 +12,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, GraduationCap, Loader2, Edit, Archive, Eye, Download, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Plus, Search, GraduationCap, Loader2, Eye, ChevronLeft, ChevronRight, Edit3, Trash2 } from 'lucide-react'
 import { fmtDate, statusColor } from '@/lib/format'
 import { slugify } from '@/lib/format'
 import { toast } from 'sonner'
@@ -45,6 +45,11 @@ export function AdminBatches() {
     api.get<ListResp>(`/api/admin/batches?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
   useEffect(load, [page, search, status])
+
+  const deleteBatch = async (id: string, name: string) => {
+    if (!confirm(`Delete batch "${name}"?\n\nThis will archive the batch. If the batch has no enrollments, courses, tests, or announcements, it will be permanently deleted.`)) return
+    try { await api.del(`/api/admin/batches/${id}`); toast.success('Batch deleted'); load() } catch (e) { toastAction.error(e) }
+  }
 
   return (
     <div>
@@ -87,6 +92,7 @@ export function AdminBatches() {
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/batches/detail', id: b.id })} title="View"><Eye className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => setEditBatch(b)} title="Edit" className="text-blue-600"><Edit3 className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteBatch(b.id, b.name)} title="Delete" className="text-rose-500 hover:text-rose-600"><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>

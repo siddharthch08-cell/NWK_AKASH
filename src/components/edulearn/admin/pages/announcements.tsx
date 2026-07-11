@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Megaphone, Loader2, Pin } from 'lucide-react'
-import { fmtDateTime, statusColor, relativeTime } from '@/lib/format'
+import { Plus, Megaphone, Loader2, Pin, Pencil, Trash2 } from 'lucide-react'
+import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 
 interface Announcement {
@@ -28,6 +28,7 @@ export function AdminAnnouncements() {
   const [data, setData] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const [editItem, setEditItem] = useState<Announcement | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -62,6 +63,10 @@ export function AdminAnnouncements() {
                     )}
                     <div className="text-xs text-slate-400 mt-2">By {a.creator.name} · {fmtDateTime(a.publishAt)}{a.expireAt ? ` · expires ${fmtDateTime(a.expireAt)}` : ''}</div>
                   </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => setEditItem(a)}><Pencil className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={async () => { if (!confirm('Archive this announcement?')) return; try { await api.del(`/api/admin/announcements/${a.id}`); toast.success('Archived'); load() } catch (e) { toastAction.error(e) } }}><Trash2 className="w-4 h-4 text-rose-500" /></Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -69,16 +74,18 @@ export function AdminAnnouncements() {
         </div>
       )}
 
-      <CreateAnnouncementDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); load() }} />
+      <AnnouncementDialog open={createOpen} onClose={() => setCreateOpen(false)} onSaved={() => { setCreateOpen(false); load() }} />
+      {editItem && <AnnouncementDialog open={true} announcement={editItem} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); load() }} />}
     </div>
   )
 }
 
-function CreateAnnouncementDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+function AnnouncementDialog({ open, announcement, onClose, onSaved }: { open: boolean; announcement?: Announcement; onClose: () => void; onSaved: () => void }) {
   const toastAction = useToastAction()
-  const [form, setForm] = useState({ title: '', message: '', audience: 'PUBLIC', priority: 'NORMAL', pinned: false, status: 'PUBLISHED', expireAt: '' })
+  const isEdit = !!announcement
+  const [form, setForm] = useState({ title: announcement?.title || '', message: announcement?.message || '', audience: announcement?.audience || 'PUBLIC', priority: announcement?.priority || 'NORMAL', pinned: announcement?.pinned || false, status: announcement?.status || 'PUBLISHED', expireAt: '' })
   const [batches, setBatches] = useState<{ id: string; name: string }[]>([])
-  const [selectedBatches, setSelectedBatches] = useState<Set<string>>(new Set())
+  const [selectedBatches, setSelectedBatches] = useState<Set<string>>(new Set(announcement?.batches?.map(b => b.batch.id) || []))
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { if (open) api.get<{ items: any[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {}) }, [open])
@@ -89,20 +96,17 @@ function CreateAnnouncementDialog({ open, onClose, onCreated }: { open: boolean;
     if (form.audience === 'BATCH' && selectedBatches.size === 0) { toast.error('Select at least one batch for BATCH audience'); return }
     setSaving(true)
     try {
-      await api.post('/api/admin/announcements', {
-        ...form, expireAt: form.expireAt ? new Date(form.expireAt).toISOString() : undefined, batchIds: Array.from(selectedBatches),
-      })
-      toast.success('Announcement created')
-      setForm({ title: '', message: '', audience: 'PUBLIC', priority: 'NORMAL', pinned: false, status: 'PUBLISHED', expireAt: '' })
-      setSelectedBatches(new Set())
-      onCreated()
+      const payload = { ...form, expireAt: form.expireAt ? new Date(form.expireAt).toISOString() : undefined, batchIds: Array.from(selectedBatches) }
+      if (isEdit) { await api.patch(`/api/admin/announcements/${announcement!.id}`, payload) } else { await api.post('/api/admin/announcements', payload) }
+      toast.success(isEdit ? 'Announcement updated' : 'Announcement created')
+      onSaved()
     } catch (e) { toastAction.error(e) } finally { setSaving(false) }
   }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>New Announcement</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? 'Edit' : 'New'} Announcement</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div><Label>Message *</Label><Textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></div>
@@ -127,7 +131,7 @@ function CreateAnnouncementDialog({ open, onClose, onCreated }: { open: boolean;
             </div>
           )}
         </div>
-        <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !form.title || !form.message} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Publish</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || !form.title || !form.message} className="bg-blue-700 hover:bg-blue-800">{saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}{isEdit ? 'Update' : 'Publish'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   )

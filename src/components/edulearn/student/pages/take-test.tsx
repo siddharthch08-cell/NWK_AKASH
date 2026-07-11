@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api, ApiError } from '@/lib/api-client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -17,6 +17,7 @@ interface StartResp {
   test: { id: string; title: string; instructions?: string | null; durationMins: number; showResultImmediately: boolean; passingPct?: number | null }
   questions: { id: string; text: string; marks: number; order: number; options: { id: string; text: string; order: number }[] }[]
   savedAnswers: Record<string, string | null>
+  savedAnswerRevisions: Record<string, number>
   resumed: boolean
 }
 
@@ -37,44 +38,122 @@ export function StudentTakeTest({ id }: { id: string }) {
   const [result, setResult] = useState<SubmitResp | null>(null)
   const [confirmSubmit, setConfirmSubmit] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'failed'>('saved')
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const autosaveRef = useRef<NodeJS.Timeout | null>(null)
+  const answersRef = useRef<Record<string, string | null>>({})
+  const submittingRef = useRef(false)
+  const answerRevisionRef = useRef<Record<string, number>>({})
+  const dataRef = useRef<StartResp | null>(null)
+  const resultRef = useRef<SubmitResp | null>(null)
 
-  const startTest = async () => {
+  const startTest = useCallback(async () => {
     setStarting(true)
     setError(null)
     try {
       const res = await api.post<StartResp>(`/api/student/tests/${id}/start`)
       setData(res)
+      dataRef.current = res
       setRemainingSecs(res.attempt.remainingSecs)
       // Initialize answers from saved answers (resume support)
       if (res.savedAnswers && Object.keys(res.savedAnswers).length > 0) {
+        answersRef.current = { ...res.savedAnswers }
+        answerRevisionRef.current = { ...res.savedAnswerRevisions }
         setAnswers({ ...res.savedAnswers })
       }
     } catch (e) {
       if (e instanceof ApiError) setError(e.message)
       else setError('Failed to start test')
     } finally { setStarting(false); setLoading(false) }
+  }, [id])
+
+  useEffect(() => {
+    void startTest()
+  }, [startTest])
+
+  const submit = useCallback(async (submissionType: 'MANUAL' | 'AUTO_TIMEOUT' = 'MANUAL') => {
+    const currentData = dataRef.current
+    if (!currentData || submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    setConfirmSubmit(false)
+    try {
+      const answersArr = Object.entries(answersRef.current).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: answerRevisionRef.current[questionId] || 0 }))
+      const res = await api.post<SubmitResp>(`/api/student/attempts/${currentData.attempt.id}`, { answers: answersArr, submissionType, finalize: true })
+      setResult(res)
+      resultRef.current = res
+      toast.success(submissionType === 'AUTO_TIMEOUT' ? 'Time expired. Test auto-submitted.' : 'Test submitted successfully!')
+    } catch (e) {
+      submittingRef.current = false
+      if (e instanceof ApiError) toast.error(e.message)
+      else toast.error('Submission failed')
+    } finally { setSubmitting(false) }
+  }, [])
+
+  const saveDraft = useCallback(async (showToast = true) => {
+    const currentData = dataRef.current
+    if (!currentData) return false
+    setSaveStatus('saving')
+    try {
+      const answersArr = Object.entries(answersRef.current).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: answerRevisionRef.current[questionId] || 0 }))
+      await api.post(`/api/student/attempts/${currentData.attempt.id}`, { answers: answersArr, submissionType: 'MANUAL', finalize: false })
+      setSaveStatus('saved')
+      if (showToast) toast.success('Answers saved')
+      return true
+    } catch (e) {
+      setSaveStatus('failed')
+      if (showToast) {
+        if (e instanceof ApiError) toast.error(e.message)
+        else toast.error('Save failed')
+      }
+      return false
+    }
+  }, [])
+
+  const selectAnswer = (questionId: string, optionId: string) => {
+    answerRevisionRef.current[questionId] = (answerRevisionRef.current[questionId] || 0) + 1
+    const next = { ...answersRef.current, [questionId]: optionId }
+    answersRef.current = next
+    setAnswers(next)
+    setSaveStatus('unsaved')
   }
 
   useEffect(() => {
-    startTest()
-  }, [id])
+    if (!data || result || saveStatus !== 'unsaved') return
+    if (autosaveRef.current) clearTimeout(autosaveRef.current)
+    autosaveRef.current = setTimeout(() => { void saveDraft(false) }, 300)
+    return () => { if (autosaveRef.current) clearTimeout(autosaveRef.current) }
+    // saveDraft and saveStatus are stable (useCallback with [] / state); answers triggers re-run
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, data, result, saveStatus])
 
-  // Countdown timer
+  const exitTest = useCallback(async () => {
+    if (!dataRef.current) return
+    if (!confirm('Leave the test? Your current answers will be saved and you can resume later.')) return
+    const saved = await saveDraft()
+    if (saved) {
+      setView({ name: 'student/tests' })
+    }
+  }, [saveDraft, setView])
+
+  // Countdown timer — uses refs for submit/saveDraft to avoid stale closures
   useEffect(() => {
     if (!data || result) return
     intervalRef.current = setInterval(() => {
       setRemainingSecs((s) => {
         if (s <= 1) {
-          // Auto-submit
-          clearInterval(intervalRef.current!)
-          submit('AUTO_TIMEOUT')
+          // Auto-submit on expiry
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          void submit('AUTO_TIMEOUT')
           return 0
         }
+        // Auto-save when 2 seconds remain with unsaved changes
+        if (s <= 3) void saveDraft(false)
         return s - 1
       })
     }, 1000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+    // submit and saveDraft are stable useCallback refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, result])
 
@@ -88,40 +167,6 @@ export function StudentTakeTest({ id }: { id: string }) {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [data, result])
-
-  const submit = async (submissionType: 'MANUAL' | 'AUTO_TIMEOUT' = 'MANUAL') => {
-    if (!data) return
-    setSubmitting(true)
-    setConfirmSubmit(false)
-    try {
-      const answersArr = Object.entries(answers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null }))
-      const res = await api.post<SubmitResp>(`/api/student/attempts/${data.attempt.id}`, { answers: answersArr, submissionType, finalize: true })
-      setResult(res)
-      toast.success(submissionType === 'AUTO_TIMEOUT' ? 'Time expired. Test auto-submitted.' : 'Test submitted successfully!')
-    } catch (e) {
-      if (e instanceof ApiError) toast.error(e.message)
-      else toast.error('Submission failed')
-    } finally { setSubmitting(false) }
-  }
-
-  const saveDraft = async () => {
-    if (!data) return
-    try {
-      const answersArr = Object.entries(answers).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null }))
-      await api.post(`/api/student/attempts/${data.attempt.id}`, { answers: answersArr, submissionType: 'MANUAL', finalize: false })
-      toast.success('Answers saved')
-      return true
-    } catch (e) { if (e instanceof ApiError) toast.error(e.message); else toast.error('Save failed'); return false }
-  }
-
-  const exitTest = async () => {
-    if (!data) return
-    if (!confirm('Leave the test? Your current answers will be saved and you can resume later.')) return
-    const saved = await saveDraft()
-    if (saved) {
-      setView({ name: 'student/tests' })
-    }
-  }
 
   if (loading || starting) return <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /><div className="text-sm text-slate-500 mt-2">{starting ? 'Starting test…' : 'Loading…'}</div></div>
 
@@ -158,6 +203,9 @@ export function StudentTakeTest({ id }: { id: string }) {
             <Badge variant="outline">Attempt #{data.attempt.attemptNumber}</Badge>
           </div>
           <div className="flex items-center gap-3">
+            <div className={saveStatus === 'failed' ? 'text-xs text-rose-600' : 'text-xs text-slate-500'}>
+              {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'unsaved' ? 'Unsaved changes' : saveStatus === 'failed' ? 'Save failed - retry required' : 'Saved'}
+            </div>
             <div className="text-xs text-slate-500 hidden sm:block">{answeredCount}/{totalQ} answered</div>
             <div className={`flex items-center gap-1 font-mono font-bold text-lg ${lowTime ? 'text-rose-600 animate-pulse' : 'text-slate-900'}`}>
               <Clock className="w-4 h-4" />
@@ -181,7 +229,7 @@ export function StudentTakeTest({ id }: { id: string }) {
                 <div className="text-xs text-slate-400 mt-0.5">{q.marks} mark(s)</div>
               </div>
             </div>
-            <RadioGroup value={answers[q.id] || ''} onValueChange={(v) => setAnswers({ ...answers, [q.id]: v })}>
+            <RadioGroup value={answers[q.id] || ''} onValueChange={(v) => selectAnswer(q.id, v)}>
               <div className="space-y-2">
                 {q.options.map((o, idx) => (
                   <label key={o.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-slate-50 ${answers[q.id] === o.id ? 'border-blue-500 bg-blue-50' : ''}`}>
@@ -196,7 +244,7 @@ export function StudentTakeTest({ id }: { id: string }) {
       </div>
 
       <div className="sticky bottom-0 bg-white border-t p-3 flex items-center justify-between">
-        <Button variant="outline" onClick={saveDraft} disabled={submitting}>Save Progress</Button>
+        <Button variant="outline" onClick={() => { void saveDraft() }} disabled={submitting}>Save Progress</Button>
         <Button onClick={() => setConfirmSubmit(true)} disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700">
           {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
           Submit Test ({answeredCount}/{totalQ})
@@ -214,7 +262,7 @@ export function StudentTakeTest({ id }: { id: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep working</AlertDialogCancel>
-            <AlertDialogAction onClick={() => submit('MANUAL')} className="bg-emerald-600 hover:bg-emerald-700">Submit now</AlertDialogAction>
+            <AlertDialogAction onClick={() => void submit('MANUAL')} className="bg-emerald-600 hover:bg-emerald-700">Submit now</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -225,7 +273,6 @@ export function StudentTakeTest({ id }: { id: string }) {
 function ResultView({ result, onBack, onViewResults }: { result: SubmitResp; onBack: () => void; onViewResults: () => void }) {
   const a = result.attempt
   const showResult = result.test.showResultImmediately
-  const showKey = result.test.showAnswerKey
 
   return (
     <div>

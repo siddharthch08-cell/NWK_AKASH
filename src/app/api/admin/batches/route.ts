@@ -1,11 +1,13 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, fromZodError, unauthorized, fail, conflict, parsePagination } from '@/lib/api-response'
+import { ok, unauthorized, fail, fromZodError, conflict, parsePagination } from '@/lib/api-response'
 import { batchSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
 import { slugify } from '@/lib/format'
 import { Prisma } from '@prisma/client'
+import { DomainError } from '@/domain'
+import { assertDateRange, parseApiDate } from '@/domain/shared/date'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireAdmin(req)
@@ -71,10 +73,15 @@ export async function POST(req: NextRequest) {
   const existing = await db.batch.findUnique({ where: { slug } })
   if (existing) return conflict('A batch with this slug already exists')
 
-  if (parsed.data.startDate && parsed.data.endDate) {
-    if (new Date(parsed.data.startDate) > new Date(parsed.data.endDate)) {
-      return fail('VALIDATION_ERROR', 'End date must be after start date', 400, { endDate: 'Must be after start date' })
-    }
+  let startDate: Date | null
+  let endDate: Date | null
+  try {
+    startDate = parseApiDate(parsed.data.startDate, 'startDate')
+    endDate = parseApiDate(parsed.data.endDate, 'endDate')
+    assertDateRange(startDate, endDate, 'startDate', 'endDate')
+  } catch (error) {
+    if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+    throw error
   }
 
   const batch = await db.batch.create({
@@ -83,8 +90,8 @@ export async function POST(req: NextRequest) {
       slug,
       description: parsed.data.description || null,
       thumbnail: parsed.data.thumbnail || null,
-      startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-      endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+      startDate,
+      endDate,
       status: parsed.data.status || 'DRAFT',
       capacity: parsed.data.capacity || null,
       createdBy: ctx.user.id,

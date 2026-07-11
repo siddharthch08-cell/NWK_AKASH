@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, fromZodError, unauthorized, fail, conflict, notFound, parsePagination } from '@/lib/api-response'
+import { ok, fromZodError, unauthorized, fail, conflict, parsePagination } from '@/lib/api-response'
 import { courseSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
 import { slugify } from '@/lib/format'

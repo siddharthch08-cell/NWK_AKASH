@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2, Save, KeyRound, LogOut, Mail, Phone, Calendar, GraduationCap, Shield } from 'lucide-react'
+import { Loader2, Save, KeyRound, LogOut, Calendar, GraduationCap } from 'lucide-react'
 import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 
@@ -24,8 +24,8 @@ export function StudentProfile() {
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwSaving, setPwSaving] = useState(false)
 
-  const load = () => { setLoading(true); api.get<{ user: any }>('/api/student/profile').then((d) => { setData(d.user); setForm({ name: d.user.name, phone: d.user.phone || '', photo: d.user.photo || '' }) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [])
+  const load = useCallback(() => { setLoading(true); api.get<{ user: any }>('/api/student/profile').then((d) => { setData(d.user); setForm({ name: d.user.name, phone: d.user.phone || '', photo: d.user.photo || '' }) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
+  useEffect(() => { load() }, [load])
 
   const saveProfile = async () => {
     setSaving(true)

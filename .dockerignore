@@ -1,4 +1,4 @@
-# Docker ignore — keeps the build context small
+# Docker build context exclusions
 node_modules
 .next
 .git
@@ -10,6 +10,7 @@ node_modules
 dev.log
 server.log
 db
+prisma/data
 private-uploads
 tool-results
 upload
@@ -18,9 +19,27 @@ skills
 examples
 .zscripts
 worklog.md
+release
+test-results
+*.db
+*.db-wal
+*.db-shm
+*.pid
 docs
 *.md
 !README.md
 Dockerfile
 docker-compose.yml
 .dockerignore
+.github
+.vscode
+.idea
+coverage
+.nvmrc
+tsconfig.tsbuildinfo
+vitest.config.ts
+.eslintrc*
+eslint.config.mjs
+.postcss*
+components.json
+LICENSE

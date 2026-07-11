@@ -2,13 +2,9 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { contactSchema } from '@/lib/validation'
 import { ok, fromZodError, tooMany, fail } from '@/lib/api-response'
-import { rateLimit } from '@/lib/rate-limit'
+import { enforceRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1'
-  const rl = rateLimit(`contact:${ip}`, 3, 60 * 60 * 1000) // 3/hour
-  if (!rl.ok) return tooMany('Too many contact submissions. Please try again later.')
-
   let body: unknown
   try {
     body = await req.json()
@@ -18,6 +14,8 @@ export async function POST(req: NextRequest) {
 
   const parsed = contactSchema.safeParse(body)
   if (!parsed.success) return fromZodError(parsed.error)
+  const rl = await enforceRateLimit(req, 'contact', parsed.data.email)
+  if (!rl.ok) return tooMany('Too many contact submissions. Please try again later.', rl.retryAfterMs)
 
   const { name, email, phone, subject, message } = parsed.data
 

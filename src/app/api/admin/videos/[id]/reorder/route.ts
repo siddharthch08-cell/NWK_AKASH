@@ -25,8 +25,15 @@ export async function POST(req: NextRequest, { params }: Params) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return fromZodError(parsed.error)
 
-  const video = await db.video.findUnique({ where: { id } })
+  const video = await db.video.findUnique({ where: { id }, include: { topic: true } })
   if (!video) return notFound('Video not found')
+
+  const videoIds = parsed.data.items.map(it => it.id)
+  const videos = await db.video.findMany({ where: { id: { in: videoIds } }, include: { topic: true } })
+  const invalidVideos = videos.filter(v => v.topicId !== video.topicId)
+  if (invalidVideos.length > 0) {
+    return fail('VALIDATION_ERROR', 'All videos must belong to the same topic', 400)
+  }
 
   await db.$transaction(
     parsed.data.items.map((it) =>

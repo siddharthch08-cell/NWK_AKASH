@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { api, ApiError } from '@/lib/api-client'
+import { useEffect, useState, useCallback } from 'react'
+import { api } from '@/lib/api-client'
 import { useToastAction, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,8 +21,8 @@ export function StudentFeedback() {
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ category: 'GENERAL', subject: '', message: '', rating: 0 })
 
-  const load = () => { setLoading(true); api.get<{ items: any[] }>('/api/student/feedback?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [])
+  const load = useCallback(() => { setLoading(true); api.get<{ items: any[] }>('/api/student/feedback?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
+  useEffect(() => { load() }, [load])
 
   const submit = async () => {
     if (!form.subject || !form.message) { toastAction.error(new Error('Subject and message are required')); return }

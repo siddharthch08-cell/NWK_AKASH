@@ -11,13 +11,13 @@ export async function GET(req: NextRequest) {
   const courses = await db.course.findMany({
     where: {
       status: 'PUBLISHED',
-      batches: { some: { batch: { enrollments: { some: { userId: ctx.user.id } } } } },
+      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId: ctx.user.id } } } } },
     },
     orderBy: { createdAt: 'desc' },
     include: {
-      _count: { select: { chapters: true } },
+      _count: { select: { chapters: { where: { archivedAt: null } } } },
       batches: {
-        where: { batch: { enrollments: { some: { userId: ctx.user.id } } } },
+        where: { batch: { status: 'ACTIVE', enrollments: { some: { userId: ctx.user.id } } } },
         include: { batch: { select: { id: true, name: true } } },
       },
     },
@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
     courses.map(async (c) => {
       const videos = await db.video.findMany({
         where: {
-          status: 'PUBLISHED',
-          topic: { chapter: { courseId: c.id } },
+          status: 'PUBLISHED', archivedAt: null,
+          topic: { archivedAt: null, chapter: { courseId: c.id, archivedAt: null } },
         },
         select: { id: true },
       })

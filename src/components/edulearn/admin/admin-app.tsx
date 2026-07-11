@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
@@ -12,9 +12,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap, FolderOpen, FileQuestion,
   BarChart3, Trophy, Megaphone, MailOpen, MessageSquare, FileText, History,
-  Settings, LogOut, Menu, ChevronRight, Search, User, Shield, ChevronDown,
+  Settings, LogOut, Menu, ChevronRight, Search, Shield, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import type { View } from '@/stores/app-store'
 
 interface NavItem {
@@ -114,6 +116,12 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 export function AdminApp() {
   const { view, user, logout, setView } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  const handleSearch = useCallback((e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(true) }
+  }, [])
+  useEffect(() => { document.addEventListener('keydown', handleSearch); return () => document.removeEventListener('keydown', handleSearch) }, [handleSearch])
 
   const breadcrumbMap: Record<string, string> = {
     'admin/dashboard': 'Dashboard',
@@ -195,7 +203,7 @@ export function AdminApp() {
             <span className="font-semibold text-slate-900 truncate">{currentLabel}</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="icon" aria-label="Search" className="hidden sm:inline-flex text-slate-500 hover:text-slate-900">
+            <Button variant="ghost" size="icon" aria-label="Search" className="hidden sm:inline-flex text-slate-500 hover:text-slate-900" onClick={() => setSearchOpen(true)}>
               <Search className="w-4 h-4" />
             </Button>
             <DropdownMenu>
@@ -239,6 +247,25 @@ export function AdminApp() {
           <AdminContent />
         </main>
       </div>
+
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="max-w-md p-0">
+          <div className="flex items-center border-b px-4">
+            <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+            <Input placeholder="Search... (Ctrl+K)" className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" autoFocus onKeyDown={(e) => {
+              if (e.key === 'Escape') setSearchOpen(false)
+              if (e.key === 'Enter') {
+                const q = (e.target as HTMLInputElement).value.toLowerCase().trim()
+                if (q) {
+                  const navMap: Record<string, View> = { students: { name: 'admin/students' }, batches: { name: 'admin/batches' }, courses: { name: 'admin/courses' }, tests: { name: 'admin/tests' }, materials: { name: 'admin/materials' }, announcements: { name: 'admin/announcements' }, feedback: { name: 'admin/feedback' }, contact: { name: 'admin/contact' }, reports: { name: 'admin/reports' }, audit: { name: 'admin/audit' }, settings: { name: 'admin/settings' }, analytics: { name: 'admin/analytics' }, leaderboard: { name: 'admin/leaderboard' } }
+                  const match = Object.entries(navMap).find(([k]) => k.includes(q))
+                  if (match) { setView(match[1]); setSearchOpen(false) }
+                }
+              }
+            }} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

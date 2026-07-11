@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
-import { api, ApiError } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { useToastAction } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, Plus, ChevronDown, Trash2, Video as VideoIcon, BookOpen, FolderOpen, Edit3, Loader2, GraduationCap, ChevronRight } from 'lucide-react'
-import { statusColor, fmtDate } from '@/lib/format'
+import { ArrowLeft, Plus, ChevronDown, Trash2, Video as VideoIcon, BookOpen, Edit3, Loader2, GraduationCap } from 'lucide-react'
+import { statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 import { extractYouTubeId } from '@/lib/youtube'
 
@@ -335,7 +335,7 @@ function CreateVideoDialog({ topicId, onClose, onCreated }: { topicId: string | 
 // ---------------------------------------------------------------------------
 // ActiveBatchAvailability — shows all ACTIVE batches with toggle assignment
 // ---------------------------------------------------------------------------
-function ActiveBatchAvailability({ courseId, assignedBatches, onChanged }: { courseId: string; assignedBatches: { batch: { id: string; name: string; status: string } }[]; onChanged: () => void }) {
+function ActiveBatchAvailability({ courseId, assignedBatches: _assignedBatches, onChanged }: { courseId: string; assignedBatches: { batch: { id: string; name: string; status: string } }[]; onChanged: () => void }) {
   const toastAction = useToastAction()
   const { setView } = useApp()
   const [batches, setBatches] = useState<any[]>([])

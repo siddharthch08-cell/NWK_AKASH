@@ -5,8 +5,8 @@ import { useApi, PageHeader, StatCard } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Users, UserCheck, Clock, Ban, GraduationCap, BookOpen, Video, FileQuestion, Award, TrendingUp, Plus, UserPlus, Upload, Megaphone, Activity } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts'
+import { Users, UserCheck, Clock, Ban, GraduationCap, BookOpen, Video, FileQuestion, Award, TrendingUp, Plus, UserPlus, Activity } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { fmtDateTime, relativeTime, statusColor } from '@/lib/format'
 
 interface DashboardData {

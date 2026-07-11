@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
 import { batchSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
 import { slugify } from '@/lib/format'
+import { EnrollmentService } from '@/domain'
+import { DomainError } from '@/domain'
+import { assertDateRange, parseApiDate } from '@/domain/shared/date'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -12,6 +15,10 @@ export async function GET(req: NextRequest, { params }: Params) {
   const ctx = await requireAdmin(req)
   if (!ctx) return unauthorized()
   const { id } = await params
+  const url = new URL(req.url)
+  const page = Math.max(1, Number(url.searchParams.get('page')) || 1)
+  const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 20))
+  const search = url.searchParams.get('search') || undefined
 
   const batch = await db.batch.findUnique({
     where: { id },
@@ -20,16 +27,15 @@ export async function GET(req: NextRequest, { params }: Params) {
       _count: { select: { enrollments: true, courses: true, tests: true, announcements: true } },
       courses: { include: { course: { select: { id: true, title: true, slug: true, status: true, thumbnail: true } } } },
       tests: { include: { test: { select: { id: true, title: true, status: true, durationMins: true } } } },
-      enrollments: {
-        take: 100,
-        include: { user: { select: { id: true, name: true, email: true, status: true } } },
-        orderBy: { enrolledAt: 'desc' },
-      },
     },
   })
   if (!batch) return notFound('Batch not found')
 
-  return ok({ batch }, 'Batch detail')
+  const enrollmentPage = await EnrollmentService.getBatchEnrollments(id, page, pageSize, search)
+  const publishedCourseMaterials = await db.material.count({
+    where: { published: true, archived: false, course: { status: 'PUBLISHED', batches: { some: { batchId: id } } }, chapter: { archivedAt: null }, OR: [{ topicId: null }, { topic: { archivedAt: null } }] },
+  })
+  return ok({ batch: { ...batch, enrollments: enrollmentPage.items, enrollmentPagination: { page: enrollmentPage.page, pageSize: enrollmentPage.pageSize, total: enrollmentPage.total, totalPages: enrollmentPage.totalPages }, _count: { ...batch._count, publishedCourseMaterials } } }, 'Batch detail')
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -61,14 +67,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   if (parsed.data.description !== undefined) data.description = parsed.data.description || null
   if (parsed.data.thumbnail !== undefined) data.thumbnail = parsed.data.thumbnail || null
-  if (parsed.data.startDate !== undefined) data.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null
-  if (parsed.data.endDate !== undefined) data.endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+  try {
+    const finalStart = parsed.data.startDate !== undefined ? parseApiDate(parsed.data.startDate, 'startDate') : existing.startDate
+    const finalEnd = parsed.data.endDate !== undefined ? parseApiDate(parsed.data.endDate, 'endDate') : existing.endDate
+    assertDateRange(finalStart, finalEnd, 'startDate', 'endDate')
+    if (parsed.data.startDate !== undefined) data.startDate = finalStart
+    if (parsed.data.endDate !== undefined) data.endDate = finalEnd
+  } catch (error) {
+    if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+    throw error
+  }
   if (parsed.data.status !== undefined) data.status = parsed.data.status
   if (parsed.data.capacity !== undefined) data.capacity = parsed.data.capacity || null
-
-  if (data.startDate && data.endDate && new Date(data.startDate as string) > new Date(data.endDate as string)) {
-    return fail('VALIDATION_ERROR', 'End date must be after start date', 400, { endDate: 'Must be after start date' })
-  }
 
   const updated = await db.batch.update({ where: { id }, data })
   await audit({ ctx, action: 'BATCH_UPDATED', entityType: 'BATCH', entityId: id, before: existing, after: updated })
@@ -97,17 +107,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     const totalDeps = enrollments + courseAssignments + testAssignments + announcements
     if (totalDeps > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'CONFLICT',
-            message: `Cannot delete batch with dependencies. Archive instead.`,
-          },
-          dependencies: { enrollments, courseAssignments, testAssignments, announcements, total: totalDeps },
-        },
-        { status: 409 }
-      )
+      await audit({ ctx, action: 'BATCH_DELETE_FAILED', entityType: 'BATCH', entityId: id, outcome: 'DENIED', after: { dependencyCount: totalDeps } })
+      return fail('CONFLICT', 'Cannot delete batch with dependencies. Archive instead.', 409, {
+        enrollments: String(enrollments),
+        courseAssignments: String(courseAssignments),
+        testAssignments: String(testAssignments),
+        announcements: String(announcements),
+        total: String(totalDeps),
+      }, ctx.requestId)
     }
 
     // Safe to permanently delete — no dependencies

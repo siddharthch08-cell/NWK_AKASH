@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Clock, XCircle, Ban, PauseCircle, LogOut, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export function AuthStatusScreens() {
   const { view, user, logout, bootstrap, setView } = useApp()

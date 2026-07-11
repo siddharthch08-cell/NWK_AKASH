@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
 import { ok, unauthorized, notFound, forbidden } from '@/lib/api-response'
+import { StudentContentAccessPolicy } from '@/domain'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -9,19 +10,23 @@ export async function GET(req: NextRequest, { params }: Params) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
   const { id } = await params
+  const access = await StudentContentAccessPolicy.canAccessCourse(ctx.user.id, id)
+  if (!access.allowed) return forbidden(access.reason)
 
   // Verify access: student must be enrolled in a batch that has this course
   const course = await db.course.findUnique({
     where: { id },
     include: {
       chapters: {
+        where: { archivedAt: null },
         orderBy: { order: 'asc' },
         include: {
           topics: {
+            where: { archivedAt: null },
             orderBy: { order: 'asc' },
             include: {
               videos: {
-                where: { status: 'PUBLISHED' },
+                where: { status: 'PUBLISHED', archivedAt: null },
                 orderBy: { order: 'asc' },
                 include: {
                   progress: {
@@ -39,18 +44,6 @@ export async function GET(req: NextRequest, { params }: Params) {
   })
   if (!course) return notFound('Course not found')
   if (course.status !== 'PUBLISHED') return notFound('Course not found')
-
-  // Strict check: is the student enrolled in ANY batch that has this course?
-  const hasAccess = await db.batchEnrollment.findFirst({
-    where: {
-      userId: ctx.user.id,
-      batch: {
-        courses: { some: { courseId: id } },
-        status: { in: ['ACTIVE', 'UPCOMING', 'COMPLETED'] },
-      },
-    },
-  })
-  if (!hasAccess) return forbidden('You do not have access to this course')
 
   return ok(
     {

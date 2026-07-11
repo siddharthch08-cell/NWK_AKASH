@@ -1,339 +1,160 @@
-# Deployment Guide — EDULEARN PRO
+# Deployment and Recovery Runbook
 
-## Pre-Deployment Checklist
+This runbook covers the supported Node.js 22, npm, Prisma/SQLite, Redis, and Docker deployment. It intentionally does not use `prisma db push` or `prisma migrate reset`.
 
-- [ ] `bun run lint` passes with 0 errors
-- [ ] `bun run build` succeeds
-- [ ] No secrets in git: `git log --all -p | grep -iE "password|secret|jwt" | head`
-- [ ] `.env` is in `.gitignore` (verified: `git check-ignore .env`)
-- [ ] Generate production JWT secrets: `openssl rand -base64 32`
-- [ ] Change default admin password after first login
-- [ ] Switch database from SQLite to PostgreSQL
+## Release inputs
 
----
+- A reviewed commit with a passing `deployment-gates / verify` workflow
+- Node.js 22 and npm 10–11, or Docker and Compose
+- Persistent private volumes for the SQLite database and private uploads
+- Redis reachable only by the application network
+- TLS terminated by the configured reverse proxy
+- Independently generated access-JWT, refresh-JWT, and proxy secrets
+- A tested database backup and a separate private-upload backup
 
-## Option 1: Vercel (Recommended — Free Tier)
+Do not place credentials in the repository, image, Compose file, command history, or documentation. There is no default administrator. Run `npm run db:bootstrap-admin` with environment-provided values after the database is migrated.
 
-Vercel is the company behind Next.js. Zero-config, auto-HTTPS, global CDN.
-
-### Step 1: Switch to PostgreSQL
-
-SQLite doesn't work on Vercel (ephemeral filesystem). Create a free PostgreSQL database on:
-- **[Neon](https://neon.tech)** — recommended, 0.5GB free, branching
-- **[Supabase](https://supabase.com)** — 500MB free, includes auth
-- **[Railway](https://railway.app)** — $5 free credit
-
-### Step 2: Update Prisma for PostgreSQL
-
-```prisma
-// prisma/schema.prisma
-datasource db {
-  provider = "postgresql"   // change from "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
+## Preflight
 
 ```bash
-bun run db:push    # apply schema to PostgreSQL
-bun run db:seed    # seed demo data
+npm ci
+npm run db:generate
+npm exec prisma validate
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run artifact:inspect
+npm run security:secrets
+npm audit --audit-level=high
 ```
 
-### Step 3: Deploy on Vercel
+Review `npm audit` moderate findings separately. A critical or high finding blocks deployment. Confirm that the target environment contains every variable documented in `.env.example`; production also requires Redis and non-empty allowlists.
 
-**Via CLI:**
-```bash
-npm i -g vercel
-vercel              # preview deployment
-vercel --prod       # production deployment
-```
+## SQLite backup
 
-**Via Dashboard:**
-1. Go to [vercel.com](https://vercel.com) → "New Project"
-2. Import your GitHub repo
-3. Add Environment Variables:
-   ```
-   DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
-   JWT_ACCESS_SECRET=<openssl rand -base64 32>
-   JWT_REFRESH_SECRET=<openssl rand -base64 32>
-   ```
-4. Deploy — every `git push` auto-deploys
-
-### Step 4: Run Migration on Vercel
+Quiesce application writes first. Prefer SQLite's online backup command when the `sqlite3` CLI is available:
 
 ```bash
-vercel env pull .env.production.local
-DATABASE_URL=<prod-url> bun run db:push
-DATABASE_URL=<prod-url> bun run db:seed
+mkdir -p backups
+sqlite3 /srv/nwk/data/custom.db ".backup '/srv/nwk/backups/custom-before-release.db'"
+sha256sum /srv/nwk/backups/custom-before-release.db
 ```
 
-**Cost**: Free for hobby tier (100GB bandwidth, 1000 builds/month)
+If the CLI is unavailable, stop every application writer, copy the database together with any `-wal` and `-shm` files, then restart only after the copy and hash complete. Never copy an actively written WAL database as a lone `.db` file.
 
----
-
-## Option 2: Railway (App + DB in One)
-
-Railway hosts both your app and database on one platform.
-
-1. Go to [railway.app](https://railway.app) → "New Project" → "Deploy from GitHub repo"
-2. Select your `edulearn-pro` repo
-3. Click "Add" → "Database" → "PostgreSQL"
-4. Copy the `DATABASE_URL` from the PostgreSQL service
-5. In your app service → "Variables", add:
-   ```
-   DATABASE_URL=<from postgres service>
-   JWT_ACCESS_SECRET=<openssl rand -base64 32>
-   JWT_REFRESH_SECRET=<openssl rand -base64 32>
-   ```
-6. Railway auto-detects Next.js and deploys
-7. Run seed via Railway shell:
-   ```bash
-   bun run db:push && bun run db:seed
-   ```
-8. Get your URL: `https://edulearn-pro-production.up.railway.app`
-
-**Cost**: $5/month (includes 500GB outbound + $5 compute credit)
-
----
-
-## Option 3: Self-Hosted VPS (DigitalOcean / Hetzner / AWS EC2)
-
-Full control, cheapest long-term.
-
-### Step 1: Provision Server
-
-- Ubuntu 22.04 LTS, minimum 1GB RAM (2GB recommended)
-- SSH in: `ssh root@your-server-ip`
-
-### Step 2: Install Dependencies
+Back up the private-upload volume independently. Store backups encrypted outside the application host. Test restoration to an isolated location:
 
 ```bash
-# Update system
-apt update && apt upgrade -y
-
-# Install Node.js 20 + build tools
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs nginx git ufw
-
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
-
-# Install PM2 (process manager)
-npm i -g pm2
-
-# Install PostgreSQL
-apt install -y postgresql postgresql-contrib
-sudo -u postgres createuser --createdb edulearn
-sudo -u postgres psql -c "ALTER USER edulearn WITH PASSWORD 'your-secure-password';"
-sudo -u postgres createdb -O edulearn edulearn_pro
+DATABASE_URL=file:/srv/nwk/restore-test/custom.db npm run db:check
 ```
 
-### Step 3: Configure Firewall
+## Migration
+
+For a fresh database:
 
 ```bash
-ufw allow OpenSSH
-ufw allow 'Nginx Full'
-ufw --force enable
+npm run db:migrate:deploy
+npm run db:check
+npx prisma migrate status
 ```
 
-### Step 4: Clone & Build
+For an existing Phase 2 database created before migration history was introduced, first copy it and test the exact procedure in isolation. After confirming its schema matches the documented Phase 2 schema, record only the migrations already represented by that schema:
 
 ```bash
-mkdir -p /var/www
-cd /var/www
-git clone https://github.com/YOUR_USERNAME/edulearn-pro.git
-cd edulearn-pro
-
-bun install --production
-
-# Configure environment
-cp .env.example .env
-nano .env
-# Set:
-#   DATABASE_URL=postgresql://edulearn:your-password@localhost:5432/edulearn_pro
-#   JWT_ACCESS_SECRET=<openssl rand -base64 32>
-#   JWT_REFRESH_SECRET=<openssl rand -base64 32>
-#   NODE_ENV=production
-
-# Update schema.prisma to postgresql
-sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
-
-# Build and migrate
-bun run db:push
-bun run db:seed
-bun run build
+npx prisma migrate resolve --applied 20260701000000_phase1_baseline
+npx prisma migrate resolve --applied 20260703183000_phase2_integrity
+npm run db:migrate:deploy
+npm run db:check
 ```
 
-### Step 5: Run with PM2
+Do not run `migrate resolve` on a fresh database or use it to conceal a failed migration. The Phase 3 refresh-token migration intentionally revokes existing refresh sessions because raw legacy tokens cannot be converted to SHA-256 digests with stock SQLite. Users must authenticate again after that release.
+
+Compare before/after counts for `User`, `Batch`, `Course`, `BatchEnrollment`, `BatchCourse`, `TestAttempt`, and `AttemptAnswer`. `npm run db:check` performs integrity, foreign-key, critical-orphan, and row-count reporting. Refresh-token rows are expected to become zero in this migration; academic row counts must not change.
+
+## Non-Docker release
 
 ```bash
-pm2 start "bun run start" --name edulearn-pro --cwd /var/www/edulearn-pro
-pm2 startup
-pm2 save
+npm ci
+npm run db:generate
+npm run build
+npm run db:migrate:deploy
+npm run db:check
+npm start
 ```
 
-### Step 6: Configure Nginx
+Run migrations as a release job before replacing the running process. `npm start` serves `.next/standalone/server.js` and performs no database mutation. Persist the database and private-upload directories outside the source checkout.
+
+## Docker Compose release
+
+Set required variables in the deployment environment, then run:
 
 ```bash
-nano /etc/nginx/sites-available/edulearn-pro
+docker compose build
+docker compose run --rm migrate
+ADMIN_EMAIL=owner@example.invalid ADMIN_NAME=Owner ADMIN_INITIAL_PASSWORD='<strong-generated-value>' docker compose --profile tools run --rm bootstrap-admin
+docker compose up -d redis app
+docker compose ps
+docker compose logs --tail=100 app
 ```
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+The Compose `migrate` service runs `prisma migrate deploy` once. The application container starts only the server. The `dbdata`, `uploads`, and `redisdata` volumes are persistent and must be included in operational backup policy.
 
-    client_max_body_size 25M;  # must match MAX_UPLOAD_SIZE_MB
+Before changing an existing volume, create a database backup from a temporary container with the application stopped or writes quiesced. Do not delete volumes during routine deploy or rollback.
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
+## Reverse proxy and trusted client IP
+
+Terminate HTTPS at the proxy. Set the same random `PROXY_SHARED_SECRET` in the proxy and application, set `TRUST_PROXY=true`, and have the proxy replace—not append—the `X-Proxy-Secret` header. Strip any client-supplied copy. The included Caddy configuration sends this header and routes only to the fixed application upstream.
+
+Configure:
+
+- `APP_URL` to the public HTTPS origin
+- `ALLOWED_HOSTS` to exact public hostnames
+- `ALLOWED_ORIGINS` to exact browser origins
+- `MAX_REQUEST_BODY_BYTES` to an explicit operational limit
+
+Do not expose the application port publicly when proxy trust is enabled. Forwarded IP headers without the authenticated proxy header are treated as untrusted and cannot select arbitrary rate-limit identities.
+
+## Post-deploy validation
+
+1. Confirm `/api` responds through HTTPS with CSP, `nosniff`, frame denial, referrer policy, permissions policy, HSTS, and an `X-Request-ID`.
+2. Register a student and confirm the account remains pending and login is denied.
+3. Approve through an administrator, then enrol separately and confirm an audit record exists.
+4. Confirm the student sees only assigned batch/course content.
+5. Save and resume a test answer, submit, and confirm hidden results remain hidden until publication.
+6. Attempt access to another student's attempt and confirm denial.
+7. Export a formula-prefixed value and confirm it is text in CSV/XLSX.
+8. Confirm Redis counters are shared across two application replicas.
+9. Run `npm run db:check` against the deployed database.
+10. Inspect application logs by correlation ID without exposing request bodies or credentials.
+
+## Failure handling and rollback
+
+If migration fails:
+
+1. Do not start the new application and do not run reset, push, or ad-hoc repair SQL.
+2. Capture the migration error, application version, database hash, and `_prisma_migrations` state.
+3. Preserve the failed database as evidence.
+4. Restore the pre-release database and matching private-upload snapshot to a new location or volume.
+5. Point the previous application release to the restored data and run `npm run db:check` before accepting traffic.
+6. Diagnose and test a corrected forward migration on another copy.
+
+Application rollback without database rollback is allowed only when the previous version is proven compatible with the migrated schema. For this release, use database restore for full rollback because refresh-token storage changed. There is no automatic down migration.
+
+## Restore
+
+Stop all writers, restore the database and upload snapshot from the same recovery point, verify ownership/permissions, then run:
 
 ```bash
-ln -s /etc/nginx/sites-available/edulearn-pro /etc/nginx/sites-enabled/
-rm /etc/nginx/sites-enabled/default
-nginx -t
-systemctl restart nginx
+npm run db:check
+npx prisma migrate status
 ```
 
-### Step 7: SSL with Let's Encrypt
+Start one application instance, complete the post-deploy validation, and only then restore normal replica count and traffic.
 
-```bash
-apt install certbot python3-certbot-nginx
-certbot --nginx -d your-domain.com
-# Auto-renews via systemd timer
-```
+## Operational limitations
 
-**Cost**: $4-6/month (1GB VPS) + domain ($10/year)
-
----
-
-## Option 4: Docker (Portable)
-
-### Using Docker Compose (app + PostgreSQL)
-
-The project includes `Dockerfile` and `docker-compose.yml`.
-
-```bash
-# Generate secrets
-export JWT_ACCESS_SECRET=$(openssl rand -base64 32)
-export JWT_REFRESH_SECRET=$(openssl rand -base64 32)
-
-# Build and start
-docker-compose up -d --build
-
-# Check logs
-docker-compose logs -f app
-
-# Run seed (first time only)
-docker-compose exec app bun run db:seed
-```
-
-### Deploy to Any Container Platform
-
-The Docker image works on:
-- **Google Cloud Run**
-- **AWS ECS Fargate**
-- **Azure Container Apps**
-- **Fly.io**
-- **Render**
-
-Example (Google Cloud Run):
-```bash
-docker build -t gcr.io/YOUR_PROJECT/edulearn-pro .
-docker push gcr.io/YOUR_PROJECT/edulearn-pro
-gcloud run deploy edulearn-pro \
-  --image gcr.io/YOUR_PROJECT/edulearn-pro \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars "JWT_ACCESS_SECRET=...,JWT_REFRESH_SECRET=..."
-```
-
----
-
-## Post-Deployment
-
-### 1. Change the Default Admin Password
-
-Login as `admin@edulearn.pro` / `Admin@12345`, then:
-- Go to Profile → Change Password
-- Use a strong password (8+ chars, uppercase, lowercase, number)
-
-### 2. Update Institute Settings
-
-Login as admin → Settings → update:
-- Institute name, tagline, logo
-- Hero content
-- Contact details
-- Social links
-- Statistics (students, courses, pass rate)
-
-### 3. Set Up Backups
-
-**PostgreSQL:**
-```bash
-# Daily backup cron job
-echo "0 2 * * * pg_dump -U edulearn edulearn_pro | gzip > /backups/edulearn-$(date +\%Y\%m\%d).sql.gz" | crontab -
-```
-
-### 4. Monitor Logs
-
-```bash
-# PM2 logs
-pm2 logs edulearn-pro
-
-# Nginx logs
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
-```
-
-### 5. Set Up Uptime Monitoring
-
-Use [UptimeRobot](https://uptimerobot.com) (free) to monitor your health endpoint:
-```
-GET https://your-domain.com/api
-```
-
----
-
-## Troubleshooting
-
-### Build Fails
-```bash
-# Clear Next.js cache
-rm -rf .next
-bun run build
-```
-
-### Database Connection Issues
-```bash
-# Test connection
-psql $DATABASE_URL -c "SELECT 1"
-
-# Check Prisma can connect
-bun run db:generate
-```
-
-### 401 on All API Calls
-- JWT secrets changed — all existing tokens are invalid
-- Users need to log in again (expected behavior)
-- Check that `JWT_ACCESS_SECRET` is set in environment
-
-### File Uploads Fail
-- Check `client_max_body_size` in Nginx (must match `MAX_UPLOAD_SIZE_MB`)
-- Verify `private-uploads/` directory is writable
-- Check file MIME type is in the allowed list
-
-### Charts Not Rendering
-- Ensure forced light mode is active (dark mode causes invisible chart text)
-- Check browser console for errors
+- SQLite supports one writer at a time. Horizontal application replicas require a single shared filesystem with correct locking, which many network filesystems do not provide. Prefer one writer until a separately tested provider migration is complete.
+- Redis is mandatory for production rate limiting; the in-memory adapter exists only for development and tests.
+- Video progress is plausibility-checked browser telemetry, not DRM or proof of attention.
+- The current CSP permits inline script/style for framework compatibility. Test every CSP change against login, admin, student, media, and downloads.

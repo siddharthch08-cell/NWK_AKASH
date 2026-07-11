@@ -1,53 +1,36 @@
-# =============================================================================
-# Naya Wallah Kanoon — Production Dockerfile (SQLite, single-stage)
-# =============================================================================
+FROM node:22-bookworm-slim AS base
+RUN npm install --global npm@11.12.1
 
-FROM oven/bun:1-slim
+FROM base AS dependencies
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install OpenSSL (needed by Prisma) + curl for healthchecks
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-# Copy dependency files
-COPY package.json bun.lock ./
-
-# Install all dependencies
-RUN bun install --frozen-lockfile
-
-# Copy source
+FROM base AS build
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+RUN npm run db:generate && npm run build
 
-# Generate Prisma client
-RUN bunx prisma generate
-
-# Create data directory for SQLite
-RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
-RUN mkdir -p /app/private-uploads && chown nextjs:nodejs /app/private-uploads
-
-# Build the Next.js standalone output
-RUN bun run build
-
-# Switch to non-root user
+FROM base AS runtime
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl openssl sqlite3 && rm -rf /var/lib/apt/lists/* \
+  && groupadd --system --gid 1001 nodejs && useradd --system --uid 1001 --gid nodejs nextjs
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
+COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=build --chown=nextjs:nodejs /app/public ./public
+COPY --from=build --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nextjs:nodejs /app/scripts/start-production.mjs ./scripts/start-production.mjs
+COPY --from=build --chown=nextjs:nodejs /app/scripts/bootstrap-admin.ts ./scripts/bootstrap-admin.ts
+COPY --from=build --chown=nextjs:nodejs /app/scripts/audit-default-credentials.ts ./scripts/audit-default-credentials.ts
+COPY --from=build --chown=nextjs:nodejs /app/scripts/check-database.ts ./scripts/check-database.ts
+COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
+RUN mkdir -p /app/data /app/private-uploads && chown -R nextjs:nodejs /app/data /app/private-uploads
 USER nextjs
-
-# Expose port
 EXPOSE 3000
-
-# Environment
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3000/api || exit 1
-
-# Start: push schema to SQLite, then start server
-CMD ["sh", "-c", "bunx prisma db push --skip-generate && bun run start"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD curl -fsS -H 'Host: localhost' http://127.0.0.1:3000/api || exit 1
+CMD ["node", "scripts/start-production.mjs"]

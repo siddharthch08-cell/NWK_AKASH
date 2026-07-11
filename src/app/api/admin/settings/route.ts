@@ -4,11 +4,12 @@ import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, fail } from '@/lib/api-response'
 import { settingsSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
+import { getSettings } from '@/lib/settings'
 
 export async function GET(req: NextRequest) {
   const ctx = await requireAdmin(req)
   if (!ctx) return unauthorized()
-  const settings = await db.instituteSetting.findUnique({ where: { id: 'singleton' } })
+  const settings = await getSettings()
   return ok({ settings }, 'Settings')
 }
 

@@ -1,239 +1,143 @@
-# EDULEARN PRO
+# Naya Wallah Kanoon
 
-> **Advanced Learning Management System** — A production-ready LMS for educational institutes. Manage students, batches, courses, video lectures, timed MCQ tests, leaderboards, and analytics.
+Naya Wallah Kanoon is a Next.js learning-management application for student approval, batch enrolment, course-shared content, video progress, timed tests, results, and administrative reporting.
 
----
+## Supported runtime
 
-## ✨ Features
+- Node.js 22 LTS
+- npm 10 or 11 (`npm@11.12.1` is pinned in `package.json`)
+- Prisma 6 with SQLite
+- Redis 7.4 for production rate limiting
+- Docker 29+ and Compose for the documented container deployment
 
-### Public Website
-- Professional landing page with hero, about, courses preview, announcements ticker
-- Contact form with spam protection + rate limiting
-- SEO-optimized with Open Graph + structured data
-- Fully responsive (320px → 4K)
+Bun is not a supported production runtime. Production startup never runs schema synchronization or migrations.
 
-### Admin Portal
-- **Dashboard** — real-time analytics with charts (student growth, batch enrollment, video engagement)
-- **Students** — approve/reject/block/bulk-approve, assign batches, export CSV
-- **Batches** — create, assign students/courses/tests, archive
-- **Courses** — chapters → topics → videos hierarchy, YouTube ID validation
-- **Materials** — secure PDF/assignment upload (MIME check, magic bytes, size limit)
-- **Tests** — timed MCQ, max 20 questions, max 2 attempts, server-side scoring
-- **Analytics & Leaderboard** — batch-wise rankings with deterministic tie-breakers
-- **Announcements** — public / all-students / batch-specific with priority + expiry
-- **Audit Logs** — append-only record of all admin actions
-- **Reports** — Excel exports with formula-injection protection
-- **Settings** — institute branding, hero content, social links, feature flags
-
-### Student Portal
-- **Dashboard** — personalized greeting, continue learning, upcoming tests, recent results
-- **My Batches & Courses** — only shows assigned content (authorization enforced)
-- **Video Player** — YouTube IFrame API with privacy-enhanced embed, progress heartbeats, resume
-- **Tests** — timed countdown, auto-submit on expiry, answer review after submission
-- **Results** — progress chart, best/average scores, detailed answer comparison
-- **Leaderboard** — batch-wise ranking with your position highlighted
-- **Profile** — update details, change password, view active sessions
-
----
-
-## 🛠 Tech Stack
-
-| Category | Technology |
-|----------|-----------|
-| **Framework** | Next.js 16 (App Router) |
-| **Language** | TypeScript 5 (strict) |
-| **Styling** | Tailwind CSS v4 + shadcn/ui (New York) |
-| **Database** | Prisma ORM + SQLite (dev) / PostgreSQL (prod) |
-| **Auth** | JWT (jose) + bcryptjs (12 rounds) + refresh tokens |
-| **State** | Zustand (client) + React Query patterns |
-| **Charts** | Recharts |
-| **Exports** | ExcelJS (formula-injection safe) |
-| **Icons** | Lucide React |
-| **Validation** | Zod |
-| **Rate Limiting** | In-memory sliding window |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 20+ or Bun 1.0+
-- A SQLite or PostgreSQL database
-
-### Installation
+## Setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/edulearn-pro.git
-cd edulearn-pro
-
-# 2. Install dependencies
-bun install
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your values (generate JWT secrets: openssl rand -base64 32)
-
-# 4. Create database schema
-bun run db:push
-
-# 5. Seed demo data
-bun run db:seed
-
-# 6. Start the dev server
-bun run dev
+npm ci
+copy .env.example .env
+npm run db:generate
+npm run db:migrate:deploy
+npm run dev
 ```
 
-Open **http://localhost:3000** in your browser.
+On Unix, replace `copy` with `cp`. Generate independent secrets rather than placing example values in `.env`:
 
-### Demo Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@edulearn.pro` | `Admin@12345` |
-| Student (Active) | `aarav@example.com` | `Student@12345` |
-| Student (Pending) | `ananya@example.com` | `Student@12345` |
-| Student (Blocked) | `sneha@example.com` | `Student@12345` |
-
----
-
-## 📁 Project Structure
-
-```
-edulearn-pro/
-├── prisma/
-│   └── schema.prisma              # 30+ database models
-├── scripts/
-│   └── seed.ts                    # Demo data seeder
-├── public/                        # Static assets
-├── docs/                          # Architecture & API documentation
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   └── DEPLOYMENT.md
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx             # Root layout
-│   │   ├── page.tsx               # SPA entry (Zustand view router)
-│   │   ├── globals.css            # Tailwind v4 + custom @utility
-│   │   └── api/                   # 50+ REST API routes
-│   │       ├── auth/              # register, login, logout, me, change-password
-│   │       ├── public/            # announcements, batches, contact, settings
-│   │       ├── admin/             # dashboard, students, batches, courses, tests...
-│   │       └── student/           # dashboard, batches, courses, tests, attempts...
-│   ├── components/
-│   │   ├── providers/             # Theme provider
-│   │   ├── ui/                    # 45+ shadcn/ui components
-│   │   └── edulearn/
-│   │       ├── shared/            # Boot screen, helpers (useApi, StatCard)
-│   │       ├── public/            # Landing page, login, register
-│   │       ├── admin/             # Admin shell + 17 admin pages
-│   │       └── student/           # Student shell + 15 student pages
-│   ├── config/
-│   │   └── index.ts               # Centralized app configuration
-│   ├── hooks/                     # use-mobile, use-toast
-│   ├── lib/                       # Backend utilities
-│   │   ├── auth.ts                # JWT + bcrypt + session
-│   │   ├── api-response.ts        # Standard response envelope
-│   │   ├── api-client.ts          # Frontend fetch wrapper
-│   │   ├── audit.ts               # Audit log writer
-│   │   ├── constants.ts           # All enums & config values
-│   │   ├── validation.ts          # Zod schemas
-│   │   ├── test-engine.ts         # Server-side scoring (transactional)
-│   │   ├── storage.ts             # File upload security
-│   │   ├── rate-limit.ts          # Sliding-window rate limiter
-│   │   ├── settings.ts            # Institute settings singleton
-│   │   ├── youtube.ts             # YouTube ID extraction
-│   │   ├── format.ts              # Date/grade/status helpers
-│   │   └── utils.ts               # cn() helper
-│   ├── stores/
-│   │   └── app-store.ts           # Zustand: auth + view router
-│   └── types/
-│       └── index.ts               # Shared domain types
-├── .env.example                   # Environment template
-├── Dockerfile                     # Production container
-├── docker-compose.yml             # Full-stack with PostgreSQL
-└── package.json
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
 ```
 
----
+Use the first two outputs for `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. Use the third as `PROXY_SHARED_SECRET` only when `TRUST_PROXY=true`.
 
-## 🔒 Security Features
+## Required configuration
 
-- **Authentication**: JWT access tokens (15-min TTL) + rotating refresh tokens (7 days)
-- **Password Security**: bcrypt with 12 salt rounds, strength validation, lockout after 5 failed attempts
-- **Authorization**: Role-based access (ADMIN / STUDENT) enforced on every API route
-- **IDOR Protection**: Ownership checks on all student `[id]` routes
-- **Test Integrity**: Server-side scoring (never trust client), authoritative timer, max 2 attempts, max 20 questions
-- **File Upload Security**: MIME validation, magic-byte check, filename sanitization, size limit, path-traversal guard
-- **Rate Limiting**: Login, register, contact form, password change
-- **Audit Logging**: Append-only record of all admin actions with IP, user-agent, request ID
-- **Export Safety**: CSV/Excel exports escape formula injection (=, +, -, @)
-- **No Sensitive Data Leaks**: All queries use `select` to exclude password hashes/tokens
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | SQLite URL, for example `file:./data/custom.db` relative to `prisma/schema.prisma` |
+| `JWT_ACCESS_SECRET` | Unique random value of at least 32 characters |
+| `JWT_REFRESH_SECRET` | Different random value of at least 32 characters |
+| `REDIS_URL` | Required in production; shared rate-limit store |
+| `APP_URL` | Canonical external origin |
+| `ALLOWED_HOSTS` | Comma-separated accepted hostnames |
+| `ALLOWED_ORIGINS` | Comma-separated browser origins accepted by API CORS checks |
+| `TRUST_PROXY` | Enable forwarded-client-IP processing only behind the configured proxy |
+| `PROXY_SHARED_SECRET` | At least 32 characters; must match the reverse proxy header when proxy trust is enabled |
+| `MAX_REQUEST_BODY_BYTES` | Global proxy request-size ceiling; defaults to 25 MiB to permit the 20 MiB upload limit plus multipart overhead |
 
----
+See `.env.example` and [the deployment runbook](docs/DEPLOYMENT.md) for the complete set.
 
-## 📜 Available Scripts
+## Administrative bootstrap and development data
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start dev server on port 3000 |
-| `bun run build` | Production build |
-| `bun run start` | Start production server |
-| `bun run lint` | ESLint check |
-| `bun run db:push` | Push Prisma schema to database |
-| `bun run db:generate` | Generate Prisma client |
-| `bun run db:migrate` | Create a migration |
-| `bun run db:seed` | Seed demo data |
+There is no default account or password. Bootstrap an administrator by supplying credentials out of band:
 
----
+```bash
+ADMIN_EMAIL=owner@example.invalid ADMIN_INITIAL_PASSWORD='<strong-generated-value>' npm run db:bootstrap-admin
+```
 
-## 🧪 Test Workflow (Manual QA)
+PowerShell users can set the two environment variables before invoking the npm command. The bootstrap command refuses to overwrite an existing account and does not print the password.
 
-1. **Register** a new student → should see "Pending Approval" screen
-2. **Login as admin** → approve the pending student
-3. **Login as student** → access dashboard, courses, video lectures
-4. **Watch a video** → progress saves, marks complete at 90%
-5. **Take a test** → timer counts down, auto-submits on expiry, see result with answer review
-6. **Check leaderboard** → your rank appears highlighted
-7. **Export reports** → Excel downloads with proper formatting
+For Docker Compose, bootstrap directly against the persistent database volume:
 
----
+```bash
+ADMIN_EMAIL=owner@example.invalid ADMIN_NAME=Owner ADMIN_INITIAL_PASSWORD='<strong-generated-value>' docker compose --profile tools run --rm bootstrap-admin
+```
 
-## 📚 Documentation
+Demo data is development-only and requires `ALLOW_DEMO_SEED=true`. The seed command aborts in production and generates random local passwords. Never use demo data for a deployed environment.
 
-- [Architecture Decisions](./docs/ARCHITECTURE.md)
-- [API Reference](./docs/API.md)
-- [Deployment Guide](./docs/DEPLOYMENT.md)
+## Academic workflow
 
----
+1. A student registers in `PENDING` state and cannot log in.
+2. An administrator approves the account. Approval does not enrol the student.
+3. An approved student may then be enrolled in a valid batch, subject to capacity.
+4. Courses are assigned to batches. Chapters, topics, videos, and materials belong to the course and are shared with every eligible assigned batch.
+5. Student access requires an approved account, active enrolment, valid course assignment, and accessible lifecycle state.
+6. Tests validate questions, options, marks, dates, and eligible batches before publication.
+7. Attempts persist answer and shuffle state server-side. Results remain hidden until their publication policy allows disclosure.
 
-## 🚢 Deployment
+## Security design
 
-See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for Vercel, Railway, VPS, and Docker instructions.
+- JWT secrets are mandatory, distinct, and have no fallback.
+- Refresh JWTs are stored only as SHA-256 digests, rotate in token families, and family reuse revokes the family.
+- Student approval, academic enrolment, resource access, result serialization, test publication, attempts, and answer persistence have centralized domain owners.
+- Production rate limits use Redis and combine trusted client IP with account/email identifiers.
+- Forwarded IP headers are ignored unless the reverse proxy authenticates itself with the shared secret.
+- CSV and XLSX values are neutralized before quoting or serialization; downloads use sanitized filenames and no-store headers.
+- CSP, anti-framing, MIME sniffing, referrer, permissions, host, origin, and body-size controls are applied centrally.
+- Audit metadata is redacted and includes actor, action, resource, outcome, and correlation ID when available.
 
-**Quick deploy (Vercel):**
-1. Push to GitHub
-2. Import repo on vercel.com
-3. Add env vars (`DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`)
-4. Run `bun run db:push` + `bun run db:seed` once
-5. Done — auto-deploys on every push
+## Quality gates
 
----
+```bash
+npm run db:generate
+npm exec prisma validate
+npm run db:migrate:deploy
+npm run db:check
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run artifact:inspect
+npm run security:secrets
+npm audit --audit-level=high
+docker build -t nwk:local .
+```
 
-## 📄 License
+The test command contains unit, API/domain integration, concurrency, and complete admin/student workflow suites. CI repeats these gates and blocks its Docker build when an earlier mandatory gate fails.
 
-MIT License — see [LICENSE](./LICENSE).
+## Production deployment
 
----
+Migration, application startup, and backup are separate operations:
 
-## 🤝 Contributing
+```bash
+npm ci
+npm run db:generate
+npm run build
+npm run db:migrate:deploy
+npm run db:check
+npm start
+```
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+Run a verified backup before `db:migrate:deploy`. The application start command only starts the standalone Next.js server. For Docker Compose, the one-shot `migrate` service must complete successfully before `app` starts.
 
----
+Detailed backup, restore, migration recovery, reverse-proxy, Docker, and rollback procedures are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-Built with ❤️ for educators and learners.
+## Branch protection
+
+Protect the production branch, require pull requests and approvals, dismiss stale approvals, block force pushes and deletion, and require the `deployment-gates / verify` check. Limit workflow and environment-secret modification to reviewed changes.
+
+## Known limitations
+
+- The supported database in this repository is SQLite. It has a single-writer concurrency model; use one application writer or complete a separately tested database-provider migration before horizontal write scaling.
+- Video heartbeat validation detects implausible progress but cannot provide DRM or prove the viewer watched the screen.
+- The CSP permits inline script/style required by the current Next.js/UI stack. A nonce-based policy is a future hardening item.
+- Uploaded private content requires durable private storage and an external backup policy; it must not be included in source or release archives.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Phase 2 domain architecture](docs/PHASE2_ARCHITECTURE.md)
+- [API reference](docs/API.md)
+- [Deployment and recovery runbook](docs/DEPLOYMENT.md)

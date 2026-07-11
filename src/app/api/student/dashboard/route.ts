@@ -12,13 +12,13 @@ export async function GET(req: NextRequest) {
 
   const [enrollments, videoProgress, attempts, announcements, recentVideos, upcomingTests] = await Promise.all([
     db.batchEnrollment.findMany({
-      where: { userId },
+      where: { userId, batch: { status: 'ACTIVE' } },
       include: {
         batch: {
           select: {
             id: true, name: true, slug: true, status: true, thumbnail: true,
-            courses: { include: { course: { select: { id: true, title: true, thumbnail: true } } } },
-            tests: { include: { test: { select: { id: true, title: true, startAt: true, endAt: true, status: true } } } },
+            courses: { where: { course: { status: 'PUBLISHED' } }, include: { course: { select: { id: true, title: true, thumbnail: true } } } },
+            tests: { where: { test: { status: 'PUBLISHED' } }, include: { test: { select: { id: true, title: true, startAt: true, endAt: true, status: true } } } },
           },
         },
       },
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     db.test.findMany({
       where: {
         status: 'PUBLISHED',
-        batches: { some: { batch: { enrollments: { some: { userId } } } } },
+        batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
         startAt: { gte: now },
       },
       orderBy: { startAt: 'asc' },
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
   const totalVideos = await db.video.count({
     where: {
       status: 'PUBLISHED',
-      topic: { chapter: { course: { batches: { some: { batch: { enrollments: { some: { userId } } } } } } } },
+      archivedAt: null, topic: { archivedAt: null, chapter: { archivedAt: null, course: { status: 'PUBLISHED', batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } } } } },
     },
   })
   // Stats from ALL published attempts (not just the take:10 slice)
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
   const activeTests = await db.test.count({
     where: {
       status: 'PUBLISHED',
-      batches: { some: { batch: { enrollments: { some: { userId } } } } },
+      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
       startAt: { lte: now },
       OR: [{ endAt: null }, { endAt: { gte: now } }],
     },
@@ -109,8 +109,8 @@ export async function GET(req: NextRequest) {
         seenCourseIds.add(bc.course.id)
         const courseVideos = await db.video.findMany({
           where: {
-            status: 'PUBLISHED',
-            topic: { chapter: { courseId: bc.course.id } },
+            status: 'PUBLISHED', archivedAt: null,
+            topic: { archivedAt: null, chapter: { courseId: bc.course.id, archivedAt: null } },
           },
           select: { id: true },
         })

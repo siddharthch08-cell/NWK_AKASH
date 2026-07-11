@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
 import { testSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
+import { DomainError, TestPublicationService, ValidationError } from '@/domain'
+import { assertDateRange, parseApiDate } from '@/domain/shared/date'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -58,20 +60,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   ] as const) {
     if (parsed.data[key] !== undefined) data[key] = parsed.data[key]
   }
-  if (parsed.data.startAt !== undefined) data.startAt = parsed.data.startAt ? new Date(parsed.data.startAt) : null
-  if (parsed.data.endAt !== undefined) data.endAt = parsed.data.endAt ? new Date(parsed.data.endAt) : null
-  if (parsed.data.status !== undefined) {
-    data.status = parsed.data.status
-    if (parsed.data.status === 'PUBLISHED' && !existing.publishedAt) {
-      data.publishedAt = new Date()
+  try {
+    const finalStart = parsed.data.startAt !== undefined ? parseApiDate(parsed.data.startAt, 'startAt') : existing.startAt
+    const finalEnd = parsed.data.endAt !== undefined ? parseApiDate(parsed.data.endAt, 'endAt') : existing.endAt
+    assertDateRange(finalStart, finalEnd)
+    if (parsed.data.startAt !== undefined) data.startAt = finalStart
+    if (parsed.data.endAt !== undefined) data.endAt = finalEnd
+  } catch (error) {
+    if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+    throw error
+  }
+
+  if (parsed.data.status && parsed.data.status !== 'PUBLISHED') data.status = parsed.data.status
+
+  let updated
+  try {
+    updated = await db.$transaction(async tx => {
+      if (parsed.data.batchIds) {
+        const batches = await tx.batch.findMany({ where: { id: { in: parsed.data.batchIds } }, select: { id: true } })
+        if (batches.length !== new Set(parsed.data.batchIds).size) throw new ValidationError('One or more assigned batches do not exist')
+        await tx.testBatch.deleteMany({ where: { testId: id } })
+        for (const batchId of new Set(parsed.data.batchIds)) await tx.testBatch.create({ data: { testId: id, batchId } })
+      }
+      return tx.test.update({ where: { id }, data })
+    })
+  } catch (error) {
+    if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+    throw error
+  }
+  if (parsed.data.status === 'PUBLISHED') {
+    try {
+      updated = await TestPublicationService.publishTest(id, { userId: ctx.user.id, role: ctx.user.role, name: ctx.user.name, email: ctx.user.email, status: ctx.user.status, ip: ctx.ip, userAgent: ctx.userAgent, requestId: ctx.requestId })
+    } catch (error) {
+      if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields)
+      throw error
     }
   }
-
-  if (data.startAt && data.endAt && new Date(data.startAt as string) > new Date(data.endAt as string)) {
-    return fail('VALIDATION_ERROR', 'End date must be after start date', 400, { endAt: 'Must be after startAt' })
-  }
-
-  const updated = await db.test.update({ where: { id }, data })
   await audit({ ctx, action: 'TEST_UPDATED', entityType: 'TEST', entityId: id, before: existing, after: updated })
   return ok({ test: updated }, 'Test updated')
 }

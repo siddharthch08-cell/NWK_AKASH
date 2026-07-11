@@ -1,5 +1,5 @@
 /**
- * EDULEARN PRO — Material URL Validation
+ * Material URL Validation
  * =======================================
  * Validates external resource URLs for Study Materials.
  * Supports: Telegram, WhatsApp, Google Drive, Other (HTTPS only).

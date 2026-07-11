@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { ok, fromZodError, unauthorized, notFound, fail, conflict } from '@/lib/api-response'
+import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
 import { questionSchema } from '@/lib/validation'
 
 type Params = { params: Promise<{ id: string }> }

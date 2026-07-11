@@ -1,11 +1,7 @@
 import { db } from './db'
 
 export async function getSettings() {
-  let s = await db.instituteSetting.findUnique({ where: { id: 'singleton' } })
-  if (!s) {
-    s = await db.instituteSetting.create({ data: { id: 'singleton' } })
-  }
-  return s
+  return db.instituteSetting.upsert({ where: { id: 'singleton' }, update: {}, create: { id: 'singleton' } })
 }
 
 export async function getPublicSettings() {
@@ -34,6 +30,7 @@ export async function getPublicSettings() {
     socialLinkedin: s.socialLinkedin,
     socialYoutube: s.socialYoutube,
     socialInstagram: s.socialInstagram,
+    socialWhatsApp: s.socialWhatsApp,
     videoCompletionThreshold: s.videoCompletionThreshold,
     defaultMaxAttempts: s.defaultMaxAttempts,
     maintenanceMode: s.maintenanceMode,

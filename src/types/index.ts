@@ -1,5 +1,5 @@
 /**
- * EDULEARN PRO — Shared Domain Types
+ * Shared Domain Types
  * ==================================
  * Centralized TypeScript interfaces for all domain entities.
  * Import from here to avoid duplication across API routes and components.
@@ -21,6 +21,7 @@ export type StudentStatus =
   | 'INACTIVE'
   | 'BLOCKED'
   | 'REJECTED'
+  | 'SUSPENDED'
 
 export interface SessionUser {
   id: string
@@ -28,6 +29,7 @@ export interface SessionUser {
   role: UserRole
   name: string
   status: string
+  mustChangePassword: boolean
 }
 
 export interface CurrentUser {
@@ -36,6 +38,7 @@ export interface CurrentUser {
   name: string
   role: UserRole
   status: string
+  mustChangePassword: boolean
   phone?: string | null
   photo?: string | null
   rejectionReason?: string | null
@@ -318,22 +321,26 @@ export interface AttemptAnswer {
 // MATERIALS
 // ---------------------------------------------------------------------------
 
-export type MaterialType = 'NOTES' | 'ASSIGNMENT' | 'TEST_PAPER' | 'REFERENCE'
-export type MaterialVisibility = 'BATCH' | 'COURSE' | 'BATCH_AND_COURSE'
+export type MaterialPlatform = 'TELEGRAM' | 'WHATSAPP' | 'GOOGLE_DRIVE' | 'OTHER'
+export type MaterialType = 'NOTES' | 'PDF' | 'QUESTION_PAPER' | 'REFERENCE' | 'OTHER'
 
 export interface Material {
   id: string
   title: string
   description?: string | null
-  fileName: string
-  fileType: string
-  fileSize: number
+  platform: MaterialPlatform
+  externalUrl: string
   materialType: MaterialType
-  visibility: MaterialVisibility
+  courseId: string
+  chapterId: string
+  topicId?: string | null
+  published: boolean
+  archived: boolean
+  sortOrder: number
   createdAt: string
-  batch?: { id: string; name: string } | null
   course?: { id: string; title: string } | null
-  uploader: { name: string }
+  chapter?: { id: string; title: string } | null
+  topic?: { id: string; title: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -467,14 +474,6 @@ export interface ApiEnvelope<T = unknown> {
     fields?: Record<string, string>
   }
   requestId?: string
-}
-
-export interface PaginatedResponse<T> {
-  items: T[]
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
 }
 
 // ---------------------------------------------------------------------------

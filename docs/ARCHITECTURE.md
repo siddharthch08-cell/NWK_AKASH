@@ -1,164 +1,106 @@
-# Architecture — EDULEARN PRO
+# Architecture
 
-## Overview
+## Runtime view
 
-EDULEARN PRO is a single-page Next.js 16 application with a REST API. The frontend uses a Zustand-based view router (all navigation happens client-side on the `/` route), while the backend exposes 50+ REST endpoints under `/api/`.
+```text
+Browser
+  |
+  | HTTPS
+  v
+Reverse proxy (fixed upstream, TLS, authenticated proxy header)
+  |
+  v
+Next.js proxy
+  |-- host/origin/body-size checks
+  |-- request correlation ID
+  |-- security headers and CORS
+  v
+API route wrapper responsibilities
+  |-- authenticate and authorize
+  |-- validate params/query/body
+  |-- enforce Redis-backed endpoint limit
+  |-- call one domain owner
+  |-- serialize an explicit DTO
+  |-- map safe errors and write audit outcome
+  v
+Domain services
+  |-- registration / approval
+  |-- course-batch / enrolment
+  |-- student-access policy
+  |-- content / materials lifecycle
+  |-- test publication / attempts / results
+  |-- video progress
+  v
+Prisma transactions --> SQLite persistent volume
 
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Browser (Client)                     │
-│                                                         │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │ Public Site │  │  Admin App   │  │ Student App   │  │
-│  │ (landing,   │  │ (dashboard,  │  │ (dashboard,   │  │
-│  │  login,     │  │  students,   │  │  courses,     │  │
-│  │  register)  │  │  batches...) │  │  tests...)    │  │
-│  └──────┬──────┘  └──────┬───────┘  └──────┬────────┘  │
-│         │                │                  │           │
-│         └────────────────┼──────────────────┘           │
-│                          │                              │
-│              ┌───────────▼───────────┐                  │
-│              │  Zustand App Store    │                  │
-│              │  (auth + view router) │                  │
-│              └───────────┬───────────┘                  │
-│                          │                              │
-│              ┌───────────▼───────────┐                  │
-│              │   API Client (fetch)  │                  │
-│              │  + 401 auto-redirect  │                  │
-│              └───────────┬───────────┘                  │
-└──────────────────────────┼──────────────────────────────┘
-                           │ HTTPS
-┌──────────────────────────▼──────────────────────────────┐
-│                  Next.js 16 Server                       │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │              API Routes (/api/*)                  │   │
-│  │                                                   │   │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────────────┐  │   │
-│  │  │  Auth   │  │ Public  │  │  Admin + Student │  │   │
-│  │  │ /auth/* │  │ /public │  │  /admin /student │  │   │
-│  │  └────┬────┘  └────┬────┘  └────────┬────────┘  │   │
-│  │       │            │                │            │   │
-│  │  ┌────▼────────────▼────────────────▼────────┐   │   │
-│  │  │        Middleware Layer                    │   │   │
-│  │  │  • requireAdmin / requireActiveStudent     │   │   │
-│  │  │  • Zod validation                          │   │   │
-│  │  │  • Rate limiting                           │   │   │
-│  │  │  • Audit logging                           │   │   │
-│  │  └────────────────┬──────────────────────────┘   │   │
-│  └───────────────────┼──────────────────────────────┘   │
-│                      │                                   │
-│  ┌───────────────────▼──────────────────────────────┐   │
-│  │           Lib Layer (src/lib/*)                   │   │
-│  │  • auth.ts (JWT + bcrypt)                         │   │
-│  │  • test-engine.ts (server-side scoring)           │   │
-│  │  • storage.ts (file upload security)              │   │
-│  │  • validation.ts (Zod schemas)                    │   │
-│  │  • constants.ts (enums + config)                  │   │
-│  └───────────────────┬──────────────────────────────┘   │
-│                      │                                   │
-│  ┌───────────────────▼──────────────────────────────┐   │
-│  │           Prisma ORM (src/lib/db.ts)              │   │
-│  └───────────────────┬──────────────────────────────┘   │
-└──────────────────────┼───────────────────────────────────┘
-                       │
-            ┌──────────▼──────────┐
-            │   SQLite / Postgres  │
-            │   (30+ models)       │
-            └─────────────────────┘
+Redis shared store <--- all production application replicas
 ```
 
-## Key Architectural Decisions
+The public, administrator, and student interfaces share one Next.js application. Existing route paths remain compatibility entry points; overlapping routes delegate business rules to the same domain service.
 
-### 1. Single-Page App with Zustand View Router
-**Decision**: Instead of Next.js file-based routing, we use a single `/` route with a Zustand store that manages a `view` state object. Navigation happens by calling `setView({ name: 'admin/students' })`.
+## Business ownership
 
-**Rationale**: The sandbox environment only exposes one route (`/`). This pattern keeps all app state in one store, makes auth-gated routing trivial, and avoids full page reloads.
+| Rule | Authoritative owner |
+| --- | --- |
+| Student registration | `src/domain/registration.ts` |
+| Administrative approval/status | `src/lib/student-status.ts` plus thin status routes |
+| Student-batch enrolment and capacity | `src/domain/enrollment/service.ts` |
+| Course-batch assignment and synchronization | `src/domain/course-batch/service.ts` |
+| Student academic resource access | `src/domain/student-access/policy.ts` |
+| Chapter/topic/video archive lifecycle | `src/domain/content-lifecycle.ts` |
+| Material create/update final-state validation | `src/domain/material.ts` |
+| Test publication | `src/domain/test-publication.ts` |
+| Attempt start, answer upsert, shuffle, finalization | `src/domain/test-attempt.ts` and `src/lib/test-engine.ts` |
+| Result visibility and answer-key serialization | `src/domain/result.ts` |
+| Video heartbeat and completion | `src/domain/video-progress.ts` |
 
-**Trade-off**: No deep-linking or URL history. Acceptable for an internal LMS.
+Routes authenticate, validate transport input, invoke the owner, serialize a safe response, map errors, and audit. They must not reimplement domain policy.
 
-### 2. SQLite for Development, PostgreSQL for Production
-**Decision**: The Prisma schema uses `sqlite` provider locally but is written to be PostgreSQL-compatible (no SQLite-specific features).
+## Academic model
 
-**Rationale**: SQLite is zero-config for local dev. PostgreSQL is needed for production (concurrent writes, full-text search, JSON columns).
-
-**Migration**: Change `provider = "sqlite"` to `provider = "postgresql"` in `schema.prisma` and update `DATABASE_URL`.
-
-### 3. JWT Access Tokens in localStorage + Refresh Tokens in httpOnly Cookies
-**Decision**: Access tokens (15-min TTL) are stored in `localStorage` so the SPA can attach them via `Authorization: Bearer` header. Refresh tokens (7-day TTL) are in httpOnly cookies.
-
-**Rationale**: localStorage is accessible to JS (needed for the SPA to send API requests). httpOnly cookies protect refresh tokens from XSS. The api-client has a global 401 handler that clears stale tokens and redirects to login.
-
-### 4. Server-Side Test Scoring with Transactions
-**Decision**: Test scores are calculated exclusively on the server inside a Prisma `$transaction`. The client never sends a score — only selected option IDs.
-
-**Rationale**: Per spec requirement #9: "Do not calculate final test scores on the client." The transaction prevents duplicate scoring and race conditions.
-
-### 5. In-Memory Rate Limiting
-**Decision**: A simple sliding-window rate limiter in `src/lib/rate-limit.ts` using a `Map<string, number[]>`.
-
-**Rationale**: No Redis dependency for local dev. For production with multiple instances, replace with Redis-backed limiter.
-
-### 6. Tailwind v4 with `@utility` Directive
-**Decision**: Custom CSS utilities (mesh-bg, card-lift, btn-glow, etc.) are defined using Tailwind v4's `@utility` directive instead of plain `.class {}` selectors.
-
-**Rationale**: Tailwind v4 strips plain CSS classes that aren't recognized utilities. The `@utility` directive registers them with Tailwind's engine so they survive the build.
-
-## Data Model
-
-The database has 30+ models organized into 6 domains:
-
-1. **Users & Auth**: User, RefreshToken, UserSession, PasswordResetToken
-2. **Batches & Courses**: Batch, BatchEnrollment, Course, BatchCourse, Chapter, Topic, Video, VideoProgress
-3. **Materials**: Material
-4. **Announcements**: Announcement, AnnouncementBatch
-5. **Tests**: Test, TestBatch, Question, QuestionOption, TestAttempt, AttemptAnswer
-6. **System**: Feedback, ContactMessage, AuditLog, Notification, InstituteSetting
-
-See `prisma/schema.prisma` for the full schema with relations, constraints, and indexes.
-
-## Security Architecture
-
-### Authentication Flow
-```
-1. POST /api/auth/login → verifyPassword → signAccessToken + signRefreshToken
-2. Client stores access in localStorage, refresh in httpOnly cookie
-3. Every API request: Authorization: Bearer <access-token>
-4. getAuthContext() verifies token + re-fetches user from DB (status check)
-5. On 401: api-client clears token + reloads → bootstrap → login redirect
+```text
+User (approved student)
+  `-- BatchEnrollment --> Batch
+                         `-- BatchCourse --> Course
+                                             |-- Chapter
+                                             |    `-- Topic
+                                             |         `-- Video
+                                             `-- Material
 ```
 
-### Authorization Layers
-1. **Route-level**: `requireAdmin()` / `requireActiveStudent()` middleware
-2. **Resource-level**: Ownership checks (e.g., `attempt.userId === ctx.user.id`)
-3. **Field-level**: `select` clauses exclude sensitive fields (passwordHash)
+Content belongs to a course. A batch assignment determines eligibility; it does not create a second copy or exclusive owner. Account approval and batch enrolment are independent workflows.
 
-### Test Engine Security
-- Questions sent to students **never** include `isCorrect`
-- Attempt start time is **server-authoritative** (never client clock)
-- Timer survives page refresh (server stores `expiresAt`)
-- Auto-submit on expiry (both client + server enforce)
-- Max 2 attempts enforced server-side
-- Max 20 questions enforced server-side
-- Score computed in `$transaction` (idempotent — duplicate submit returns existing result)
+Student access is the conjunction of authentication, student role/status, valid enrolment, valid course assignment, and every relevant resource lifecycle state. Archived parents make active-looking children inaccessible.
 
-## File Upload Security
-1. MIME type whitelist (PDF, images, docs)
-2. Magic-byte signature check (PDF `%PDF-`, image hex prefixes)
-3. File extension whitelist
-4. Size limit (configurable, default 20MB)
-5. Filename sanitization (strip non-word chars, prevent path traversal)
-6. Storage key validation on read (regex guard)
+## Authentication and sessions
 
-## Audit Logging
-Every state-changing admin action writes to `AuditLog` with:
-- Actor ID + role
-- Action type (enum from `constants.ts`)
-- Entity type + ID
-- Before/after JSON diff
-- IP, user-agent, request ID
-- Timestamp
+Access JWTs are short-lived and signed only with a mandatory environment secret. Refresh JWTs are `httpOnly`, secure in production, include a unique token ID, and are stored only by SHA-256 digest. Rotation consumes the old digest and creates a new member of the same family. Reuse of a consumed/revoked member revokes the family.
 
-Logs are append-only — no delete/update endpoints exist.
+Every authenticated request rechecks the account. Pending, rejected, suspended, blocked, or deleted students cannot gain access merely by retaining an older token. Password changes and adverse account transitions revoke refresh sessions.
+
+## Test integrity
+
+- Publication validates questions, option cardinality, correct answers, marks, duration, dates, and eligible batches.
+- Attempt start serializes the access/limit check and create operation; retries return the active logical attempt.
+- Per-attempt question and option orders are persisted. Scoring uses IDs, not positions.
+- `AttemptAnswer` has database uniqueness on `(attemptId, questionId)` and saves use compound-key upsert/revision semantics.
+- Manual and timeout finalization use server-persisted answers and are idempotent.
+- Result DTOs omit scores until publication and omit answer-key fields unless both publication and test policy permit them.
+
+## Deployment stores
+
+SQLite is the repository's official database provider. Migrations are additive and are applied by `prisma migrate deploy` in a separate release step. The application never runs migration or schema-push commands at startup.
+
+Redis is mandatory in production so limits work across replicas. Development/tests may use the in-memory adapter. Trusted client IP is accepted only from a proxy that supplies the configured shared secret; arbitrary forwarding headers are ignored.
+
+Private uploads, SQLite data, Redis persistence, and backups live outside source and release artifacts.
+
+## API and export boundaries
+
+Responses use explicit selects/DTOs and predictable status codes. Errors include a correlation ID and exclude stack traces. Detailed server logs redact credentials, tokens, cookies, answer keys, and sensitive request bodies.
+
+CSV and XLSX exports share one neutralization rule for formula/control prefixes. CSV quoting follows neutralization. All download filenames and response headers are produced by shared helpers, and sensitive exports are authorized, rate-limited, and audited.
+
+## Security boundary limitations
+
+The current SPA retains its access token client-side, making CSP and XSS prevention important. Refresh tokens remain inaccessible to JavaScript. Browser video telemetry can reject impossible progress but cannot prove attention or provide DRM. SQLite has a single-writer model; do not assume arbitrary horizontal write scaling.

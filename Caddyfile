@@ -1,23 +1,27 @@
-:81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
+{$APP_DOMAIN:localhost} {
+	# Security headers
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "strict-origin-when-cross-origin"
 
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
+	# Fixed upstream - only proxy to the Next.js application
+	reverse_proxy localhost:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		header_up X-Proxy-Secret {env.PROXY_SHARED_SECRET}
+
+		# Timeouts
+		transport http {
+			read_timeout 30s
+			write_timeout 30s
+			dial_timeout 10s
 		}
 	}
 
-	handle {
-		reverse_proxy localhost:3000 {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
+	# Covers the configured 20 MiB material limit plus multipart overhead.
+	request_body {
+		max_size 25MB
 	}
 }
