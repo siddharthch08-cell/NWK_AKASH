@@ -49,7 +49,7 @@ services:
     command: ["npm", "run", "db:bootstrap-admin"]
     environment:
       <<: *app_environment
-      ADMIN_EMAIL: ${ADMIN_EMAIL:?required}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-${ADMIN_EMAIL}}
       ADMIN_NAME: ${ADMIN_NAME:-System Administrator}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
     depends_on:
