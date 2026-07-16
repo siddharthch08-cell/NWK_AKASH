@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Menu, GraduationCap } from 'lucide-react'
 import type { PublicSettings } from './public-site'
+import type { View } from '@/stores/app-store'
 
 export function PublicHeader({ settings }: { settings: PublicSettings | null }) {
   const { setView, view, user } = useApp()
   const [open, setOpen] = useState(false)
 
-  const navItems: { label: string; view: any }[] = [
+  const navItems: { label: string; view: View }[] = [
     { label: 'Home', view: { name: 'public/home' } },
     { label: 'About', view: { name: 'public/about' } },
     { label: 'Courses', view: { name: 'public/courses' } },
@@ -19,7 +20,7 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
     { label: 'Contact', view: { name: 'public/contact' } },
   ]
 
-  const go = (v: any) => {
+  const go = (v: View) => {
     setView(v)
     setOpen(false)
   }
@@ -59,7 +60,7 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
             {user ? (
               <Button
                 size="sm"
-                onClick={() => useApp.setState({ view: user.role === 'ADMIN' ? { name: 'admin/dashboard' } : { name: 'student/dashboard' } })}
+                onClick={() => go(user.role === 'ADMIN' ? { name: 'admin/dashboard' } : { name: 'student/dashboard' })}
                 className="bg-blue-700 hover:bg-blue-800"
               >
                 Go to Dashboard
@@ -100,7 +101,7 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
                   {user ? (
                     <Button
                       className="w-full bg-blue-700 hover:bg-blue-800"
-                      onClick={() => useApp.setState({ view: user.role === 'ADMIN' ? { name: 'admin/dashboard' } : { name: 'student/dashboard' } })}
+                      onClick={() => go(user.role === 'ADMIN' ? { name: 'admin/dashboard' } : { name: 'student/dashboard' })}
                     >
                       Go to Dashboard
                     </Button>

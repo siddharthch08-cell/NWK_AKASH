@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { LogIn, Loader2, GraduationCap, ShieldCheck } from 'lucide-react'
+import { LogIn, Loader2, GraduationCap, ShieldCheck, Eye, EyeOff } from 'lucide-react'
+import type { PublicSettings } from './public-site'
 
 const schema = z.object({
   email: z.string().email('Invalid email'),
@@ -20,13 +21,15 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-export function LoginPage() {
+export function LoginPage({ settings }: { settings: PublicSettings | null }) {
   const { setUser, setView } = useApp()
   const [role, setRole] = useState<'ADMIN' | 'STUDENT'>('STUDENT')
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -70,9 +73,9 @@ export function LoginPage() {
           <p className="text-blue-100 max-w-md">Sign in to access your courses, video lectures, timed assessments, and detailed progress analytics — all in one place.</p>
         </div>
         <div className="relative grid grid-cols-3 gap-4 max-w-md">
-          <div><div className="text-3xl font-bold">5K+</div><div className="text-xs text-blue-200">Students</div></div>
-          <div><div className="text-3xl font-bold">42</div><div className="text-xs text-blue-200">Courses</div></div>
-          <div><div className="text-3xl font-bold">94%</div><div className="text-xs text-blue-200">Pass Rate</div></div>
+          <div><div className="text-3xl font-bold">{settings?.statStudents && settings.statStudents > 0 ? settings.statStudents.toLocaleString() : 500}+</div><div className="text-xs text-blue-200">Students</div></div>
+          <div><div className="text-3xl font-bold">{settings?.statCourses && settings.statCourses > 0 ? settings.statCourses : 3}</div><div className="text-xs text-blue-200">Courses</div></div>
+          <div><div className="text-3xl font-bold">{settings?.statPassRate && settings.statPassRate > 0 ? settings.statPassRate : 92}%</div><div className="text-xs text-blue-200">Pass Rate</div></div>
         </div>
       </div>
 
@@ -93,7 +96,11 @@ export function LoginPage() {
 
           <Card className="shadow-xl border-slate-200/60">
             <CardHeader>
-              <Tabs value={role} onValueChange={(v) => setRole(v as 'ADMIN' | 'STUDENT')}>
+              <Tabs value={role} onValueChange={(v) => {
+                setRole(v as 'ADMIN' | 'STUDENT')
+                reset({ email: '', password: '' })
+                setShowPassword(false)
+              }}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="STUDENT" className="flex items-center gap-2 data-[state=active]:bg-blue-700 data-[state=active]:text-white">
                     <GraduationCap className="w-4 h-4" /> Student
@@ -121,7 +128,12 @@ export function LoginPage() {
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" autoComplete="current-password" {...register('password')} className="mt-1 focus-ring" placeholder="••••••••" />
+                  <div className="relative mt-1">
+                    <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" {...register('password')} className="pr-10 focus-ring" placeholder="••••••••" />
+                    <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-600 hover:text-blue-700" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
                 </div>
                 <Button type="submit" disabled={submitting} className="w-full bg-blue-700 hover:bg-blue-800 btn-glow font-semibold">

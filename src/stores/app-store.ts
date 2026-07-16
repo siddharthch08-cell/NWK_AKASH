@@ -70,17 +70,45 @@ interface AppState {
 
 const initialView: View = { name: 'public/home' }
 
+const BROWSER_VIEW_STATE = 'edulearnView'
+
+function pushBrowserView(view: View) {
+  if (typeof window === 'undefined') return
+  window.history.pushState({ ...window.history.state, [BROWSER_VIEW_STATE]: view }, '')
+}
+
+function replaceBrowserView(view: View) {
+  if (typeof window === 'undefined') return
+  window.history.replaceState({ ...window.history.state, [BROWSER_VIEW_STATE]: view }, '')
+}
+
+export function viewFromBrowserState(state: unknown): View | null {
+  if (!state || typeof state !== 'object') return null
+  const candidate = (state as Record<string, unknown>)[BROWSER_VIEW_STATE]
+  if (!candidate || typeof candidate !== 'object' || typeof (candidate as { name?: unknown }).name !== 'string') return null
+  return candidate as View
+}
+
+export function syncCurrentViewToBrowser(view: View) {
+  replaceBrowserView(view)
+}
+
 export const useApp = create<AppState>((set, _get) => ({
   user: null,
   loading: true,
   view: initialView,
   history: [],
   setView: (v) =>
-    set((s) => ({ view: v, history: [...s.history, s.view].slice(-20) })),
+    set((s) => {
+      if (s.view.name === v.name && ('id' in s.view ? s.view.id : undefined) === ('id' in v ? v.id : undefined)) return s
+      pushBrowserView(v)
+      return { view: v, history: [...s.history, s.view].slice(-20) }
+    }),
   goBack: () =>
     set((s) => {
       if (s.history.length === 0) return s
       const prev = s.history[s.history.length - 1]
+      replaceBrowserView(prev)
       return { view: prev, history: s.history.slice(0, -1) }
     }),
   setUser: (u) => set({ user: u }),
@@ -91,6 +119,7 @@ export const useApp = create<AppState>((set, _get) => ({
       /* ignore */
     }
     setToken(null)
+    replaceBrowserView(initialView)
     set({ user: null, view: { name: 'public/home' }, history: [] })
   },
   bootstrap: async () => {
@@ -100,12 +129,17 @@ export const useApp = create<AppState>((set, _get) => ({
       // Route based on role + status
       const u = data.user
       if (u.role === 'ADMIN') {
-        set({ view: u.mustChangePassword ? { name: 'auth/change-password' } : { name: 'admin/dashboard' } })
+        const nextView: View = u.mustChangePassword ? { name: 'auth/change-password' } : { name: 'admin/dashboard' }
+        replaceBrowserView(nextView)
+        set({ view: nextView })
       } else {
-        set({ view: viewForStudent(u.status) })
+        const nextView = viewForStudent(u.status)
+        replaceBrowserView(nextView)
+        set({ view: nextView })
       }
     } catch {
       setToken(null)
+      replaceBrowserView(initialView)
       set({ user: null, loading: false, view: { name: 'public/home' } })
     }
   },

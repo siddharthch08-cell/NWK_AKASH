@@ -36,6 +36,13 @@ describe('Phase 2 workflow regressions', () => {
     expect(ui).toContain('Published course materials')
   })
 
+  it('quotes mixed-case Prisma identifiers in PostgreSQL transaction locks', () => {
+    const enrollment = source('domain/enrollment/service.ts')
+    expect(enrollment).toContain('UPDATE "Batch" SET "capacity" = "capacity" WHERE "id" =')
+    expect(enrollment).not.toContain('UPDATE Batch SET capacity')
+    expect(source('domain/video-progress.ts')).toContain('UPDATE "Video" SET "updatedAt" = "updatedAt" WHERE "id" =')
+    expect(source('domain/test-attempt.ts')).toContain('UPDATE "TestAttempt" SET "score" = "score" WHERE "id" =')
+  })
   it('retains all compatibility assignment routes as service wrappers', () => {
     expect(source('app/api/admin/batches/[id]/assign-courses/route.ts')).toContain('BatchCourseService.assignCoursesToBatch')
     expect(source('app/api/admin/courses/[id]/assign-batches/route.ts')).toContain('BatchCourseService.assignBatchesToCourse')

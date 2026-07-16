@@ -19,7 +19,7 @@ export async function saveVideoProgress(userId: string, videoId: string, positio
   const now = new Date()
   const settings = await getSettings()
   return db.$transaction(async tx => {
-    await tx.$executeRaw`UPDATE Video SET updatedAt = updatedAt WHERE id = ${videoId}`
+    await tx.$executeRaw`UPDATE "Video" SET "updatedAt" = "updatedAt" WHERE "id" = ${videoId}`
     const video = await tx.video.findUnique({ where: { id: videoId }, select: { duration: true } })
     if (!video) throw new NotFoundError(videoId, 'Video')
     let knownDuration = video.duration

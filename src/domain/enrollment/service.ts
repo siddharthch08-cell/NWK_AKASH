@@ -22,7 +22,7 @@ export interface BatchEnrollmentResult {
 export async function validateBatchCapacity(batchId: string, requestedUserIds: string[]) {
   const ids = uniqueIds(requestedUserIds)
   return db.$transaction(async tx => {
-    await tx.$executeRaw`UPDATE Batch SET capacity = capacity WHERE id = ${batchId}`
+    await tx.$executeRaw`UPDATE "Batch" SET "capacity" = "capacity" WHERE "id" = ${batchId}`
     const batch = await tx.batch.findUnique({ where: { id: batchId }, select: { id: true, capacity: true, status: true } })
     if (!batch) throw new NotFoundError(batchId, 'Batch')
     const existing = await tx.batchEnrollment.findMany({ where: { batchId, userId: { in: ids } }, select: { userId: true } })
@@ -38,8 +38,8 @@ export async function assignStudentsToBatch(batchId: string, userIds: string[], 
   if (!ids.length) throw new ValidationError('At least one student must be provided')
 
   const result = await db.$transaction(async tx => {
-    // A no-op write obtains SQLite's write lock before capacity is read.
-    await tx.$executeRaw`UPDATE Batch SET capacity = capacity WHERE id = ${batchId}`
+    // A no-op update serializes concurrent capacity checks for this batch.
+    await tx.$executeRaw`UPDATE "Batch" SET "capacity" = "capacity" WHERE "id" = ${batchId}`
     const batch = await tx.batch.findUnique({ where: { id: batchId }, select: { id: true, name: true, status: true, capacity: true } })
     if (!batch) throw new NotFoundError(batchId, 'Batch')
     if (!ENROLLABLE_BATCH_STATUSES.has(batch.status)) {
@@ -106,7 +106,7 @@ export const removeStudent = removeStudentFromBatch
 export async function changeStudentBatch(userId: string, fromBatchId: string, toBatchId: string, ctx: AuditContext) {
   if (fromBatchId === toBatchId) return assignStudentToBatch(toBatchId, userId, ctx)
   const result = await db.$transaction(async tx => {
-    await tx.$executeRaw`UPDATE Batch SET capacity = capacity WHERE id = ${toBatchId}`
+    await tx.$executeRaw`UPDATE "Batch" SET "capacity" = "capacity" WHERE "id" = ${toBatchId}`
     const [student, target, sourceEnrollment, targetEnrollment] = await Promise.all([
       tx.user.findUnique({ where: { id: userId }, select: { role: true, status: true, deletedAt: true } }),
       tx.batch.findUnique({ where: { id: toBatchId }, select: { id: true, name: true, status: true, capacity: true } }),

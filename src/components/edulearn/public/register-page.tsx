@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
-import { UserPlus, Loader2, Check, X } from 'lucide-react'
+import { UserPlus, Loader2, Check, X, Eye, EyeOff } from 'lucide-react'
 
 const schema = z.object({
   name: z.string().min(2, 'Name is too short').max(120),
@@ -60,6 +60,8 @@ export function RegisterPage({ settings: _settings }: { settings?: PublicSetting
   const { setView } = useApp()
   const [submitting, setSubmitting] = useState(false)
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
   const {
     register,
     handleSubmit,
@@ -130,21 +132,31 @@ export function RegisterPage({ settings: _settings }: { settings?: PublicSetting
               </div>
               <div>
                 <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  {...register('password', {
-                    onChange: (e) => setPassword(e.target.value),
-                  })}
-                  className="mt-1"
-                  placeholder="••••••••"
-                />
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    {...register('password', {
+                      onChange: (e) => setPassword(e.target.value),
+                    })}
+                    className="pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-600 hover:text-blue-700" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
                 {password && <PasswordStrength password={password} />}
               </div>
               <div>
                 <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                <Input id="confirmPassword" type="password" {...register('confirmPassword')} className="mt-1" placeholder="••••••••" />
+                <div className="relative mt-1">
+                  <Input id="confirmPassword" type={showConfirmation ? 'text' : 'password'} {...register('confirmPassword')} className="pr-10" placeholder="••••••••" />
+                  <button type="button" onClick={() => setShowConfirmation((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-600 hover:text-blue-700" aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'}>
+                    {showConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword.message}</p>}
               </div>
               <div className="flex items-start gap-2">
