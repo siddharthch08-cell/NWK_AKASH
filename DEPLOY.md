@@ -98,19 +98,20 @@ vercel --prod
    - `NODE_ENV` = production
 5. Click **Deploy**
 
-## Step 5: Run Database Migration
+## Step 5: Run Database Migrations Separately
 
-After first deploy, run the migration:
+Run migrations as an explicit release operation before promoting a deployment. Do not run prisma migrate deploy in the Vercel build command: preview builds share environment configuration and must not mutate the production database.
 
-```bash
-# Using Vercel CLI
-vercel env pull .env.production.local
-npx prisma migrate deploy
-```
+Using Vercel CLI:
 
-Or add a build step in Vercel:
-- Go to Project Settings → Build & Development Settings
-- Add: `prisma generate && prisma migrate deploy && next build`
+    vercel env pull .env.production.local
+    npx prisma migrate deploy
+
+For a database that existed before Prisma migration history was introduced, verify that its schema matches the initial migration and baseline it before running migrate deploy. Never baseline an empty database or a schema that has not been verified.
+
+The Vercel build command should remain:
+
+    prisma generate && next build
 
 ## Step 6: Bootstrap Admin User
 
