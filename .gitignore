@@ -95,9 +95,6 @@ docker-compose.override.yml
 # standalone build output
 /.next/standalone/
 
-# prisma migrations lock
-prisma/migrations/**/migration_lock.toml
-!prisma/migrations/20250711000000_init_postgres/migration_lock.toml
 
 .vercel
 .env*
