@@ -5,12 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Target, Eye, Users, BookOpen, Award, Clock, ShieldCheck, Sparkles, Scale, Gavel, Heart, Calendar, CheckCircle2, MessageCircle, PlayCircle } from 'lucide-react'
 import type { PublicSettings } from './public-site'
 
+const publicStat = (value: number | undefined, fallback: number) => value && value > 0 ? value : fallback
+const cleanFamilyDash = (value: string) => value.replace(/family\s+—/gi, 'family,')
+
 export function AboutPage({ settings }: { settings: PublicSettings | null }) {
   const stats = [
-    { icon: Users, label: 'Students Enrolled', value: (settings?.statStudents ?? 500).toLocaleString() + '+' },
-    { icon: BookOpen, label: 'Course Tracks', value: (settings?.statCourses ?? 3).toString() },
-    { icon: Award, label: 'Success Rate', value: (settings?.statPassRate ?? 92) + '%' },
-    { icon: Clock, label: 'Years of Experience', value: (settings?.statExperience ?? 4) + '+' },
+    { icon: Users, label: 'Students Enrolled', value: publicStat(settings?.statStudents, 500).toLocaleString() + '+' },
+    { icon: BookOpen, label: 'Course Tracks', value: publicStat(settings?.statCourses, 3).toString() },
+    { icon: Award, label: 'Success Rate', value: publicStat(settings?.statPassRate, 92) + '%' },
+    { icon: Clock, label: 'Years of Experience', value: publicStat(settings?.statExperience, 4) + '+' },
   ]
 
   const values = [
@@ -50,10 +53,13 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
       {/* Main About Text */}
       <section className="py-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <Card className="mb-8">
+          <Card className="mb-8 overflow-hidden">
+            <div className="aspect-[16/7] overflow-hidden bg-slate-100">
+              <img src={settings?.heroImage || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1400&q=85'} alt="Law books, notes, and focused legal study" className="h-full w-full object-cover" />
+            </div>
             <CardContent className="pt-6">
               <p className="text-slate-700 leading-relaxed text-lg">
-                {settings?.aboutText || 'Naya Wallah Kanoon Judicial Classes is a dedicated coaching platform built to guide sincere aspirants toward a career in law. We are accessible anywhere — we now reach you right at your doorstep.'}
+                {cleanFamilyDash(settings?.aboutText || 'Naya Wallah Kanoon Judicial Classes is a dedicated coaching platform built to guide sincere aspirants toward a career in law. We are accessible anywhere, bringing structured preparation, daily practice, and personal guidance to your doorstep.')}
               </p>
             </CardContent>
           </Card>
@@ -65,7 +71,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
                 <CardTitle>Our Mission</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-600">{settings?.aboutMission || 'To deliver sharp, reliable preparation to every sincere aspirant — treating each one not as a number, but as family.'}</p>
+                <p className="text-slate-600">{cleanFamilyDash(settings?.aboutMission || 'To deliver sharp, reliable preparation to every sincere aspirant, treating each one not as a number, but as family.')}</p>
               </CardContent>
             </Card>
             <Card>
@@ -74,7 +80,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
                 <CardTitle>Our Vision</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-600">{settings?.aboutVision || 'A platform built on you — our students. Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai.'}</p>
+                <p className="text-slate-600">{cleanFamilyDash(settings?.aboutVision || 'A platform built on you, our students. Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai.')}</p>
               </CardContent>
             </Card>
           </div>
@@ -169,7 +175,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
           <Card className="border-2 border-blue-200">
             <CardContent className="pt-6 text-center">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-7 h-7 text-white" />
+                <Heart className="w-7 h-7 fill-current text-rose-200" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-3">Personalised Mentorship</h2>
               <p className="text-slate-600 max-w-2xl mx-auto">
@@ -193,7 +199,10 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
                   <h2 className="text-xl font-bold text-slate-900">Adv. Akash Faujdar</h2>
                   <p className="text-sm text-slate-500 mb-2">Practising at the Rajasthan High Court since 2021</p>
                   <p className="text-slate-600 text-sm">
-                    His vision is simple — deliver sharp, reliable preparation to every sincere aspirant, and treat each one not as a number, but as family.
+                    His vision is simple: deliver sharp, reliable preparation to every sincere aspirant and treat each one not as a number, but as family.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    The programme combines concept-first teaching, daily objective and descriptive practice, live answer review, and one-to-one progress guidance for Judiciary, ADJ, APO, and related legal examinations.
                   </p>
                 </div>
               </div>
@@ -205,10 +214,10 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
       {/* We Are a Family */}
       <section className="py-16 bg-gradient-to-br from-blue-900 to-teal-800 text-white">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <Heart className="w-12 h-12 mx-auto mb-4 text-rose-400" />
+          <Heart className="w-12 h-12 mx-auto mb-4 fill-current text-rose-400" />
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">We Are a Family</h2>
           <p className="text-lg text-blue-100 mb-6">
-            At Naya Wallah Kanoon, every student is family — and we mean it literally.
+            At Naya Wallah Kanoon, every student is family, and we mean it literally.
           </p>
           <p className="text-xl text-amber-300 font-medium italic mb-6">
             &quot;Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai.&quot;

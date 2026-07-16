@@ -63,7 +63,7 @@ async function main() {
       aboutVision:
         'A platform built on you — our students. Naya Wallah Kanoon humse nahi, aapse… humare students se bana hai.',
       aboutText:
-        'Naya Wallah Kanoon Judicial Classes is a dedicated coaching platform built to guide sincere aspirants toward a career in law. We are accessible anywhere — we now reach you right at your doorstep. Founded by Adv. Akash Faujdar, practising at the Rajasthan High Court since 2021, our vision is simple — deliver sharp, reliable preparation to every sincere aspirant, and treat each one not as a number, but as family. At Naya Wallah Kanoon, every student is family — and we mean it literally.',
+        'Naya Wallah Kanoon Judicial Classes is a dedicated coaching platform built to guide sincere aspirants toward a career in law. We are accessible anywhere — we now reach you right at your doorstep. Founded by Adv. Akash Faujdar, practising at the Rajasthan High Court since 2021, our vision is simple — deliver sharp, reliable preparation to every sincere aspirant, and treat each one not as a number, but as family. At Naya Wallah Kanoon, every student is family, and we mean it literally.',
       statStudents: 500,
       statCourses: 3,
       statPassRate: 92,

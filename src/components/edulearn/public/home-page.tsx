@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  ArrowRight, BookOpen, Users, Award, Clock, PlayCircle, Megaphone, ChevronRight,
+  ArrowRight, BookOpen, Users, Award, Clock, PlayCircle, Megaphone, ChevronRight, ChevronLeft,
   Scale, Gavel, Shield, CheckCircle2, Send, Loader2,
-  Calendar, Gift, MessageCircle, HelpCircle, Sun, Moon,
+  Calendar, Gift, MessageCircle, HelpCircle,
 } from 'lucide-react'
 import type { PublicSettings, PublicAnnouncement } from './public-site'
 import type { PublicBatch } from './public-site'
@@ -28,30 +28,26 @@ const counsellingSchema = z.object({
 
 type CounsellingForm = z.infer<typeof counsellingSchema>
 
+const publicStat = (value: number | undefined, fallback: number) => value && value > 0 ? value : fallback
+
 const COURSES = [
   {
     icon: Scale,
     title: 'Judiciary',
     description: 'Comprehensive preparation for all State Judiciary exams. Covers Constitutional Law, IPC, CrPC, CPC, Evidence Act, and more.',
     exams: 'All State Comprehensive Judiciary',
-    morning: '6:30 AM – 7:30 AM',
-    evening: '8:00 PM – 9:00 PM (major) + 9:00 PM – 10:00 PM (minor)',
   },
   {
     icon: Gavel,
     title: 'Additional District Judge (ADJ)',
     description: 'Specialised preparation for the ADJ examination with focus on advanced legal concepts and answer writing.',
     exams: 'Additional District Judge',
-    morning: '6:30 AM – 7:30 AM',
-    evening: '8:00 PM – 9:00 PM (major) + 9:00 PM – 10:00 PM (minor)',
   },
   {
     icon: Shield,
     title: 'Assistant Prosecution Officer (APO)',
-    description: 'Targeted APO preparation including all core subjects plus group discussion from 10:00 PM onwards.',
+    description: 'Targeted APO preparation including all core subjects. Group discussions are currently held for APO students after 10:00 PM.',
     exams: 'Assistant Prosecution Officer',
-    morning: '6:30 AM – 7:30 AM',
-    evening: '8:00 PM – 10:00 PM + 10:00 PM onwards: group discussion',
   },
 ]
 
@@ -65,9 +61,9 @@ const WHAT_SETS_APART = [
 ]
 
 const FREE_RESOURCES = [
-  { icon: PlayCircle, title: 'Free Probation Course', text: 'The complete video playlist for the Probation (of Offenders Act) course is available free of cost. Watch it and get a feel of our classes.' },
-  { icon: HelpCircle, title: 'One Free Question Paper', text: 'One full question paper available free to try. Experience our OMR-style test interface with timer and auto-evaluation.' },
-  { icon: MessageCircle, title: 'Free Counselling', text: 'Get free counselling within 24 hours. Fill the counselling form and clear all your doubts before joining.' },
+  { icon: PlayCircle, title: 'Free Probation Course', text: 'A complete free course on the Probation of Offenders Act, 1958.', destination: 'student/courses' as const },
+  { icon: HelpCircle, title: 'One Free Sample QP', text: 'A free sample question paper with our OMR-style test interface and auto-evaluation.', destination: 'student/tests' as const },
+  { icon: MessageCircle, title: 'Free Counselling', text: 'Free counselling within 24 hours is available to enrolled students.', destination: 'student/feedback' as const },
 ]
 
 const FAQS = [
@@ -81,11 +77,11 @@ const FAQS = [
   },
   {
     q: 'What is the fee structure?',
-    a: '₹2,200 per month (after a 12% discount on the regular fee of ₹2,500), plus a one-time security deposit adjusted in the final month. The course runs till the examination.',
+    a: '₹2,200 per month (after a 12% discount on ₹2,500), plus a one-time security deposit adjustable in the final month. The course runs till the examination.',
   },
   {
     q: 'Are any free resources available?',
-    a: 'Yes — a complete free Probation course playlist, one free question paper, and free counselling within 24 hours.',
+    a: 'A complete free course on the Probation of Offenders Act, 1958, a free sample QP, and free counselling within 24 hours are available.',
   },
   {
     q: 'How do the online tests work?',
@@ -107,6 +103,12 @@ export function HomePage({
   const { setView, user } = useApp()
   const [_batches, setBatches] = useState<PublicBatch[]>([])
   const [_loading, setLoading] = useState(true)
+  const [slide, setSlide] = useState(0)
+  const carouselImages = [
+    settings?.heroImage,
+    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85',
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=85',
+  ].filter(Boolean) as string[]
 
   useEffect(() => {
     api.get<{ batches: PublicBatch[] }>('/api/public/batches')
@@ -114,6 +116,19 @@ export function HomePage({
       .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSlide((current) => (current + 1) % carouselImages.length), 5000)
+    return () => window.clearInterval(timer)
+  }, [carouselImages.length])
+
+  const openProtectedResource = (destination: 'student/courses' | 'student/tests' | 'student/feedback') => {
+    if (user?.role === 'STUDENT' && (user.status === 'ACTIVE' || user.status === 'APPROVED')) {
+      setView({ name: destination })
+    } else {
+      setView({ name: 'public/register' })
+    }
+  }
 
   return (
     <>
@@ -149,26 +164,34 @@ export function HomePage({
                 <Button size="lg" onClick={() => setView({ name: 'public/register' })} className="bg-white text-blue-800 hover:bg-blue-50 btn-glow font-semibold">
                   Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => document.getElementById('courses')?.scrollIntoView({ behavior: 'smooth' })} className="border-white/30 text-white hover:bg-white/10 backdrop-blur">
+                <Button size="lg" variant="outline" onClick={() => document.getElementById('courses')?.scrollIntoView({ behavior: 'smooth' })} className="border-white/30 bg-transparent text-white hover:bg-white/10 backdrop-blur">
                   Explore Courses
                 </Button>
               </div>
               {/* Trust indicators */}
               <div className="mt-8 flex items-center gap-6 text-xs text-blue-100/80">
                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Batches running now</div>
-                <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5" /> {settings?.statPassRate ?? 92}% success rate</div>
-                <div className="hidden sm:flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {settings?.statStudents ?? 500}+ students</div>
+                <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5" /> {publicStat(settings?.statPassRate, 92)}% success rate</div>
+                <div className="hidden sm:flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {publicStat(settings?.statStudents, 500)}+ students</div>
               </div>
             </div>
-            <div className="hidden lg:block animate-fade-in">
-              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
-                <img
-                  src={settings?.heroImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80'}
-                  alt="Legal education"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+            <div className="relative block animate-fade-in">
+              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20" aria-roledescription="carousel" aria-label="Naya Wallah Kanoon highlights">
+                {carouselImages.map((image, index) => (
+                  <img
+                    key={image}
+                    src={image}
+                    alt={index === 0 && settings?.heroImage ? 'Naya Wallah Kanoon classroom' : index === 1 ? 'Legal education and judiciary preparation' : 'Focused law study and note-taking'}
+                    className={index === slide ? 'absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700' : 'absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700'}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                ))}
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 to-transparent" />
+                <button type="button" onClick={() => setSlide((slide - 1 + carouselImages.length) % carouselImages.length)} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/50 p-2 text-white hover:bg-slate-950/70" aria-label="Previous photo"><ChevronLeft className="h-5 w-5" /></button>
+                <button type="button" onClick={() => setSlide((slide + 1) % carouselImages.length)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/50 p-2 text-white hover:bg-slate-950/70" aria-label="Next photo"><ChevronRight className="h-5 w-5" /></button>
+                <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+                  {carouselImages.map((_, index) => <button key={index} type="button" onClick={() => setSlide(index)} className={index === slide ? 'h-2 w-6 rounded-full bg-white transition-all' : 'h-2 w-2 rounded-full bg-white/60 transition-all'} aria-label={'Show photo ' + (index + 1)} aria-current={index === slide} />)}
+                </div>
               </div>
               {/* Floating stat cards */}
               <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-xl p-4 text-slate-900 max-w-[200px]">
@@ -184,10 +207,10 @@ export function HomePage({
           {/* Stats */}
           <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Users, label: 'Students Enrolled', value: settings?.statStudents ?? 500, suffix: '+' },
-              { icon: BookOpen, label: 'Course Tracks', value: settings?.statCourses ?? 3, suffix: '' },
-              { icon: Award, label: 'Success Rate', value: settings?.statPassRate ?? 92, suffix: '%' },
-              { icon: Clock, label: 'Years Experience', value: settings?.statExperience ?? 4, suffix: '+' },
+              { icon: Users, label: 'Students Enrolled', value: publicStat(settings?.statStudents, 500), suffix: '+' },
+              { icon: BookOpen, label: 'Course Tracks', value: publicStat(settings?.statCourses, 3), suffix: '' },
+              { icon: Award, label: 'Success Rate', value: publicStat(settings?.statPassRate, 92), suffix: '%' },
+              { icon: Clock, label: 'Years Experience', value: publicStat(settings?.statExperience, 4), suffix: '+' },
             ].map((stat, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 card-lift hover:bg-white/15">
                 <stat.icon className="w-6 h-6 mb-2 text-teal-300" />
@@ -241,7 +264,7 @@ export function HomePage({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {COURSES.map((course) => (
-              <Card key={course.title} className="card-lift overflow-hidden border-2 hover:border-blue-300 transition-colors">
+              <Card key={course.title} role="link" tabIndex={0} onClick={() => setView({ name: user?.role === 'STUDENT' ? 'student/dashboard' : user?.role === 'ADMIN' ? 'admin/dashboard' : 'public/register' })} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setView({ name: user?.role === 'STUDENT' ? 'student/dashboard' : user?.role === 'ADMIN' ? 'admin/dashboard' : 'public/register' }) }} className="card-lift cursor-pointer overflow-hidden border-2 hover:border-blue-300 transition-colors">
                 <CardContent className="pt-6">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-700 to-teal-600 flex items-center justify-center mb-4">
                     <course.icon className="w-6 h-6 text-white" />
@@ -249,19 +272,9 @@ export function HomePage({
                   <h3 className="text-lg font-bold text-slate-900 mb-2">{course.title}</h3>
                   <p className="text-sm text-slate-600 mb-4">{course.description}</p>
                   <div className="text-xs text-slate-500 mb-3"><strong>Exam:</strong> {course.exams}</div>
-                  <div className="space-y-2 border-t pt-3">
-                    <div className="flex items-start gap-2 text-sm">
-                      <Sun className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <div><span className="font-medium">Morning:</span> <span className="text-slate-600">{course.morning}</span></div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <Moon className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-                      <div><span className="font-medium">Evening:</span> <span className="text-slate-600">{course.evening}</span></div>
-                    </div>
+                  <div className="mt-4 flex w-full items-center justify-center rounded-md bg-blue-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800">
+                    Enroll Now <ArrowRight className="h-4 w-4" />
                   </div>
-                  <Button size="sm" className="w-full mt-4 bg-blue-700 hover:bg-blue-800" onClick={() => setView({ name: user ? 'student/dashboard' : 'public/register' })}>
-                    Enroll Now
-                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -367,13 +380,14 @@ export function HomePage({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {FREE_RESOURCES.map((item, i) => (
-              <Card key={i} className="card-lift text-center">
+              <Card key={i} role="link" tabIndex={0} onClick={() => openProtectedResource(item.destination)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openProtectedResource(item.destination) }} className="card-lift cursor-pointer text-center focus-visible:ring-2 focus-visible:ring-blue-600">
                 <CardContent className="pt-6">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-4">
                     <item.icon className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
                   <p className="text-sm text-slate-600">{item.text}</p>
+                  <div className="mt-4 inline-flex items-center text-sm font-semibold text-blue-700">Open resource <ArrowRight className="ml-1 h-4 w-4" /></div>
                 </CardContent>
               </Card>
             ))}
@@ -430,7 +444,7 @@ export function HomePage({
               <div className="aspect-square rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 p-6 text-white flex flex-col justify-between mt-8">
                 <Award className="w-8 h-8" />
                 <div>
-                  <div className="text-2xl font-bold">{settings?.statPassRate ?? 92}%</div>
+                  <div className="text-2xl font-bold">{publicStat(settings?.statPassRate, 92)}%</div>
                   <div className="text-sm text-teal-50">Success Rate</div>
                 </div>
               </div>
@@ -439,6 +453,26 @@ export function HomePage({
         </div>
       </section>
 
+      {/* Student Feedback */}
+      <section className="py-16 bg-white">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <Card className="border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-teal-50">
+            <CardContent className="flex flex-col items-center gap-5 pt-6 text-center sm:flex-row sm:text-left">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 to-teal-600 text-white">
+                <MessageCircle className="h-7 w-7" />
+              </div>
+              <div className="flex-1">
+                <Badge variant="outline" className="mb-2 border-blue-200 text-blue-700">Student Feedback</Badge>
+                <h2 className="text-2xl font-bold text-slate-900">Help us make every class better</h2>
+                <p className="mt-2 text-sm text-slate-600">Enrolled students can share course, test, video, or general feedback directly with the teaching team.</p>
+              </div>
+              <Button onClick={() => openProtectedResource('student/feedback')} className="shrink-0 bg-blue-700 hover:bg-blue-800">
+                {user?.role === 'STUDENT' ? 'Share Feedback' : 'Enroll to Participate'} <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
       {/* FAQ Section */}
       <section className="py-16 bg-slate-50">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
@@ -463,7 +497,7 @@ export function HomePage({
             <Button size="lg" onClick={() => setView({ name: 'public/register' })} className="bg-white text-blue-800 hover:bg-blue-50 btn-glow">
               Create Free Account
             </Button>
-            <Button size="lg" variant="outline" onClick={() => document.getElementById('counselling')?.scrollIntoView({ behavior: 'smooth' })} className="border-white/30 text-white hover:bg-white/10">
+            <Button size="lg" variant="outline" onClick={() => document.getElementById('counselling')?.scrollIntoView({ behavior: 'smooth' })} className="border-white/30 bg-transparent text-white hover:bg-white/10">
               Get Free Counselling
             </Button>
           </div>

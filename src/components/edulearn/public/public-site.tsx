@@ -81,7 +81,7 @@ export function PublicSite() {
         {view.name === 'public/courses' && <CoursesPage />}
         {view.name === 'public/announcements' && <AnnouncementsPage announcements={announcements} />}
         {view.name === 'public/contact' && <ContactPage settings={settings} />}
-        {view.name === 'public/login' && <LoginPage />}
+        {view.name === 'public/login' && <LoginPage settings={settings} />}
         {view.name === 'public/register' && <RegisterPage settings={settings} />}
       </main>
       <PublicFooter settings={settings} />

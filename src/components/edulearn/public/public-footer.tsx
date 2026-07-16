@@ -12,16 +12,17 @@ function WhatsAppIcon({ className }: { className?: string }) {
   )
 }
 
-function normalizeWhatsAppUrl(val?: string): string {
-  if (!val) return '#'
+function normalizeWhatsAppUrl(val?: string): string | null {
+  if (!val) return null
   const trimmed = val.trim()
-  if (trimmed.startsWith('http')) return trimmed
+  if (trimmed.startsWith('https://') || trimmed.startsWith('http://')) return trimmed
   const digits = trimmed.replace(/[^0-9]/g, '')
-  return `https://wa.me/${digits}`
+  return digits ? 'https://wa.me/' + digits : null
 }
 
 export function PublicFooter({ settings }: { settings: PublicSettings | null }) {
   const { setView } = useApp()
+  const whatsappUrl = normalizeWhatsAppUrl(settings?.socialWhatsApp)
 
   return (
     <footer className="mt-auto bg-slate-900 text-slate-300">
@@ -36,9 +37,9 @@ export function PublicFooter({ settings }: { settings: PublicSettings | null }) 
             </div>
             <p className="text-sm text-slate-400">{settings?.tagline || 'Judicial Classes — New Law, New Way'}</p>
             <div className="mt-4 flex gap-3">
-              <a href={settings?.socialInstagram || '#'} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-slate-400 hover:text-pink-400 transition-colors"><Instagram className="w-5 h-5" /></a>
-              <a href={settings?.socialFacebook || '#'} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-slate-400 hover:text-blue-500 transition-colors"><Facebook className="w-5 h-5" /></a>
-              <a href={normalizeWhatsAppUrl(settings?.socialWhatsApp)} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-slate-400 hover:text-green-500 transition-colors"><WhatsAppIcon className="w-5 h-5" /></a>
+              {settings?.socialInstagram && <a href={settings.socialInstagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-slate-400 hover:text-pink-400 transition-colors"><Instagram className="w-5 h-5" /></a>}
+              {settings?.socialFacebook && <a href={settings.socialFacebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-slate-400 hover:text-blue-500 transition-colors"><Facebook className="w-5 h-5" /></a>}
+              {whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-slate-400 hover:text-green-500 transition-colors"><WhatsAppIcon className="w-5 h-5" /></a>}
             </div>
           </div>
 

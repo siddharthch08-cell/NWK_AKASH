@@ -68,7 +68,7 @@ export async function startAttempt(testId: string, userId: string) {
 
   try {
     const result = await db.$transaction(async tx => {
-      await tx.$executeRaw`UPDATE Test SET updatedAt = updatedAt WHERE id = ${testId}`
+      await tx.$executeRaw`UPDATE "Test" SET "updatedAt" = "updatedAt" WHERE "id" = ${testId}`
       const existing = await tx.testAttempt.findFirst({ where: { testId, userId, status: 'IN_PROGRESS', expiresAt: { gt: now } } })
       if (existing) return { action: 'resume' as const, attempt: existing }
       const attempts = await tx.testAttempt.findMany({ where: { testId, userId }, select: { attemptNumber: true } })
@@ -105,7 +105,7 @@ export async function saveAnswers(attemptId: string, userId: string, answers: An
     if (!current || (answer.revision ?? 0) >= (current.revision ?? 0)) uniqueAnswers.set(answer.questionId, answer)
   }
   return db.$transaction(async tx => {
-    await tx.$executeRaw`UPDATE TestAttempt SET score = score WHERE id = ${attemptId}`
+    await tx.$executeRaw`UPDATE "TestAttempt" SET "score" = "score" WHERE "id" = ${attemptId}`
     const attempt = await tx.testAttempt.findUnique({ where: { id: attemptId } })
     if (!attempt) throw new NotFoundError(attemptId, 'Attempt')
     if (attempt.status !== 'IN_PROGRESS') return { saved: false, alreadySubmitted: true }

@@ -21,7 +21,7 @@ describe('Phase 2 domain ownership and integrity contracts', () => {
   })
 
   it('serializes capacity checks and counts only genuinely new enrollment', () => {
-    expect(enrollment).toContain('UPDATE Batch SET capacity = capacity')
+    expect(enrollment).toContain('UPDATE "Batch" SET "capacity" = "capacity"')
     expect(enrollment).toContain('alreadyEnrolled')
     expect(enrollment).toContain('newIds.length > capacityRemaining')
     expect(enrollment).toContain('Student account is not approved')
@@ -60,7 +60,7 @@ describe('Phase 2 domain ownership and integrity contracts', () => {
     expect(schema).toContain('questionOrder')
     expect(schema).toContain('optionOrder')
     expect(attempt).toContain('buildOrders')
-    expect(attempt).toContain('UPDATE Test SET updatedAt = updatedAt')
+    expect(attempt).toContain('UPDATE "Test" SET "updatedAt" = "updatedAt"')
     expect(attempt).toContain("error.code === 'P2002'")
   })
 

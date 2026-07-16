@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useApp } from '@/stores/app-store'
+import { syncCurrentViewToBrowser, useApp, viewFromBrowserState } from '@/stores/app-store'
 import { PublicSite } from '@/components/edulearn/public/public-site'
 import { AdminApp } from '@/components/edulearn/admin/admin-app'
 import { StudentApp } from '@/components/edulearn/student/student-app'
@@ -15,6 +15,20 @@ export default function Home() {
   useEffect(() => {
     bootstrap()
   }, [bootstrap])
+
+  useEffect(() => {
+    if (loading) return
+    syncCurrentViewToBrowser(view)
+    const onPopState = (event: PopStateEvent) => {
+      const previousView = viewFromBrowserState(event.state)
+      useApp.setState((state) => ({
+        view: previousView || { name: 'public/home' },
+        history: state.history.slice(0, -1),
+      }))
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [loading, view])
 
   if (loading) {
     return <GlobalBoot />

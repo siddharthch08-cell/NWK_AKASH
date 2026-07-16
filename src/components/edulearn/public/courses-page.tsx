@@ -81,7 +81,7 @@ export function CoursesPage() {
                     <Button
                       size="sm"
                       className="w-full bg-blue-700 hover:bg-blue-800"
-                      onClick={() => setView({ name: user ? 'student/dashboard' : 'public/register' })}
+                      onClick={() => setView({ name: user?.role === 'STUDENT' ? 'student/dashboard' : user?.role === 'ADMIN' ? 'admin/dashboard' : 'public/register' })}
                     >
                       {user ? 'Go to Dashboard' : 'Register to Enroll'}
                     </Button>
