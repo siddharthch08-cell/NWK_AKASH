@@ -4,6 +4,7 @@ RUN npm install --global npm@11.12.1
 FROM base AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY prisma ./prisma
 RUN npm ci
 
 FROM base AS build
