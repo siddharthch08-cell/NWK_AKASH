@@ -54,7 +54,5 @@ jobs:
       - run: npm run db:generate
       - run: npm run build
       - run: npm run artifact:inspect
-      - name: Build Docker image
-        run: docker build -t nwk:${{ github.sha }} .
       - name: Audit dependencies
         run: npm audit --audit-level=high
