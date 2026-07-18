@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
     return unauthorized('Invalid email or password')
   }
 
+  if (user.role !== 'ADMIN' && user.role !== 'STUDENT') {
+    return unauthorized('Invalid email or password')
+  }
+
   // Optional role gating on the login form (admin vs student tab)
   if (role && user.role !== role) {
     return unauthorized('Invalid email or password')
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
       data: { failedLoginCount: failedCount, lockedUntil: lockUntil },
     })
     const ctx: AuthContext = {
-      user: { id: user.id, email: user.email, role: user.role as any, name: user.name, status: user.status, mustChangePassword: user.mustChangePassword },
+      user: { id: user.id, email: user.email, role: user.role, name: user.name, status: user.status, mustChangePassword: user.mustChangePassword },
       requestId: requestId(req),
       ip,
       userAgent: req.headers.get('user-agent') || 'unknown',
@@ -117,7 +121,7 @@ export async function POST(req: NextRequest) {
   })
 
   const ctx: AuthContext = {
-    user: { id: user.id, email: user.email, role: user.role as any, name: user.name, status: user.status, mustChangePassword: user.mustChangePassword },
+    user: { id: user.id, email: user.email, role: user.role, name: user.name, status: user.status, mustChangePassword: user.mustChangePassword },
     requestId: requestId(req),
     ip,
     userAgent: req.headers.get('user-agent') || 'unknown',

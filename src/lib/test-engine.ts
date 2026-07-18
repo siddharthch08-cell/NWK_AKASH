@@ -14,17 +14,19 @@ export async function finalizeAttempt(
   submissionType: 'MANUAL' | 'AUTO_TIMEOUT' | 'ADMIN_FINALIZED',
   userId: string
 ) {
-  return await db.$transaction(async (tx) => {
-    await tx.$executeRaw`UPDATE TestAttempt SET score = score WHERE id = ${attemptId}`
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`UPDATE "TestAttempt" SET "score" = "score" WHERE "id" = ${attemptId}`
     const attempt = await tx.testAttempt.findUnique({ where: { id: attemptId } })
     if (!attempt) throw new Error('Attempt not found')
     if (attempt.status === 'SUBMITTED') return attempt
     if (attempt.userId !== userId) throw new Error('Not your attempt')
 
+    const attemptedQuestionIds: string[] | null = attempt.questionOrder ? JSON.parse(attempt.questionOrder) : null
     const test = await tx.test.findUnique({
       where: { id: attempt.testId },
       include: {
         questions: {
+          where: attemptedQuestionIds ? { id: { in: attemptedQuestionIds } } : undefined,
           orderBy: { order: 'asc' },
           include: { options: true },
         },
@@ -34,41 +36,41 @@ export async function finalizeAttempt(
 
     const existingAnswers = await tx.attemptAnswer.findMany({ where: { attemptId } })
     const answerByQuestion = new Map(existingAnswers.map(answer => [answer.questionId, answer]))
-
     let score = 0
     let totalMarks = 0
+    const correctAnswerIdsByMarks = new Map<number, string[]>()
+
+    for (const question of test.questions) {
+      totalMarks += question.marks
+      const answer = answerByQuestion.get(question.id)
+      if (!answer?.selectedOptionId) continue
+      const selected = question.options.find(option => option.id === answer.selectedOptionId)
+      if (selected?.isCorrect !== true) continue
+      score += question.marks
+      const answerIds = correctAnswerIdsByMarks.get(question.marks) ?? []
+      answerIds.push(answer.id)
+      correctAnswerIdsByMarks.set(question.marks, answerIds)
+    }
+
+    if (existingAnswers.length > 0) {
+      await tx.attemptAnswer.updateMany({
+        where: { attemptId },
+        data: { isCorrect: false, marksAwarded: 0 },
+      })
+      for (const [marksAwarded, answerIds] of correctAnswerIdsByMarks) {
+        await tx.attemptAnswer.updateMany({
+          where: { attemptId, id: { in: answerIds } },
+          data: { isCorrect: true, marksAwarded },
+        })
+      }
+    }
+
     const now = new Date()
     const timeTakenSecs = Math.min(
       test.durationMins * 60,
       Math.max(0, Math.floor((now.getTime() - attempt.startedAt.getTime()) / 1000))
     )
-
-    const attemptedQuestionIds = attempt.questionOrder ? new Set<string>(JSON.parse(attempt.questionOrder)) : null
-    for (const q of test.questions.filter(question => !attemptedQuestionIds || attemptedQuestionIds.has(question.id))) {
-      totalMarks += q.marks
-      const ans = answerByQuestion.get(q.id)
-      if (!ans || !ans.selectedOptionId) {
-        if (ans) {
-          await tx.attemptAnswer.update({
-            where: { id: ans.id },
-            data: { isCorrect: false, marksAwarded: 0 },
-          })
-        }
-        continue
-      }
-      const selected = q.options.find((o) => o.id === ans.selectedOptionId)
-      const isCorrect = selected?.isCorrect === true
-      const marksAwarded = isCorrect ? q.marks : 0
-      score += marksAwarded
-      await tx.attemptAnswer.update({
-        where: { id: ans.id },
-        data: { isCorrect, marksAwarded },
-      })
-    }
-
     const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0
-    // Auto-publish result if test has showResultImmediately=true
-    const publishedAt = test.showResultImmediately ? now : null
     const finalized = await tx.testAttempt.update({
       where: { id: attemptId },
       data: {
@@ -79,7 +81,7 @@ export async function finalizeAttempt(
         percentage,
         timeTakenSecs,
         submissionType,
-        resultPublishedAt: publishedAt,
+        resultPublishedAt: test.showResultImmediately ? now : null,
       },
     })
     return finalized

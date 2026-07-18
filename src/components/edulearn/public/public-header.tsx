@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { Button } from '@/components/ui/button'
@@ -30,7 +31,7 @@ export function PublicHeader({ settings }: { settings: PublicSettings | null }) 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <button onClick={() => go({ name: 'public/home' })} className="flex items-center gap-2 group">
-            {settings?.logo ? <img src={settings.logo} alt="" className="w-9 h-9 rounded-xl object-contain" /> : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 to-teal-600 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 group-hover:shadow-lg transition-all"><GraduationCap className="w-5 h-5 text-white" /></div>}
+            {settings?.logo ? <ExternalImage src={settings.logo} alt="" className="w-9 h-9 rounded-xl object-contain" /> : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 to-teal-600 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 group-hover:shadow-lg transition-all"><GraduationCap className="w-5 h-5 text-white" /></div>}
             <div className="flex flex-col items-start leading-tight">
               <span className="font-bold text-slate-900 tracking-tight">
                 {settings?.instituteName || 'Naya Wallah Kanoon'}

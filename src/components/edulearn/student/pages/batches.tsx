@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useApp } from '@/stores/app-store'
 import { useApi } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,9 +10,20 @@ import { GraduationCap, BookOpen, FileQuestion, Calendar, Eye } from 'lucide-rea
 import { fmtDate, statusColor } from '@/lib/format'
 import { PageHeader } from '../../shared/admin-helpers'
 
+interface StudentBatchSummary {
+  id: string
+  name: string
+  description: string | null
+  thumbnail: string | null
+  status: string
+  startDate: string | null
+  courseCount: number
+  testCount: number
+}
+
 export function StudentBatches() {
   const { setView } = useApp()
-  const { data, loading } = useApi<{ batches: any[] }>('/api/student/batches')
+  const { data, loading } = useApi<{ batches: StudentBatchSummary[] }>('/api/student/batches')
 
   return (
     <div>
@@ -23,7 +35,7 @@ export function StudentBatches() {
           {data.batches.map((b) => (
             <Card key={b.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-video bg-slate-100 overflow-hidden">
-                {b.thumbnail ? <img src={b.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className="w-10 h-10 text-slate-400" /></div>}
+                {b.thumbnail ? <ExternalImage src={b.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className="w-10 h-10 text-slate-400" /></div>}
               </div>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 mb-2"><Badge variant="outline" className={statusColor(b.status)}>{b.status}</Badge></div>

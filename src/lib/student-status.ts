@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { requireAdmin, LOGINABLE_STATUSES } from '@/lib/auth'
 import { ok, unauthorized, notFound, fail, tooMany } from '@/lib/api-response'
@@ -38,14 +39,17 @@ export async function handleStatusChange(
     return fail('INVALID_STATE', `Cannot transition from ${user.status} to ${newStatus}`, 400)
   }
 
-  let body: any = {}
+  let body: { reason?: unknown } = {}
   try {
-    body = await req.json()
+    const parsedBody: unknown = await req.json()
+    if (parsedBody && typeof parsedBody === 'object' && 'reason' in parsedBody) {
+      body = { reason: parsedBody.reason }
+    }
   } catch {
     /* ignore - body is optional */
   }
 
-  const updateData: Record<string, unknown> = { status: newStatus }
+  const updateData: Prisma.UserUncheckedUpdateInput = { status: newStatus }
 
   // Handle rejection
   if (newStatus === 'REJECTED') {

@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useApp } from '@/stores/app-store'
 import { useApi } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,9 +10,30 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ArrowLeft, BookOpen, ChevronDown, PlayCircle, CheckCircle2 } from 'lucide-react'
 import { relativeTime } from '@/lib/format'
 
+interface StudentCourseDetailData {
+  id: string
+  title: string
+  description: string | null
+  thumbnail: string | null
+  chapters: Array<{
+    id: string
+    title: string
+    topics: Array<{
+      id: string
+      title: string
+      videos: Array<{
+        id: string
+        title: string
+        duration: number | null
+        progress: { percent: number; completed: boolean; lastWatchedAt: string } | null
+      }>
+    }>
+  }>
+}
+
 export function StudentCourseDetail({ id }: { id: string }) {
   const { setView } = useApp()
-  const { data, loading } = useApi<{ course: any }>(`/api/student/courses/${id}`)
+  const { data, loading } = useApi<{ course: StudentCourseDetailData }>(`/api/student/courses/${id}`)
 
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading…</div>
   const c = data.course
@@ -21,7 +43,7 @@ export function StudentCourseDetail({ id }: { id: string }) {
       <Button variant="ghost" size="sm" onClick={() => setView({ name: 'student/courses' })} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Back to My Courses</Button>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-full sm:w-48 h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
+        {c.thumbnail ? <ExternalImage src={c.thumbnail} alt="" className="w-full sm:w-48 h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{c.title}</h1>
           <p className="text-sm text-slate-600 mt-1">{c.description || 'No description'}</p>
@@ -33,7 +55,7 @@ export function StudentCourseDetail({ id }: { id: string }) {
         <Card><CardContent className="pt-6 text-center text-slate-500">No content published yet.</CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {c.chapters.map((ch: any) => (
+          {c.chapters.map((ch) => (
             <Collapsible key={ch.id}>
               <Card>
                 <CollapsibleTrigger asChild>
@@ -44,12 +66,12 @@ export function StudentCourseDetail({ id }: { id: string }) {
                 <CollapsibleContent>
                   <CardContent className="pt-0 border-t">
                     <div className="space-y-2 py-2">
-                      {ch.topics.map((t: any) => (
+                      {ch.topics.map((t) => (
                         <div key={t.id} className="border rounded-lg p-2">
                           <div className="text-sm font-medium mb-1">{t.title}</div>
                           <div className="space-y-1">
-                            {t.videos.map((v: any) => {
-                              const progress = v.progress?.[0]
+                            {t.videos.map((v) => {
+                              const progress = v.progress
                               const completed = progress?.completed
                               return (
                                 <button key={v.id} onClick={() => setView({ name: 'student/videos', id: v.id })} className="w-full flex items-center gap-2 p-2 rounded hover:bg-slate-50 text-left">

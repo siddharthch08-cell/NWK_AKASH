@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { ok, fromZodError, unauthorized, notFound, fail } from '@/lib/api-response'
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const existing = await db.video.findUnique({ where: { id } })
   if (!existing) return notFound('Video not found')
 
-  const data: Record<string, unknown> = {}
+  const data: Prisma.VideoUncheckedUpdateInput = {}
   if (parsed.data.title !== undefined) data.title = parsed.data.title
   if (parsed.data.description !== undefined) data.description = parsed.data.description || null
   if (parsed.data.duration !== undefined) data.duration = parsed.data.duration
@@ -59,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   if (parsed.data.thumbnail !== undefined) data.thumbnail = parsed.data.thumbnail || null
 
-  const updated = await db.video.update({ where: { id }, data: data as any })
+  const updated = await db.video.update({ where: { id }, data })
   return ok({ video: updated }, 'Video updated')
 }
 

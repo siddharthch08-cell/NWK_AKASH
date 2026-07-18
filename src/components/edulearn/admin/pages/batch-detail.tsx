@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api } from '@/lib/api-client'
@@ -39,7 +40,7 @@ export function AdminBatchDetail({ id }: { id: string }) {
     setLoading(true)
     api.get<{ batch: BatchDetail }>(`/api/admin/batches/${id}?page=${studentPage}&pageSize=20`).then((d) => setData(d.batch)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [id, studentPage])
+  useEffect(load, [id, studentPage, toastAction])
 
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading…</div>
 
@@ -77,7 +78,7 @@ export function AdminBatchDetail({ id }: { id: string }) {
       <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/batches' })} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Back to Batches</Button>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        {data.thumbnail ? <img src={data.thumbnail} alt="" className="w-full sm:w-48 h-32 sm:h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><GraduationCap className="w-10 h-10 text-slate-400" /></div>}
+        {data.thumbnail ? <ExternalImage src={data.thumbnail} alt="" className="w-full sm:w-48 h-32 sm:h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><GraduationCap className="w-10 h-10 text-slate-400" /></div>}
         <div className="flex-1">
           <div className="flex items-center gap-2"><h1 className="text-2xl font-bold">{data.name}</h1><Badge variant="outline" className={statusColor(data.status)}>{data.status}</Badge></div>
           <p className="text-sm text-slate-600 mt-1">{data.description || 'No description'}</p>
@@ -162,7 +163,7 @@ export function AdminBatchDetail({ id }: { id: string }) {
                   {data.courses.map((bc) => (
                     <div key={bc.course.id} className="flex items-center gap-3 p-3 rounded-lg border hover:shadow-sm transition-shadow group">
                       {bc.course.thumbnail ? (
-                        <img src={bc.course.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                        <ExternalImage src={bc.course.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                           <BookOpen className="w-5 h-5 text-slate-400" />
@@ -248,7 +249,7 @@ function AssignStudentsDialog({ batchId, open, onClose, onAssigned }: { batchId:
 
   useEffect(() => {
     if (open) {
-      api.get<{ items: any[] }>('/api/admin/students?pageSize=100').then((d) => setStudents(d.items)).catch(() => {})
+      api.get<{ items: { id: string; name: string; email: string; status: string }[] }>('/api/admin/students?pageSize=100').then((d) => setStudents(d.items)).catch(() => {})
       setSelected(new Set())
     }
   }, [open])
@@ -303,7 +304,7 @@ function AssignCoursesDialog({ batchId, existingCourseIds, open, onClose, onAssi
 
   useEffect(() => {
     if (open) {
-      api.get<{ items: any[] }>('/api/admin/courses?pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
+      api.get<{ items: { id: string; title: string; slug: string; status: string; thumbnail?: string | null }[] }>('/api/admin/courses?pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
       setSelected(new Set())
     }
   }, [open])
@@ -344,7 +345,7 @@ function AssignCoursesDialog({ batchId, existingCourseIds, open, onClose, onAssi
             filtered.map((c) => (
               <label key={c.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer">
                 <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggle(c.id)} />
-                {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-8 h-8 rounded object-cover" /> : <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center"><BookOpen className="w-4 h-4 text-slate-400" /></div>}
+                {c.thumbnail ? <ExternalImage src={c.thumbnail} alt="" className="w-8 h-8 rounded object-cover" /> : <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center"><BookOpen className="w-4 h-4 text-slate-400" /></div>}
                 <div className="flex-1"><div className="text-sm font-medium">{c.title}</div><div className="text-xs text-slate-500">{c.slug}</div></div>
                 <Badge variant="outline" className={statusColor(c.status)}>{c.status}</Badge>
               </label>

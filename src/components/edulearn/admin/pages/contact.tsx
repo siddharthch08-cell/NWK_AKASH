@@ -25,7 +25,7 @@ export function AdminContact() {
   const [totalPages, setTotalPages] = useState(1)
 
   const load = () => { setLoading(true); api.get<{ items: Message[]; totalPages: number }>(`/api/admin/contact?page=${page}&pageSize=20`).then((d) => { setData(d.items); setTotalPages(d.totalPages) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [page])
+  useEffect(load, [page, toastAction])
 
   const update = async (id: string, status: string, notes?: string) => {
     try { await api.patch(`/api/admin/contact/${id}`, { status, notes }); toast.success('Updated'); load() } catch (e) { toastAction.error(e) }

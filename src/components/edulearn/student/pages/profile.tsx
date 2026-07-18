@@ -14,23 +14,38 @@ import { Loader2, Save, KeyRound, LogOut, Calendar, GraduationCap } from 'lucide
 import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
 
+interface StudentProfileData {
+  id: string
+  email: string
+  name: string
+  phone: string | null
+  photo: string | null
+  status: string
+  createdAt: string
+  lastLoginAt: string | null
+  _count: { enrollments: number; testAttempts: number; videoProgress: number }
+  enrollments: Array<{ batch: { id: string; name: string; slug: string; status: string } }>
+}
+
+type UpdatedProfile = Pick<StudentProfileData, 'id' | 'email' | 'name' | 'phone' | 'photo' | 'status'>
+
 export function StudentProfile() {
   const { user, logout, setUser } = useApp()
   const toastAction = useToastAction()
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<StudentProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ name: '', phone: '', photo: '' })
   const [saving, setSaving] = useState(false)
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwSaving, setPwSaving] = useState(false)
 
-  const load = useCallback(() => { setLoading(true); api.get<{ user: any }>('/api/student/profile').then((d) => { setData(d.user); setForm({ name: d.user.name, phone: d.user.phone || '', photo: d.user.photo || '' }) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
+  const load = useCallback(() => { setLoading(true); api.get<{ user: StudentProfileData }>('/api/student/profile').then((d) => { setData(d.user); setForm({ name: d.user.name, phone: d.user.phone || '', photo: d.user.photo || '' }) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
   useEffect(() => { load() }, [load])
 
   const saveProfile = async () => {
     setSaving(true)
     try {
-      const res = await api.patch<{ user: any }>('/api/student/profile', form)
+      const res = await api.patch<{ user: UpdatedProfile }>('/api/student/profile', form)
       toast.success('Profile updated')
       // Merge updated user into shared store (don't reset view)
       if (user) {
@@ -103,7 +118,7 @@ export function StudentProfile() {
                 <CardContent>
                   {data.enrollments.length === 0 ? <div className="text-sm text-slate-500">Not enrolled in any batches.</div> : (
                     <div className="space-y-2">
-                      {data.enrollments.map((e: any) => (
+                      {data.enrollments.map((e) => (
                         <div key={e.batch.id} className="flex items-center justify-between p-2 rounded border">
                           <div className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-blue-600" /><div><div className="text-sm font-medium">{e.batch.name}</div><div className="text-xs text-slate-500">{e.batch.slug}</div></div></div>
                           <Badge variant="outline" className={statusColor(e.batch.status)}>{e.batch.status}</Badge>

@@ -5,9 +5,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, Pin } from 'lucide-react'
 import { fmtDateTime, relativeTime } from '@/lib/format'
+import type { Announcement } from '@/types'
+
+type StudentAnnouncement = Pick<Announcement, 'id' | 'title' | 'message' | 'priority' | 'pinned' | 'publishAt'>
 
 export function StudentAnnouncements() {
-  const { data, loading } = useApi<{ announcements: any[] }>('/api/student/announcements')
+  const { data, loading } = useApi<{ announcements: StudentAnnouncement[] }>('/api/student/announcements')
 
   return (
     <div>

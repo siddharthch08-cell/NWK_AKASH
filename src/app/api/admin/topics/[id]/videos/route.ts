@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       scheduledAt: parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : null,
       publishedAt,
       createdBy: ctx.user.id,
-    } as any,
+    },
   })
   await audit({ ctx, action: 'VIDEO_CREATED', entityType: 'VIDEO', entityId: video.id, after: { title: video.title, youtubeId } })
   return ok({ video }, 'Video created', undefined, 201)

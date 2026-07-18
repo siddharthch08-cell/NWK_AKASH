@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useApp } from '@/stores/app-store'
 import { useApi, PageHeader } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,9 +8,19 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { BookOpen, Eye } from 'lucide-react'
 
+interface StudentCourseSummary {
+  id: string
+  title: string
+  description: string | null
+  thumbnail: string | null
+  totalVideos: number
+  completedVideos: number
+  progressPct: number
+}
+
 export function StudentCourses() {
   const { setView } = useApp()
-  const { data, loading } = useApi<{ courses: any[] }>('/api/student/courses')
+  const { data, loading } = useApi<{ courses: StudentCourseSummary[] }>('/api/student/courses')
 
   return (
     <div>
@@ -21,7 +32,7 @@ export function StudentCourses() {
           {data.courses.map((c) => (
             <Card key={c.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-video bg-slate-100 overflow-hidden">
-                {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
+                {c.thumbnail ? <ExternalImage src={c.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
               </div>
               <CardContent className="pt-4">
                 <h3 className="font-semibold">{c.title}</h3>

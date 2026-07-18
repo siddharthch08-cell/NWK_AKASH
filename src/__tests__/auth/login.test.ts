@@ -48,81 +48,94 @@ describe('Login Security - Account Status Checks', () => {
   it.skipIf(!dbOk)('PENDING user should not be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'PENDING')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(dbUser!.status).toBe('PENDING')
+    expect(dbUser.status).toBe('PENDING')
   })
 
   it.skipIf(!dbOk)('REJECTED user should not be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'REJECTED')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(dbUser!.status).toBe('REJECTED')
+    expect(dbUser.status).toBe('REJECTED')
   })
 
   it.skipIf(!dbOk)('SUSPENDED user should not be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'SUSPENDED')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(dbUser!.status).toBe('SUSPENDED')
+    expect(dbUser.status).toBe('SUSPENDED')
   })
 
   it.skipIf(!dbOk)('BLOCKED user should not be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'BLOCKED')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(dbUser!.status).toBe('BLOCKED')
+    expect(dbUser.status).toBe('BLOCKED')
   })
 
   it.skipIf(!dbOk)('APPROVED user should be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'APPROVED')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(['APPROVED', 'ACTIVE']).toContain(dbUser!.status)
+    expect(['APPROVED', 'ACTIVE']).toContain(dbUser.status)
   })
 
   it.skipIf(!dbOk)('ACTIVE user should be able to log in', async () => {
     const user = testUsers.find((u) => u.status === 'ACTIVE')
     expect(user).toBeDefined()
+    if (!user) throw new Error('Expected login fixture user')
 
-    const dbUser = await db.user.findUnique({ where: { email: user!.email } })
+    const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
-    const valid = await bcrypt.compare('TestPass123', dbUser!.passwordHash)
+    if (!dbUser) throw new Error('Expected login fixture database user')
+    const valid = await bcrypt.compare('TestPass123', dbUser.passwordHash)
     expect(valid).toBe(true)
 
-    expect(['APPROVED', 'ACTIVE']).toContain(dbUser!.status)
+    expect(['APPROVED', 'ACTIVE']).toContain(dbUser.status)
   })
 
   it.skipIf(!dbOk)('wrong password should fail for any user', async () => {
     const user = testUsers[0]
     const dbUser = await db.user.findUnique({ where: { email: user.email } })
     expect(dbUser).toBeTruthy()
+    if (!dbUser) throw new Error('Expected seeded user to exist')
 
-    const valid = await bcrypt.compare('WrongPassword999', dbUser!.passwordHash)
+    const valid = await bcrypt.compare('WrongPassword999', dbUser.passwordHash)
     expect(valid).toBe(false)
   })
 

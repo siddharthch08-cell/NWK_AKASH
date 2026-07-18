@@ -1,13 +1,15 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
 import { syncCurrentViewToBrowser, useApp, viewFromBrowserState } from '@/stores/app-store'
-import { PublicSite } from '@/components/edulearn/public/public-site'
-import { AdminApp } from '@/components/edulearn/admin/admin-app'
-import { StudentApp } from '@/components/edulearn/student/student-app'
-import { AuthStatusScreens } from '@/components/edulearn/public/auth-status'
 import { GlobalBoot } from '@/components/edulearn/shared/global-boot'
-import { ForcedPasswordChange } from '@/components/edulearn/public/forced-password-change'
+
+const PublicSite = dynamic(() => import('@/components/edulearn/public/public-site').then((module) => module.PublicSite), { loading: () => <GlobalBoot /> })
+const AdminApp = dynamic(() => import('@/components/edulearn/admin/admin-app').then((module) => module.AdminApp), { loading: () => <GlobalBoot /> })
+const StudentApp = dynamic(() => import('@/components/edulearn/student/student-app').then((module) => module.StudentApp), { loading: () => <GlobalBoot /> })
+const AuthStatusScreens = dynamic(() => import('@/components/edulearn/public/auth-status').then((module) => module.AuthStatusScreens), { loading: () => <GlobalBoot /> })
+const ForcedPasswordChange = dynamic(() => import('@/components/edulearn/public/forced-password-change').then((module) => module.ForcedPasswordChange), { loading: () => <GlobalBoot /> })
 
 export default function Home() {
   const { user, loading, view, bootstrap } = useApp()
@@ -30,44 +32,33 @@ export default function Home() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [loading, view])
 
-  if (loading) {
-    return <GlobalBoot />
-  }
+  useEffect(() => {
+    if (loading) return
+    if (view.name.startsWith('admin/') && (!user || user.role !== 'ADMIN')) {
+      useApp.setState({ view: { name: 'public/login' } })
+      return
+    }
+    if (view.name.startsWith('student/')) {
+      if (!user || user.role !== 'STUDENT') {
+        useApp.setState({ view: { name: 'public/login' } })
+      } else if (user.status !== 'ACTIVE' && user.status !== 'APPROVED') {
+        useApp.setState({ view: { name: 'auth/pending' } })
+      }
+    }
+  }, [loading, user, view.name])
 
-  // Public views — always rendered inside the public site shell
-  if (view.name.startsWith('public/')) {
-    return <PublicSite />
-  }
-
-  // Auth status screens (pending/rejected/blocked/inactive) — rendered inside
-  // a minimal chrome with logout button
+  if (loading) return <GlobalBoot />
+  if (view.name.startsWith('public/')) return <PublicSite />
   if (view.name.startsWith('auth/')) {
-    if (view.name === 'auth/change-password') return <ForcedPasswordChange />
-    return <AuthStatusScreens />
+    return view.name === 'auth/change-password' ? <ForcedPasswordChange /> : <AuthStatusScreens />
   }
-
-  // Admin app
   if (view.name.startsWith('admin/')) {
-    if (!user || user.role !== 'ADMIN') {
-      // Force-redirect to login
-      useApp.setState({ view: { name: 'public/login' } })
-      return <PublicSite />
-    }
-    return <AdminApp />
+    return user?.role === 'ADMIN' ? <AdminApp /> : <GlobalBoot />
   }
-
-  // Student app
   if (view.name.startsWith('student/')) {
-    if (!user || user.role !== 'STUDENT') {
-      useApp.setState({ view: { name: 'public/login' } })
-      return <PublicSite />
-    }
-    if (user.status !== 'ACTIVE' && user.status !== 'APPROVED') {
-      useApp.setState({ view: { name: 'auth/pending' } })
-      return <AuthStatusScreens />
-    }
-    return <StudentApp />
+    return user?.role === 'STUDENT' && (user.status === 'ACTIVE' || user.status === 'APPROVED')
+      ? <StudentApp />
+      : <GlobalBoot />
   }
-
   return <PublicSite />
 }

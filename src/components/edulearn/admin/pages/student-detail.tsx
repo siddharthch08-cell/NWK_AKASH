@@ -38,9 +38,9 @@ export function AdminStudentDetail({ id }: { id: string }) {
       .catch((e) => toastAction.error(e))
       .finally(() => setLoading(false))
   }
-  useEffect(load, [id])
+  useEffect(load, [id, toastAction])
 
-  const action = async (type: 'approve' | 'reject' | 'block' | 'unblock' | 'activate' | 'deactivate', body?: any) => {
+  const action = async (type: 'approve' | 'reject' | 'block' | 'unblock' | 'activate' | 'deactivate', body?: { reason?: string }) => {
     try {
       await api.post(`/api/admin/students/${id}/${type}`, body || {})
       toastAction.success(`Student ${type}d`)

@@ -12,7 +12,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
   )
 }
 
-function normalizeWhatsAppUrl(val?: string): string | null {
+function normalizeWhatsAppUrl(val?: string | null): string | null {
   if (!val) return null
   const trimmed = val.trim()
   if (trimmed.startsWith('https://') || trimmed.startsWith('http://')) return trimmed

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { ok } from '@/lib/api-response'
+import { ok, PUBLIC_CACHE_HEADERS } from '@/lib/api-response'
 
 export async function GET(_req: NextRequest) {
   // Only show batches that are publicly previewable: ACTIVE or UPCOMING
@@ -28,6 +28,9 @@ export async function GET(_req: NextRequest) {
         _count: undefined,
       })),
     },
-    'Public batches'
+    'Public batches',
+    undefined,
+    200,
+    PUBLIC_CACHE_HEADERS,
   )
 }

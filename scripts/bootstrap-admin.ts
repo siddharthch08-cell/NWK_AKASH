@@ -3,10 +3,14 @@ import bcrypt from 'bcryptjs'
 
 const db = new PrismaClient()
 
+function writeLine(message: string) {
+  process.stdout.write(`${message}\n`)
+}
+
 async function createAdmin(email: string, password: string, name: string) {
   const existing = await db.user.findUnique({ where: { email } })
   if (existing) {
-    console.log(`Skipping ${email}: account already exists`)
+    writeLine(`Skipping ${email}: account already exists`)
     return false
   }
   await db.user.create({
@@ -20,7 +24,7 @@ async function createAdmin(email: string, password: string, name: string) {
       mustChangePassword: true,
     },
   })
-  console.log(`Admin created: ${email} (password change required at first login)`)
+  writeLine(`Admin created: ${email} (password change required at first login)`)
   return true
 }
 
@@ -57,7 +61,7 @@ async function main() {
     if (ok) created++
   }
 
-  console.log(`Bootstrap complete: ${created}/${emails.length} admin(s) created`)
+  writeLine(`Bootstrap complete: ${created}/${emails.length} admin(s) created`)
 }
 
 main().finally(() => db.$disconnect())

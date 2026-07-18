@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { BatchCourseService, ContentLifecycleService, EnrollmentService, MaterialService, StudentContentAccessPolicy, TestAttemptService, TestPublicationService } from '@/domain'
+import { BatchCourseService, ContentLifecycleService, EnrollmentService, MaterialService, ResultService, StudentContentAccessPolicy, TestAttemptService, TestPublicationService } from '@/domain'
 
 let dbOk = false
 
@@ -58,7 +58,7 @@ describe.sequential('Phase 2 admin and student workflow integration', () => {
     await expect(TestPublicationService.publishTest(invalidTestId, ctx)).rejects.toThrow('at least one question')
     const material = await MaterialService.createMaterial({ batchId: ids.batch, courseId: ids.course, chapterId: ids.chapter, topicId: ids.topic, title: 'Shared notes', platform: 'OTHER', externalUrl: 'https://example.com/notes.pdf', materialType: 'PDF', published: true }, ctx)
     materialId = material.id
-    await db.test.create({ data: { id: ids.test, title: 'Published test', durationMins: 30, maxAttempts: 2, maxQuestions: 10, status: 'DRAFT', createdBy: ids.admin, batches: { create: { batchId: ids.batch } }, questions: { create: { id: ids.question, text: 'Choose A', marks: 2, options: { create: [{ id: ids.correct, text: 'A', isCorrect: true }, { id: ids.wrong, text: 'B', isCorrect: false }] } } } } })
+    await db.test.create({ data: { id: ids.test, title: 'Published test', durationMins: 30, maxAttempts: 2, maxQuestions: 10, status: 'DRAFT', showResultImmediately: false, showAnswerKey: false, createdBy: ids.admin, batches: { create: { batchId: ids.batch } }, questions: { create: { id: ids.question, text: 'Choose A', marks: 2, options: { create: [{ id: ids.correct, text: 'A', isCorrect: true }, { id: ids.wrong, text: 'B', isCorrect: false }] } } } } })
     const published = await TestPublicationService.publishTest(ids.test, ctx)
     expect(published.status).toBe('PUBLISHED')
     expect((await StudentContentAccessPolicy.canAccessCourse(ids.student, ids.course)).allowed).toBe(true)
@@ -75,6 +75,26 @@ describe.sequential('Phase 2 admin and student workflow integration', () => {
     await TestAttemptService.submitAttempt(manual.attempt.id, ids.student, [], 'MANUAL')
     const manualResult = await db.testAttempt.findUniqueOrThrow({ where: { id: manual.attempt.id } })
     expect(manualResult.score).toBe(2)
+
+    const repeated = await TestAttemptService.submitAttempt(manual.attempt.id, ids.student, [], 'MANUAL')
+    expect('alreadySubmitted' in repeated && repeated.alreadySubmitted).toBe(true)
+    await expect(TestAttemptService.submitAttempt(manual.attempt.id, ids.outsider, [], 'MANUAL')).rejects.toThrow('not your attempt')
+
+    const hidden = await ResultService.getStudentResult(manual.attempt.id, ids.student)
+    expect(hidden.hidden).toBe(true)
+    expect(hidden.questions).toEqual([])
+    expect(hidden.attempt).not.toHaveProperty('score')
+
+    await db.testAttempt.update({ where: { id: manual.attempt.id }, data: { resultPublishedAt: new Date() } })
+    const publishedWithoutKey = await ResultService.getStudentResult(manual.attempt.id, ids.student)
+    expect(publishedWithoutKey.hidden).toBe(false)
+    expect(publishedWithoutKey.questions[0]).not.toHaveProperty('correctOptionId')
+    expect(publishedWithoutKey.questions[0]).not.toHaveProperty('options')
+
+    await db.test.update({ where: { id: ids.test }, data: { showAnswerKey: true } })
+    const publishedWithKey = await ResultService.getStudentResult(manual.attempt.id, ids.student)
+    expect(publishedWithKey.questions[0]).toHaveProperty('correctOptionId', ids.correct)
+    expect(publishedWithKey.questions[0]).toHaveProperty('options')
 
     const timeout = await TestAttemptService.startAttempt(ids.test, ids.student)
     await TestAttemptService.saveAnswers(timeout.attempt.id, ids.student, [{ questionId: ids.question, selectedOptionId: ids.correct, revision: 1 }])

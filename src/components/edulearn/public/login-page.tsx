@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { LogIn, Loader2, GraduationCap, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import type { PublicSettings } from './public-site'
+import type { CurrentUser } from '@/types'
 
 const schema = z.object({
   email: z.string().email('Invalid email'),
@@ -36,7 +37,7 @@ export function LoginPage({ settings }: { settings: PublicSettings | null }) {
   const onSubmit = async (data: FormData) => {
     setSubmitting(true)
     try {
-      const res = await api.post<{ user: any; accessToken: string }>('/api/auth/login', { ...data, role })
+      const res = await api.post<{ user: CurrentUser; accessToken: string }>('/api/auth/login', { ...data, role })
       setToken(res.accessToken)
       setUser(res.user)
       toast.success('Login successful')

@@ -12,6 +12,7 @@
  *  4. Lower total time
  */
 
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import type { LeaderboardEntry } from './types'
 
@@ -29,7 +30,7 @@ export async function computeLeaderboard(options: LeaderboardOptions = {}): Prom
   const { batchId, testId, limit = 500 } = options
 
   // Build filter
-  const where: any = {
+  const where: Prisma.TestAttemptWhereInput = {
     status: 'SUBMITTED',
     resultPublishedAt: { not: null },
   }

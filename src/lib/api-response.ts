@@ -9,10 +9,20 @@ export interface ApiMeta {
   [key: string]: unknown
 }
 
-export function ok<T>(data: T, message = 'Operation completed successfully', meta?: ApiMeta, status = 200) {
+export const PUBLIC_CACHE_HEADERS = {
+  'Cache-Control': 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
+} as const
+
+export function ok<T>(
+  data: T,
+  message = 'Operation completed successfully',
+  meta?: ApiMeta,
+  status = 200,
+  headers?: Record<string, string>,
+) {
   return NextResponse.json(
     { success: true, data, message, meta: meta || {} },
-    { status }
+    { status, headers: { 'Cache-Control': 'private, no-store', ...headers } }
   )
 }
 

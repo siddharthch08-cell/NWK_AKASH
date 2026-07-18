@@ -31,7 +31,7 @@ export function AdminAudit() {
       .then((d) => { setData(d.items); setTotal(d.total); setTotalPages(d.totalPages) })
       .catch((e) => toastAction.error(e))
       .finally(() => setLoading(false))
-  }, [page, search])
+  }, [page, search, toastAction])
 
   return (
     <div>

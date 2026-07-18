@@ -9,14 +9,29 @@ import { Trophy, Eye, Award } from 'lucide-react'
 import { fmtDateTime } from '@/lib/format'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
+interface ResultListItem {
+  id: string
+  attemptNumber: number
+  submittedAt: string | null
+  resultPublished: boolean
+  percentage: number | null
+  test: { id: string; title: string }
+}
+
+interface ResultsData {
+  attempts: ResultListItem[]
+  stats: { total: number; published: number; avgScore: number; bestScore: number }
+}
+
 export function StudentResults() {
   const { setView } = useApp()
-  const { data, loading } = useApi<{ attempts: any[]; stats: { total: number; avgScore: number; bestScore: number } }>('/api/student/results')
+  const { data, loading } = useApi<ResultsData>('/api/student/results')
 
   if (loading) return <div className="text-center py-12 text-slate-500">Loading…</div>
   if (!data) return null
 
-  const chartData = [...data.attempts].reverse().map((a, i) => ({ attempt: `#${i + 1}`, percentage: a.percentage, title: a.test.title.slice(0, 20) }))
+  const publishedAttempts = data.attempts.filter((attempt): attempt is ResultListItem & { percentage: number } => attempt.resultPublished && attempt.percentage !== null)
+  const chartData = [...publishedAttempts].reverse().map((a, i) => ({ attempt: `#${i + 1}`, percentage: a.percentage, title: a.test.title.slice(0, 20) }))
 
   return (
     <div>
@@ -44,7 +59,11 @@ export function StudentResults() {
                     <Award className="w-5 h-5 text-amber-600 shrink-0" />
                     <div className="min-w-0"><div className="font-medium text-sm truncate">{a.test.title}</div><div className="text-xs text-slate-500">Attempt #{a.attemptNumber} · {fmtDateTime(a.submittedAt)}</div></div>
                   </div>
-                  <div className="flex items-center gap-2"><Badge variant="outline" className={a.percentage >= 50 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}>{a.percentage}%</Badge><Button variant="ghost" size="sm" onClick={() => setView({ name: 'student/results/detail', id: a.id })}><Eye className="w-4 h-4" /></Button></div>
+                  <div className="flex items-center gap-2">
+                    {a.resultPublished && a.percentage !== null
+                      ? <><Badge variant="outline" className={a.percentage >= 50 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}>{a.percentage}%</Badge><Button variant="ghost" size="sm" onClick={() => setView({ name: 'student/results/detail', id: a.id })} aria-label={`View ${a.test.title} result`}><Eye className="w-4 h-4" /></Button></>
+                      : <Badge variant="outline" className="bg-blue-50 text-blue-700">Awaiting publication</Badge>}
+                  </div>
                 </div>
               ))}
             </div>

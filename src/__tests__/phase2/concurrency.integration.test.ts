@@ -82,6 +82,19 @@ describe.sequential('Phase 2 database concurrency integration', () => {
     expect(answer?.selectedOptionId).toBe(optionIds[1])
     expect(answer?.revision).toBe(2)
     expect(await db.attemptAnswer.count({ where: { attemptId, questionId } })).toBe(1)
+
+    await Promise.all([
+      TestAttemptService.saveAnswers(attemptId, studentIds[0], [{ questionId, selectedOptionId: optionIds[1], revision: 2 }]),
+      TestAttemptService.submitAttempt(attemptId, studentIds[0], [{ questionId, selectedOptionId: optionIds[0], revision: 3 }], 'MANUAL'),
+    ])
+    await Promise.all([
+      TestAttemptService.submitAttempt(attemptId, studentIds[0], [], 'MANUAL'),
+      TestAttemptService.submitAttempt(attemptId, studentIds[0], [], 'MANUAL'),
+    ])
+    const submitted = await db.testAttempt.findUniqueOrThrow({ where: { id: attemptId } })
+    expect(submitted.status).toBe('SUBMITTED')
+    expect(submitted.score).toBe(1)
+    expect(await db.testAttempt.count({ where: { id: attemptId, status: 'SUBMITTED' } })).toBe(1)
   }, 60_000)
 
   it.skipIf(!dbOk)('returns navigable enrollment pages and the actual total beyond 100 students', async () => {

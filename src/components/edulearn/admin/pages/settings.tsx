@@ -11,21 +11,27 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Save } from 'lucide-react'
 import { toast } from 'sonner'
+import type { InstituteSetting } from '@prisma/client'
+
+type SettingsData = Omit<InstituteSetting, 'updatedAt'> & { updatedAt: string }
 
 export function AdminSettings() {
   const toastAction = useToastAction()
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<SettingsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const load = () => { setLoading(true); api.get<{ settings: any }>('/api/admin/settings').then((d) => setData(d.settings)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [])
+  const load = () => { setLoading(true); api.get<{ settings: SettingsData }>('/api/admin/settings').then((d) => setData(d.settings)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
+  useEffect(load, [toastAction])
 
   const save = async () => {
+    if (!data) return
     setSaving(true)
     try { await api.patch('/api/admin/settings', data); toast.success('Settings saved') } catch (e) { toastAction.error(e) } finally { setSaving(false) }
   }
-  const set = (k: string, v: any) => setData({ ...data, [k]: v })
+  const set = <K extends keyof SettingsData>(key: K, value: SettingsData[K]) => {
+    setData((current) => current ? { ...current, [key]: value } : current)
+  }
 
   if (loading || !data) return <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></div>
 

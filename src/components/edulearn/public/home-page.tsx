@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api, ApiError } from '@/lib/api-client'
@@ -178,7 +179,7 @@ export function HomePage({
             <div className="relative block animate-fade-in">
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20" aria-roledescription="carousel" aria-label="Naya Wallah Kanoon highlights">
                 {carouselImages.map((image, index) => (
-                  <img
+                  <ExternalImage
                     key={image}
                     src={image}
                     alt={index === 0 && settings?.heroImage ? 'Naya Wallah Kanoon classroom' : index === 1 ? 'Legal education and judiciary preparation' : 'Focused law study and note-taking'}

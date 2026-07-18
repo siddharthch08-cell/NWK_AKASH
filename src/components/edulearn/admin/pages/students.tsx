@@ -48,11 +48,11 @@ export function AdminStudents() {
       .then((d) => { setData(d); setSelected(new Set()) })
       .catch((e) => toastAction.error(e, 'Failed to load students'))
       .finally(() => setLoading(false))
-  }, [page, search, status])
+  }, [page, search, status, toastAction])
 
   const debouncedSearch = debounce((v: string) => { setSearch(v); setPage(1) }, 400)
 
-  const action = async (student: Student, type: 'approve' | 'reject' | 'block' | 'unblock' | 'activate' | 'deactivate', body?: any) => {
+  const action = async (student: Student, type: 'approve' | 'reject' | 'block' | 'unblock' | 'activate' | 'deactivate', body?: { reason?: string }) => {
     try {
       await api.post(`/api/admin/students/${student.id}/${type}`, body || {})
       toastAction.success(`Student ${type}d successfully`)
@@ -272,12 +272,12 @@ function RejectDialog({ student, onClose, onConfirm }: { student: Student | null
   )
 }
 
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-  let t: any
-  return ((...args: any[]) => {
-    clearTimeout(t)
-    t = setTimeout(() => fn(...args), delay)
-  }) as T
+function debounce<TArgs extends unknown[]>(fn: (...args: TArgs) => void, delay: number): (...args: TArgs) => void {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  return (...args: TArgs) => {
+    if (timeout !== undefined) clearTimeout(timeout)
+    timeout = setTimeout(() => fn(...args), delay)
+  }
 }
 
 async function fetchWithToken(url: string) {

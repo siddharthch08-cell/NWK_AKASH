@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api } from '@/lib/api-client'
@@ -24,6 +25,7 @@ interface Course {
   category?: string | null; status: string; chapterCount: number; batchCount: number; createdAt: string
 }
 interface ListResp { items: Course[]; page: number; pageSize: number; total: number; totalPages: number }
+interface AssignableBatch { id: string; name: string; slug: string; description?: string | null; enrolledCount: number }
 
 export function AdminCourses() {
   const { setView } = useApp()
@@ -43,7 +45,7 @@ export function AdminCourses() {
     if (statusFilter !== 'ALL') params.set('status', statusFilter)
     api.get<ListResp>(`/api/admin/courses?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [page, search, statusFilter])
+  useEffect(load, [page, search, statusFilter, toastAction])
 
   const deleteCourse = async (id: string, title: string) => {
     if (!confirm(`Archive course "${title}"?\n\nThis will hide it from students but content will be preserved.`)) return
@@ -79,7 +81,7 @@ export function AdminCourses() {
                 {data.items.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell><button onClick={() => setView({ name: 'admin/courses/detail', id: c.id })} className="flex items-center gap-2 hover:underline">
-                      {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-9 h-9 rounded object-cover" /> : <div className="w-9 h-9 rounded bg-slate-100 flex items-center justify-center"><BookOpen className="w-4 h-4 text-slate-400" /></div>}
+                      {c.thumbnail ? <ExternalImage src={c.thumbnail} alt="" className="w-9 h-9 rounded object-cover" /> : <div className="w-9 h-9 rounded bg-slate-100 flex items-center justify-center"><BookOpen className="w-4 h-4 text-slate-400" /></div>}
                       <div><div className="font-medium">{c.title}</div><div className="text-xs text-slate-500">{c.slug}</div></div>
                     </button></TableCell>
                     <TableCell><Badge variant="outline" className={statusColor(c.status)}>{c.status}</Badge></TableCell>
@@ -122,13 +124,13 @@ function CreateCourseDialog({ open, onClose, onCreated }: { open: boolean; onClo
   const toastAction = useToastAction()
   const [form, setForm] = useState({ title: '', slug: '', description: '', thumbnail: '', category: '', status: 'PUBLISHED' })
   const [saving, setSaving] = useState(false)
-  const [activeBatches, setActiveBatches] = useState<any[]>([])
+  const [activeBatches, setActiveBatches] = useState<AssignableBatch[]>([])
   const [selectedBatches, setSelectedBatches] = useState<Set<string>>(new Set())
 
   // Load ACTIVE batches when dialog opens
   useEffect(() => {
     if (open) {
-      api.get<{ items: any[] }>('/api/admin/batches?status=ACTIVE&pageSize=100')
+      api.get<{ items: AssignableBatch[] }>('/api/admin/batches?status=ACTIVE&pageSize=100')
         .then((d) => setActiveBatches(d.items))
         .catch(() => {})
       setSelectedBatches(new Set())

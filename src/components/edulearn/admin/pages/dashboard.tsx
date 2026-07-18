@@ -9,25 +9,29 @@ import { Users, UserCheck, Clock, Ban, GraduationCap, BookOpen, Video, FileQuest
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { fmtDateTime, relativeTime, statusColor } from '@/lib/format'
 
-interface DashboardData {
+interface DashboardSummaryData {
   cards: {
     totalStudents: number; pendingStudents: number; approvedStudents: number; activeStudents: number;
     inactiveStudents: number; blockedStudents: number; rejectedStudents: number;
     totalBatches: number; activeBatches: number; totalCourses: number; totalVideos: number;
     totalTests: number; testsAttempted: number; averageScore: number; totalWatchTimeSecs: number;
   }
+  recentActivity: { id: string; action: string; entityType: string | null; entityId: string | null; actorRole: string | null; timestamp: string }[]
+  recentRegistrations: { id: string; name: string; email: string; status: string; createdAt: string }[]
+}
+
+interface DashboardAnalyticsData {
   studentGrowth: { label: string; registered: number; approved: number }[]
   batchEnrollment: { name: string; enrolled: number; status: string }[]
   topVideos: { id: string; title: string; viewers: number; avgCompletion: number; completed: number }[]
-  recentActivity: { id: string; action: string; entityType: string; entityId: string; actorRole: string; timestamp: string }[]
-  recentRegistrations: { id: string; name: string; email: string; status: string; createdAt: string }[]
 }
 
 export function AdminDashboard() {
   const { setView } = useApp()
-  const { data, loading } = useApi<DashboardData>('/api/admin/dashboard')
+  const { data: summary, loading } = useApi<DashboardSummaryData>('/api/admin/dashboard')
+  const { data: analytics, loading: analyticsLoading } = useApi<DashboardAnalyticsData>('/api/admin/analytics')
 
-  if (loading || !data) {
+  if (loading || !summary) {
     return (
       <div>
         <PageHeader title="Dashboard" subtitle="Loading analytics…" />
@@ -38,7 +42,10 @@ export function AdminDashboard() {
     )
   }
 
-  const c = data.cards
+  const c = summary.cards
+  const studentGrowth = analytics?.studentGrowth ?? []
+  const batchEnrollment = analytics?.batchEnrollment ?? []
+  const topVideos = analytics?.topVideos ?? []
   const statusPie = [
     { name: 'Active', value: c.activeStudents, color: '#10b981' },
     { name: 'Approved', value: c.approvedStudents, color: '#3b82f6' },
@@ -86,7 +93,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data.studentGrowth}>
+              <BarChart data={studentGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -105,7 +112,7 @@ export function AdminDashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={statusPie} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={(e: any) => `${e.name}: ${e.value}`}>
+                <Pie data={statusPie} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={(e) => `${e.name}: ${e.value}`}>
                   {statusPie.map((s, i) => <Cell key={i} fill={s.color} />)}
                 </Pie>
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -122,11 +129,13 @@ export function AdminDashboard() {
             <CardTitle className="text-base">Batch Enrollment</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.batchEnrollment.length === 0 ? (
+            {analyticsLoading ? (
+              <div className="text-center text-sm text-slate-500 py-8">Loading analytics…</div>
+            ) : batchEnrollment.length === 0 ? (
               <div className="text-center text-sm text-slate-500 py-8">No batches yet</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={data.batchEnrollment} layout="vertical">
+                <BarChart data={batchEnrollment} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                   <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
@@ -144,11 +153,13 @@ export function AdminDashboard() {
             <CardTitle className="text-base">Most Watched Videos</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.topVideos.length === 0 ? (
+            {analyticsLoading ? (
+              <div className="text-center text-sm text-slate-500 py-8">Loading analytics…</div>
+            ) : topVideos.length === 0 ? (
               <div className="text-center text-sm text-slate-500 py-8">No video engagement yet</div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto scroll-thin">
-                {data.topVideos.map((v, i) => (
+                {topVideos.map((v, i) => (
                   <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
                     <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">{i + 1}</div>
                     <div className="flex-1 min-w-0">
@@ -170,11 +181,11 @@ export function AdminDashboard() {
             <CardTitle className="text-base">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.recentActivity.length === 0 ? (
+            {summary.recentActivity.length === 0 ? (
               <div className="text-center text-sm text-slate-500 py-8">No recent activity</div>
             ) : (
               <div className="space-y-2 max-h-72 overflow-y-auto scroll-thin">
-                {data.recentActivity.map((a) => (
+                {summary.recentActivity.map((a) => (
                   <div key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 text-sm">
                     <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -195,11 +206,11 @@ export function AdminDashboard() {
             <CardTitle className="text-base">Recent Registrations</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.recentRegistrations.length === 0 ? (
+            {summary.recentRegistrations.length === 0 ? (
               <div className="text-center text-sm text-slate-500 py-8">No registrations yet</div>
             ) : (
               <div className="space-y-2 max-h-72 overflow-y-auto scroll-thin">
-                {data.recentRegistrations.map((s) => (
+                {summary.recentRegistrations.map((s) => (
                   <button key={s.id} onClick={() => setView({ name: 'admin/students/detail', id: s.id })} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 text-left">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white font-semibold text-xs">
                       {s.name.charAt(0)}

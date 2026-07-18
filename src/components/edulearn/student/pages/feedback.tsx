@@ -13,15 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Star, MessageSquare, Loader2, Send } from 'lucide-react'
 import { fmtDateTime, statusColor } from '@/lib/format'
 import { toast } from 'sonner'
+import type { Feedback } from '@/types'
+
+type StudentFeedbackItem = Pick<Feedback, 'id' | 'category' | 'subject' | 'message' | 'rating' | 'status' | 'createdAt'>
 
 export function StudentFeedback() {
   const toastAction = useToastAction()
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<StudentFeedbackItem[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ category: 'GENERAL', subject: '', message: '', rating: 0 })
 
-  const load = useCallback(() => { setLoading(true); api.get<{ items: any[] }>('/api/student/feedback?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
+  const load = useCallback(() => { setLoading(true); api.get<{ items: StudentFeedbackItem[] }>('/api/student/feedback?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }, [toastAction])
   useEffect(() => { load() }, [load])
 
   const submit = async () => {
@@ -51,7 +54,7 @@ export function StudentFeedback() {
               <div className="space-y-2 max-h-96 overflow-y-auto scroll-thin">
                 {data.map((f) => (
                   <div key={f.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center gap-2 flex-wrap"><Badge variant="outline" className="text-xs">{f.category}</Badge><Badge variant="outline" className={statusColor(f.status)}>{f.status}</Badge>{f.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3 h-3 ${i < f.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}</div>
+                    <div className="flex items-center gap-2 flex-wrap"><Badge variant="outline" className="text-xs">{f.category}</Badge><Badge variant="outline" className={statusColor(f.status)}>{f.status}</Badge>{f.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3 h-3 ${i < (f.rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}</div>
                     <div className="font-medium text-sm mt-1">{f.subject}</div>
                     <div className="text-xs text-slate-600 mt-1 line-clamp-2">{f.message}</div>
                     <div className="text-xs text-slate-400 mt-1">{fmtDateTime(f.createdAt)}</div>

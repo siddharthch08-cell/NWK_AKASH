@@ -22,6 +22,7 @@ interface StartResp {
 }
 
 interface SubmitResp {
+  alreadySubmitted?: boolean
   attempt: { id: string; attemptNumber: number; score: number; totalMarks: number; percentage: number; timeTakenSecs: number; submissionType: string; submittedAt: string; passed: boolean | null }
   test: { id: string; title: string; showAnswerKey: boolean; showResultImmediately: boolean; passingPct?: number | null }
   questions: { id: string; text: string; marks: number; selectedOptionId: string | null; answered: boolean; isCorrect?: boolean; marksAwarded?: number; explanation?: string | null; correctOptionId?: string | null; options?: { id: string; text: string; isCorrect?: boolean }[] }[]
@@ -41,6 +42,7 @@ export function StudentTakeTest({ id }: { id: string }) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'failed'>('saved')
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const autosaveRef = useRef<NodeJS.Timeout | null>(null)
+  const inFlightAutosaveRef = useRef<Promise<boolean> | null>(null)
   const answersRef = useRef<Record<string, string | null>>({})
   const submittingRef = useRef(false)
   const answerRevisionRef = useRef<Record<string, number>>({})
@@ -75,14 +77,21 @@ export function StudentTakeTest({ id }: { id: string }) {
     const currentData = dataRef.current
     if (!currentData || submittingRef.current) return
     submittingRef.current = true
+    if (autosaveRef.current) {
+      clearTimeout(autosaveRef.current)
+      autosaveRef.current = null
+    }
+    const answerSnapshot = { ...answersRef.current }
+    const revisionSnapshot = { ...answerRevisionRef.current }
     setSubmitting(true)
     setConfirmSubmit(false)
     try {
-      const answersArr = Object.entries(answersRef.current).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: answerRevisionRef.current[questionId] || 0 }))
+      await inFlightAutosaveRef.current
+      const answersArr = Object.entries(answerSnapshot).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: revisionSnapshot[questionId] || 0 }))
       const res = await api.post<SubmitResp>(`/api/student/attempts/${currentData.attempt.id}`, { answers: answersArr, submissionType, finalize: true })
       setResult(res)
       resultRef.current = res
-      toast.success(submissionType === 'AUTO_TIMEOUT' ? 'Time expired. Test auto-submitted.' : 'Test submitted successfully!')
+      toast.success(res.alreadySubmitted ? 'Test was already submitted.' : submissionType === 'AUTO_TIMEOUT' ? 'Time expired. Test auto-submitted.' : 'Test submitted successfully!')
     } catch (e) {
       submittingRef.current = false
       if (e instanceof ApiError) toast.error(e.message)
@@ -92,25 +101,39 @@ export function StudentTakeTest({ id }: { id: string }) {
 
   const saveDraft = useCallback(async (showToast = true) => {
     const currentData = dataRef.current
-    if (!currentData) return false
+    if (!currentData || submittingRef.current) return false
+    const answerSnapshot = { ...answersRef.current }
+    const revisionSnapshot = { ...answerRevisionRef.current }
     setSaveStatus('saving')
-    try {
-      const answersArr = Object.entries(answersRef.current).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: answerRevisionRef.current[questionId] || 0 }))
-      await api.post(`/api/student/attempts/${currentData.attempt.id}`, { answers: answersArr, submissionType: 'MANUAL', finalize: false })
-      setSaveStatus('saved')
-      if (showToast) toast.success('Answers saved')
-      return true
-    } catch (e) {
-      setSaveStatus('failed')
-      if (showToast) {
-        if (e instanceof ApiError) toast.error(e.message)
-        else toast.error('Save failed')
+    const previousSave = inFlightAutosaveRef.current
+    const savePromise = (async () => {
+      if (previousSave) await previousSave
+      if (submittingRef.current) return false
+      try {
+        const answersArr = Object.entries(answerSnapshot).map(([questionId, selectedOptionId]) => ({ questionId, selectedOptionId: selectedOptionId || null, revision: revisionSnapshot[questionId] || 0 }))
+        await api.post(`/api/student/attempts/${currentData.attempt.id}`, { answers: answersArr, submissionType: 'MANUAL', finalize: false })
+        setSaveStatus('saved')
+        if (showToast) toast.success('Answers saved')
+        return true
+      } catch (e) {
+        setSaveStatus('failed')
+        if (showToast) {
+          if (e instanceof ApiError) toast.error(e.message)
+          else toast.error('Save failed')
+        }
+        return false
       }
-      return false
+    })()
+    inFlightAutosaveRef.current = savePromise
+    try {
+      return await savePromise
+    } finally {
+      if (inFlightAutosaveRef.current === savePromise) inFlightAutosaveRef.current = null
     }
   }, [])
 
   const selectAnswer = (questionId: string, optionId: string) => {
+    if (submittingRef.current) return
     answerRevisionRef.current[questionId] = (answerRevisionRef.current[questionId] || 0) + 1
     const next = { ...answersRef.current, [questionId]: optionId }
     answersRef.current = next
@@ -123,9 +146,7 @@ export function StudentTakeTest({ id }: { id: string }) {
     if (autosaveRef.current) clearTimeout(autosaveRef.current)
     autosaveRef.current = setTimeout(() => { void saveDraft(false) }, 300)
     return () => { if (autosaveRef.current) clearTimeout(autosaveRef.current) }
-    // saveDraft and saveStatus are stable (useCallback with [] / state); answers triggers re-run
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers, data, result, saveStatus])
+  }, [answers, data, result, saveDraft, saveStatus])
 
   const exitTest = useCallback(async () => {
     if (!dataRef.current) return
@@ -153,9 +174,7 @@ export function StudentTakeTest({ id }: { id: string }) {
       })
     }, 1000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-    // submit and saveDraft are stable useCallback refs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, result])
+  }, [data, result, saveDraft, submit])
 
   // Warn before leaving
   useEffect(() => {
@@ -229,7 +248,7 @@ export function StudentTakeTest({ id }: { id: string }) {
                 <div className="text-xs text-slate-400 mt-0.5">{q.marks} mark(s)</div>
               </div>
             </div>
-            <RadioGroup value={answers[q.id] || ''} onValueChange={(v) => selectAnswer(q.id, v)}>
+            <RadioGroup value={answers[q.id] || ''} onValueChange={(v) => selectAnswer(q.id, v)} disabled={submitting}>
               <div className="space-y-2">
                 {q.options.map((o, idx) => (
                   <label key={o.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-slate-50 ${answers[q.id] === o.id ? 'border-blue-500 bg-blue-50' : ''}`}>

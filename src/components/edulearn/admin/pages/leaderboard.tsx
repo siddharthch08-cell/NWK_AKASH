@@ -7,18 +7,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Trophy, Loader2 } from 'lucide-react'
+import type { LeaderboardEntry } from '@/domain/types'
 
 export function AdminLeaderboard() {
   const toastAction = useToastAction()
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get<{ leaderboard: any[] }>('/api/admin/leaderboard')
+    api.get<{ leaderboard: LeaderboardEntry[] }>('/api/admin/leaderboard')
       .then((d) => setData(d.leaderboard))
       .catch((e) => toastAction.error(e))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toastAction])
 
   return (
     <div>

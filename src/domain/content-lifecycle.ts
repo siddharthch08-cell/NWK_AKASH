@@ -27,7 +27,7 @@ export async function archiveChapter(
 
   const updated = await db.chapter.update({
     where: { id: chapterId },
-    data: { archivedAt: new Date() } as any,
+    data: { archivedAt: new Date() },
   })
 
   await audit({
@@ -50,7 +50,7 @@ export async function restoreChapter(
 
   const updated = await db.chapter.update({
     where: { id: chapterId },
-    data: { archivedAt: null } as any,
+    data: { archivedAt: null },
   })
 
   await audit({
@@ -107,7 +107,7 @@ export async function archiveTopic(
 
   const updated = await db.topic.update({
     where: { id: topicId },
-    data: { archivedAt: new Date() } as any,
+    data: { archivedAt: new Date() },
   })
 
   await audit({
@@ -131,7 +131,7 @@ export async function restoreTopic(
 
   const updated = await db.topic.update({
     where: { id: topicId },
-    data: { archivedAt: null } as any,
+    data: { archivedAt: null },
   })
 
   await audit({
@@ -185,7 +185,7 @@ export async function archiveVideo(
 
   const updated = await db.video.update({
     where: { id: videoId },
-    data: { archivedAt: new Date(), status: 'ARCHIVED' } as any,
+    data: { archivedAt: new Date(), status: 'ARCHIVED' },
   })
 
   await audit({
@@ -209,7 +209,7 @@ export async function restoreVideo(
 
   const updated = await db.video.update({
     where: { id: videoId },
-    data: { archivedAt: null, status: 'DRAFT' } as any,
+    data: { archivedAt: null, status: 'DRAFT' },
   })
 
   await audit({
@@ -257,7 +257,7 @@ export async function deleteVideo(videoId: string, ctx: AuditContext) {
  * Where clause that excludes archived content.
  * Apply to all student-facing queries.
  */
-export function excludeArchived<T extends Record<string, any>>(extra?: T) {
+export function excludeArchived<T extends Record<string, unknown>>(extra?: T) {
   return { archivedAt: null as null, ...extra }
 }
 
@@ -266,7 +266,7 @@ export function excludeArchived<T extends Record<string, any>>(extra?: T) {
  */
 export async function getActiveChapters(courseId: string) {
   return db.chapter.findMany({
-    where: { courseId, archivedAt: null as any } as any,
+    where: { courseId, archivedAt: null },
     orderBy: { order: 'asc' },
     include: {
       _count: { select: { topics: true } },
@@ -279,7 +279,7 @@ export async function getActiveChapters(courseId: string) {
  */
 export async function getActiveTopics(chapterId: string) {
   return db.topic.findMany({
-    where: { chapterId, archivedAt: null as any } as any,
+    where: { chapterId, archivedAt: null },
     orderBy: { order: 'asc' },
     include: {
       _count: { select: { videos: true } },
@@ -292,7 +292,7 @@ export async function getActiveTopics(chapterId: string) {
  */
 export async function getActiveVideos(topicId: string) {
   return db.video.findMany({
-    where: { topicId, archivedAt: null as any } as any,
+    where: { topicId, archivedAt: null },
     orderBy: { order: 'asc' },
     include: {
       _count: { select: { progress: true } },

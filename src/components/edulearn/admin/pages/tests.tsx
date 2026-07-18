@@ -41,7 +41,7 @@ export function AdminTests() {
     if (search) params.set('search', search)
     api.get<ListResp>(`/api/admin/tests?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [page, search])
+  useEffect(load, [page, search, toastAction])
 
   const publish = async (id: string) => {
     if (!confirm('Publish this test? Students will be able to attempt it.')) return
@@ -120,7 +120,7 @@ function CreateTestDialog({ open, onClose, onCreated }: { open: boolean; onClose
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (open) api.get<{ items: any[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
+    if (open) api.get<{ items: { id: string; name: string }[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
   }, [open])
 
   const toggleBatch = (id: string) => { const n = new Set(selectedBatches); if (n.has(id)) n.delete(id); else n.add(id); setSelectedBatches(n) }

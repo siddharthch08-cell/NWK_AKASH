@@ -18,11 +18,12 @@ import { cn } from '@/lib/utils'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import type { View } from '@/stores/app-store'
+import type { LucideIcon } from 'lucide-react'
 
 interface NavItem {
   label: string
   view: View
-  icon: any
+  icon: LucideIcon
   group?: string
 }
 
