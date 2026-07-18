@@ -34,7 +34,7 @@ export function AdminAnnouncements() {
     setLoading(true)
     api.get<{ items: Announcement[] }>('/api/admin/announcements?pageSize=50').then((d) => setData(d.items)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [])
+  useEffect(load, [toastAction])
 
   return (
     <div>
@@ -88,7 +88,7 @@ function AnnouncementDialog({ open, announcement, onClose, onSaved }: { open: bo
   const [selectedBatches, setSelectedBatches] = useState<Set<string>>(new Set(announcement?.batches?.map(b => b.batch.id) || []))
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { if (open) api.get<{ items: any[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {}) }, [open])
+  useEffect(() => { if (open) api.get<{ items: { id: string; name: string }[] }>('/api/admin/batches?pageSize=100').then((d) => setBatches(d.items)).catch(() => {}) }, [open])
 
   const toggle = (id: string) => { const n = new Set(selectedBatches); if (n.has(id)) n.delete(id); else n.add(id); setSelectedBatches(n) }
 
@@ -97,7 +97,7 @@ function AnnouncementDialog({ open, announcement, onClose, onSaved }: { open: bo
     setSaving(true)
     try {
       const payload = { ...form, expireAt: form.expireAt ? new Date(form.expireAt).toISOString() : undefined, batchIds: Array.from(selectedBatches) }
-      if (isEdit) { await api.patch(`/api/admin/announcements/${announcement!.id}`, payload) } else { await api.post('/api/admin/announcements', payload) }
+      if (announcement) { await api.patch(`/api/admin/announcements/${announcement.id}`, payload) } else { await api.post('/api/admin/announcements', payload) }
       toast.success(isEdit ? 'Announcement updated' : 'Announcement created')
       onSaved()
     } catch (e) { toastAction.error(e) } finally { setSaving(false) }

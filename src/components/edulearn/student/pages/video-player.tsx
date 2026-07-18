@@ -114,8 +114,10 @@ export function StudentVideoPlayer({ id }: { id: string }) {
     }
   }, [id])
 
+  const youtubeId = data?.youtubeId
+
   useEffect(() => {
-    if (!data) return
+    if (!youtubeId) return
     let cancelled = false
 
     loadYouTubeAPI().then(() => {
@@ -128,7 +130,7 @@ export function StudentVideoPlayer({ id }: { id: string }) {
 
       if (!window.YT) return;
       playerRef.current = new window.YT.Player(`yt-player-${id}`, {
-        videoId: data.youtubeId as string,
+        videoId: youtubeId,
         width: '100%',
         height: '100%',
         playerVars: {
@@ -136,7 +138,7 @@ export function StudentVideoPlayer({ id }: { id: string }) {
           modestbranding: 1,
           enablejsapi: 1,
           origin: window.location.origin,
-          start: progress?.position || 0,
+          start: progressRef.current?.position || 0,
         },
         events: {
           onReady: () => {
@@ -162,16 +164,8 @@ export function StudentVideoPlayer({ id }: { id: string }) {
       void sendHeartbeat(true)
       try { playerRef.current?.destroy?.() } catch { /* ignore cleanup errors */ }
     }
-    // sendHeartbeat is stable (useCallback with [id]); data.youtubeId triggers re-init
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.youtubeId])
+  }, [id, sendHeartbeat, youtubeId])
 
-  // Save progress on unmount
-  useEffect(() => {
-    return () => { void sendHeartbeat(true) }
-    // sendHeartbeat is stable (useCallback with [id])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading video…</div>
 

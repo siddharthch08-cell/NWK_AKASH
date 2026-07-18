@@ -41,7 +41,7 @@ export function AdminTestDetail({ id }: { id: string }) {
     setLoading(true)
     api.get<{ test: TestDetail }>(`/api/admin/tests/${id}`).then((d) => setData(d.test)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [id])
+  useEffect(load, [id, toastAction])
 
   if (loading || !data) return <div className="text-center py-12 text-slate-500">Loading…</div>
 

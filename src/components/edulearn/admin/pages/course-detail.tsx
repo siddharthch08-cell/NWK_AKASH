@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api } from '@/lib/api-client'
@@ -29,6 +30,15 @@ interface CourseDetail {
   batches: { batch: { id: string; name: string; slug: string; status: string } }[]
 }
 
+interface AssignableCourseBatch {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  enrolledCount: number
+  assigned: boolean
+}
+
 export function AdminCourseDetail({ id }: { id: string }) {
   const { setView } = useApp()
   const toastAction = useToastAction()
@@ -44,7 +54,7 @@ export function AdminCourseDetail({ id }: { id: string }) {
     setLoading(true)
     api.get<{ course: CourseDetail }>(`/api/admin/courses/${id}`).then((d) => setData(d.course)).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [id])
+  useEffect(load, [id, toastAction])
 
   // --- Edit handler for chapter ---
   const handleEditChapter = async (chapterId: string, newTitle: string) => {
@@ -107,7 +117,7 @@ export function AdminCourseDetail({ id }: { id: string }) {
       <Button variant="ghost" size="sm" onClick={() => setView({ name: 'admin/courses' })} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Back to Courses</Button>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        {data.thumbnail ? <img src={data.thumbnail} alt="" className="w-full sm:w-48 h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
+        {data.thumbnail ? <ExternalImage src={data.thumbnail} alt="" className="w-full sm:w-48 h-32 rounded-lg object-cover" /> : <div className="w-full sm:w-48 h-32 rounded-lg bg-slate-100 flex items-center justify-center"><BookOpen className="w-10 h-10 text-slate-400" /></div>}
         <div className="flex-1">
           <div className="flex items-center gap-2"><h1 className="text-2xl font-bold">{data.title}</h1><Badge variant="outline" className={statusColor(data.status)}>{data.status}</Badge></div>
           <p className="text-sm text-slate-600 mt-1">{data.description || 'No description'}</p>
@@ -338,19 +348,19 @@ function CreateVideoDialog({ topicId, onClose, onCreated }: { topicId: string | 
 function ActiveBatchAvailability({ courseId, assignedBatches: _assignedBatches, onChanged }: { courseId: string; assignedBatches: { batch: { id: string; name: string; status: string } }[]; onChanged: () => void }) {
   const toastAction = useToastAction()
   const { setView } = useApp()
-  const [batches, setBatches] = useState<any[]>([])
+  const [batches, setBatches] = useState<AssignableCourseBatch[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
 
   const load = () => {
     setLoading(true)
-    api.get<{ batches: any[] }>(`/api/admin/courses/${courseId}/batches`).then((d) => {
+    api.get<{ batches: AssignableCourseBatch[] }>(`/api/admin/courses/${courseId}/batches`).then((d) => {
       setBatches(d.batches)
       setHasChanges(false)
     }).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [courseId])
+  useEffect(load, [courseId, toastAction])
 
   const toggle = (batchId: string) => {
     setBatches(prev => prev.map(b => b.id === batchId ? { ...b, assigned: !b.assigned } : b))

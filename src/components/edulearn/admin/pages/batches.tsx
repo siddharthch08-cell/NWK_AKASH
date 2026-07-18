@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/stores/app-store'
 import { api } from '@/lib/api-client'
@@ -44,7 +45,7 @@ export function AdminBatches() {
     if (status !== 'ALL') params.set('status', status)
     api.get<ListResp>(`/api/admin/batches?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [page, search, status])
+  useEffect(load, [page, search, status, toastAction])
 
   const deleteBatch = async (id: string, name: string) => {
     if (!confirm(`Delete batch "${name}"?\n\nThis will archive the batch. If the batch has no enrollments, courses, tests, or announcements, it will be permanently deleted.`)) return
@@ -79,7 +80,7 @@ export function AdminBatches() {
                 {data.items.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell><button onClick={() => setView({ name: 'admin/batches/detail', id: b.id })} className="flex items-center gap-2 text-left hover:underline">
-                      {b.thumbnail ? <img src={b.thumbnail} alt="" className="w-9 h-9 rounded object-cover" /> : <div className="w-9 h-9 rounded bg-slate-100 flex items-center justify-center"><GraduationCap className="w-4 h-4 text-slate-400" /></div>}
+                      {b.thumbnail ? <ExternalImage src={b.thumbnail} alt="" className="w-9 h-9 rounded object-cover" /> : <div className="w-9 h-9 rounded bg-slate-100 flex items-center justify-center"><GraduationCap className="w-4 h-4 text-slate-400" /></div>}
                       <div><div className="font-medium">{b.name}</div><div className="text-xs text-slate-500">{b.slug}</div></div>
                     </button></TableCell>
                     <TableCell><Badge variant="outline" className={statusColor(b.status)}>{b.status}</Badge></TableCell>

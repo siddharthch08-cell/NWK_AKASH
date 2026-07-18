@@ -10,18 +10,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileText, Download, Loader2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { toast } from 'sonner'
+import type { LeaderboardEntry } from '@/domain/types'
+
+interface AnalyticsData {
+  cards: {
+    activeStudents: number
+    approvedStudents: number
+    pendingStudents: number
+    inactiveStudents: number
+    blockedStudents: number
+  }
+  studentGrowth: { label: string; registered: number }[]
+  batchEnrollment: { name: string; enrolled: number }[]
+  topVideos: { title: string; viewers: number }[]
+}
 
 export function AdminTestResults() {
   const toastAction = useToastAction()
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get<{ leaderboard: any[] }>('/api/admin/leaderboard')
+    api.get<{ leaderboard: LeaderboardEntry[] }>('/api/admin/leaderboard')
       .then((d) => setData(d.leaderboard))
       .catch((e) => toastAction.error(e))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toastAction])
 
   const exportXlsx = async () => {
     const token = window.localStorage.getItem('edulearn_access_token')
@@ -62,7 +76,7 @@ export function AdminTestResults() {
 }
 
 export function AdminAnalytics() {
-  const { data, loading } = useApi<any>('/api/admin/dashboard')
+  const { data, loading } = useApi<AnalyticsData>('/api/admin/analytics')
   if (loading || !data) return <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></div>
 
   const statusPie = [
@@ -81,7 +95,7 @@ export function AdminAnalytics() {
           <CardContent><ResponsiveContainer width="100%" height={280}><BarChart data={data.studentGrowth}><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis dataKey="label" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="registered" fill="#3b82f6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></CardContent>
         </Card>
         <Card><CardHeader><CardTitle className="text-base">Student Status Distribution</CardTitle></CardHeader>
-          <CardContent><ResponsiveContainer width="100%" height={280}><PieChart><Pie data={statusPie} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={(e: any) => `${e.name}: ${e.value}`}>{statusPie.map((s, i) => <Cell key={i} fill={s.color} />)}</Pie><Legend wrapperStyle={{ fontSize: 12 }} /></PieChart></ResponsiveContainer></CardContent>
+          <CardContent><ResponsiveContainer width="100%" height={280}><PieChart><Pie data={statusPie} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={(e) => `${e.name}: ${e.value}`}>{statusPie.map((s, i) => <Cell key={i} fill={s.color} />)}</Pie><Legend wrapperStyle={{ fontSize: 12 }} /></PieChart></ResponsiveContainer></CardContent>
         </Card>
         <Card><CardHeader><CardTitle className="text-base">Batch Enrollment</CardTitle></CardHeader>
           <CardContent><ResponsiveContainer width="100%" height={280}><BarChart data={data.batchEnrollment} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} /><Tooltip /><Bar dataKey="enrolled" fill="#14b8a6" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></CardContent>

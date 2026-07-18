@@ -34,9 +34,9 @@
     "security:history": "node scripts/scan-git-history.mjs",
     "security:credentials": "tsx scripts/audit-default-credentials.ts",
     "artifact:inspect": "node scripts/inspect-artifact.mjs",
-    "db:check": "tsx scripts/check-database.ts"
+    "db:check": "tsx scripts/check-database.ts",
+    "postinstall": "prisma generate"
   },
-  "postinstall": "prisma generate",
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@prisma/client": "^6.11.1",

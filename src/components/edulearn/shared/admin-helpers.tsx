@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { api, ApiError } from '@/lib/api-client'
 import { toast } from 'sonner'
+import type { LucideIcon } from 'lucide-react'
 
-export function useApi<T>(url: string | null, deps: any[] = []) {
+export function useApi<T>(url: string | null) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(!!url)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +28,7 @@ export function useApi<T>(url: string | null, deps: any[] = []) {
         else setError('Failed to load data')
       })
       .finally(() => setLoading(false))
-  }, [url, refreshKey, ...deps])
+  }, [url, refreshKey])
 
   return { data, loading, error, refetch, setData }
 }
@@ -44,7 +45,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   )
 }
 
-export function StatCard({ label, value, icon: Icon, color = 'blue', hint }: { label: string; value: string | number; icon: any; color?: string; hint?: string }) {
+export function StatCard({ label, value, icon: Icon, color = 'blue', hint }: { label: string; value: string | number; icon: LucideIcon; color?: string; hint?: string }) {
   const colors: Record<string, string> = {
     blue: 'from-blue-500 to-blue-700',
     teal: 'from-teal-500 to-emerald-600',
@@ -70,7 +71,7 @@ export function StatCard({ label, value, icon: Icon, color = 'blue', hint }: { l
 }
 
 
-export function EmptyState({ icon: Icon, title, message, action }: { icon: any; title: string; message: string; action?: React.ReactNode }) {
+export function EmptyState({ icon: Icon, title, message, action }: { icon: LucideIcon; title: string; message: string; action?: React.ReactNode }) {
   return (
     <div className="text-center py-12 px-4">
       <Icon className="w-12 h-12 mx-auto text-slate-300 mb-3" />
@@ -82,7 +83,7 @@ export function EmptyState({ icon: Icon, title, message, action }: { icon: any; 
 }
 
 export function useToastAction() {
-  return {
+  return useMemo(() => ({
     success: (msg: string) => toast.success(msg),
     error: (e: unknown, fallback = 'Operation failed') => {
       if (e instanceof ApiError) {
@@ -95,5 +96,5 @@ export function useToastAction() {
         toast.error(fallback)
       }
     },
-  }
+  }), [])
 }

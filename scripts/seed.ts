@@ -1,9 +1,9 @@
 /**
  * Seed script for Naya Wallah Kanoon.
- * Usage: `ALLOW_DEMO_SEED=true SEED_MODE=dev npm run db:seed`
+ * Usage: provide ALLOW_DEMO_SEED, SEED_MODE, SEED_ADMIN_PASSWORD, and SEED_STUDENT_PASSWORD.
  *
  * Requires explicit SEED_MODE env var:
- *   - "dev"   → seeds development data with generated passwords
+ *   - "dev"   → seeds development data with caller-provided passwords
  *   - "test"  → seeds minimal test data
  *   - "demo"  → seeds full demo (requires SEED_MODE=demo explicitly)
  *
@@ -11,36 +11,48 @@
  *
  * Idempotent — safe to re-run.
  */
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, type Chapter, type Topic, type User } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 
 const db = new PrismaClient()
+
+function writeLine(message: string) {
+  process.stdout.write(`${message}\n`)
+}
+
+function writeError(message: string) {
+  process.stderr.write(`${message}\n`)
+}
 
 const SEED_MODE = process.env.SEED_MODE || ''
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
-function generateRandomPassword(): string {
-  return crypto.randomBytes(12).toString('base64url').slice(0, 16) + 'A1'
+function getSeedPassword(name: 'SEED_ADMIN_PASSWORD' | 'SEED_STUDENT_PASSWORD'): string {
+  const value = process.env[name]
+  if (!value) throw new Error(`${name} is required for local demo seeding`)
+  if (value.length < 12 || !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value)) {
+    throw new Error(`${name} must be at least 12 characters and include uppercase, lowercase, and numeric characters`)
+  }
+  return value
 }
 
 async function main() {
   if (process.env.NODE_ENV === 'production') throw new Error('Demo seed is disabled in production')
   if (process.env.ALLOW_DEMO_SEED !== 'true') throw new Error('Set ALLOW_DEMO_SEED=true to create local demo data')
   if (IS_PRODUCTION) {
-    console.error('ERROR: Seed script is rejected in production mode.')
-    console.error('Set NODE_ENV=development and SEED_MODE=dev to seed.')
+    writeError('ERROR: Seed script is rejected in production mode.')
+    writeError('Set NODE_ENV=development and SEED_MODE=dev to seed.')
     process.exit(1)
   }
 
   if (!SEED_MODE || !['dev', 'test', 'demo'].includes(SEED_MODE)) {
-    console.error('ERROR: SEED_MODE environment variable is required.')
-    console.error('Usage: ALLOW_DEMO_SEED=true SEED_MODE=dev npm run db:seed')
-    console.error('Valid modes: dev, test, demo')
+    writeError('ERROR: SEED_MODE environment variable is required.')
+    writeError('Usage: set ALLOW_DEMO_SEED, SEED_MODE, SEED_ADMIN_PASSWORD, and SEED_STUDENT_PASSWORD before running db:seed')
+    writeError('Valid modes: dev, test, demo')
     process.exit(1)
   }
 
-  console.log(`Seeding in "${SEED_MODE}" mode...`)
+  writeLine(`Seeding in "${SEED_MODE}" mode...`)
 
   // --- Institute settings ---
   await db.instituteSetting.upsert({
@@ -83,7 +95,7 @@ async function main() {
   })
 
   // --- Admin ---
-  const adminPassword = generateRandomPassword()
+  const adminPassword = getSeedPassword('SEED_ADMIN_PASSWORD')
   const adminPass = await bcrypt.hash(adminPassword, 12)
   const admin = await db.user.upsert({
     where: { email: 'admin@nayawallahkanoon.com' },
@@ -100,7 +112,7 @@ async function main() {
   })
 
   // --- Demo students ---
-  const studentPassword = generateRandomPassword()
+  const studentPassword = getSeedPassword('SEED_STUDENT_PASSWORD')
   const studentPass = await bcrypt.hash(studentPassword, 12)
   const studentDefs = [
     { name: 'Aarav Sharma', email: 'aarav@example.com', status: 'ACTIVE' },
@@ -114,7 +126,7 @@ async function main() {
     { name: 'Arjun Gupta', email: 'arjun@example.com', status: 'ACTIVE' },
     { name: 'Meera Krishnan', email: 'meera@example.com', status: 'ACTIVE' },
   ]
-  const students: any[] = []
+  const students: User[] = []
   for (const s of studentDefs) {
     const u = await db.user.upsert({
       where: { email: s.email },
@@ -124,7 +136,7 @@ async function main() {
         name: s.name,
         passwordHash: studentPass,
         role: 'STUDENT',
-        status: s.status as any,
+        status: s.status,
         phone: '+91 90000 00000',
         termsAccepted: true,
         rejectionReason: s.status === 'REJECTED' ? 'Incomplete documentation' : null,
@@ -275,7 +287,7 @@ async function main() {
     { title: 'Criminal Procedure Code (CrPC)', order: 2 },
     { title: 'Indian Penal Code (IPC)', order: 3 },
   ]
-  const chapters: any[] = []
+  const chapters: Chapter[] = []
   for (const cd of chapterDefs) {
     let ch = await db.chapter.findFirst({ where: { courseId: course.id, title: cd.title } })
     if (!ch) ch = await db.chapter.create({ data: { courseId: course.id, title: cd.title, order: cd.order } })
@@ -290,7 +302,7 @@ async function main() {
     { chapterId: chapter3.id, title: 'Offences Against the Body', order: 1 },
     { chapterId: chapter3.id, title: 'Offences Against Property', order: 2 },
   ]
-  const topics: any[] = []
+  const topics: Topic[] = []
   for (const td of topicDefs) {
     let tp = await db.topic.findFirst({ where: { chapterId: td.chapterId, title: td.title } })
     if (!tp) tp = await db.topic.create({ data: { chapterId: td.chapterId, title: td.title, order: td.order } })
@@ -412,7 +424,8 @@ async function main() {
   }
 
   // Give the first ACTIVE student a completed attempt so the leaderboard has data
-  const firstActive = students.find((s) => s.status === 'ACTIVE' && s.email === 'aarav@example.com')!
+  const firstActive = students.find((s) => s.status === 'ACTIVE' && s.email === 'aarav@example.com')
+  if (!firstActive) throw new Error('Seed invariant failed: active demo student was not created')
   const attempt = await db.testAttempt.create({
     data: {
       testId: test.id,
@@ -544,18 +557,14 @@ async function main() {
     ],
   })
 
-  console.log('✓ Seed complete')
-  console.log(`  Admin login: admin@nayawallahkanoon.com / ${adminPassword}`)
-  console.log(`  Student login (ACTIVE): aarav@example.com / ${studentPassword}`)
-  console.log(`  Student login (PENDING): ananya@example.com / ${studentPassword}`)
-  console.log(`  Student login (BLOCKED): sneha@example.com / ${studentPassword}`)
-  console.log(`  Student login (REJECTED): karthik@example.com / ${studentPassword}`)
+  writeLine('✓ Seed complete')
+  writeLine('  Demo credentials were supplied through environment variables and were not printed.')
 }
 
 main()
   .then(() => db.$disconnect())
   .catch(async (e) => {
-    console.error(e)
+    writeError(`Seed failed (${e instanceof Error ? e.name : 'UnknownError'}). No credential or database error details were printed.`)
     await db.$disconnect()
     process.exit(1)
   })

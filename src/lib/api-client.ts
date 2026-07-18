@@ -10,6 +10,31 @@ import type { ApiEnvelope } from '@/types'
 export type { ApiEnvelope }
 
 const TOKEN_KEY = 'edulearn_access_token'
+const DASHBOARD_STALE_MS = 30_000
+const inFlightGets = new Map<string, Promise<unknown>>()
+const getCache = new Map<string, { expiresAt: number; value: unknown }>()
+let cacheGeneration = 0
+
+function staleTimeFor(url: string): number {
+  return url === '/api/admin/dashboard' || url === '/api/admin/analytics' || url === '/api/student/dashboard'
+    ? DASHBOARD_STALE_MS
+    : 0
+}
+
+export function clearApiCache() {
+  cacheGeneration += 1
+  inFlightGets.clear()
+  getCache.clear()
+}
+
+export function invalidateApiCache(prefix?: string) {
+  if (!prefix) {
+    clearApiCache()
+    return
+  }
+  for (const key of inFlightGets.keys()) if (key.startsWith(prefix)) inFlightGets.delete(key)
+  for (const key of getCache.keys()) if (key.startsWith(prefix)) getCache.delete(key)
+}
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -18,6 +43,7 @@ export function getToken(): string | null {
 
 export function setToken(t: string | null) {
   if (typeof window === 'undefined') return
+  clearApiCache()
   if (t) window.localStorage.setItem(TOKEN_KEY, t)
   else window.localStorage.removeItem(TOKEN_KEY)
 }
@@ -125,17 +151,47 @@ async function request<T>(
   return envelope.data as T
 }
 
+async function getRequest<T>(url: string): Promise<T> {
+  const cached = getCache.get(url)
+  if (cached && cached.expiresAt > Date.now()) return cached.value as T
+  if (cached) getCache.delete(url)
+
+  const existing = inFlightGets.get(url)
+  if (existing) return existing as Promise<T>
+
+  const generation = cacheGeneration
+  const promise = request<T>(url, { method: 'GET' })
+    .then((value) => {
+      const staleTime = staleTimeFor(url)
+      if (generation === cacheGeneration && staleTime > 0) {
+        getCache.set(url, { expiresAt: Date.now() + staleTime, value })
+      }
+      return value
+    })
+    .finally(() => {
+      if (generation === cacheGeneration) inFlightGets.delete(url)
+    })
+  inFlightGets.set(url, promise)
+  return promise
+}
+
+async function mutationRequest<T>(url: string, options: RequestInit): Promise<T> {
+  const value = await request<T>(url, options)
+  clearApiCache()
+  return value
+}
+
 export const api = {
-  get: <T>(url: string) => request<T>(url, { method: 'GET' }),
+  get: <T>(url: string) => getRequest<T>(url),
   post: <T>(url: string, body?: unknown) =>
-    request<T>(url, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
+    mutationRequest<T>(url, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
   patch: <T>(url: string, body?: unknown) =>
-    request<T>(url, { method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
+    mutationRequest<T>(url, { method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
   put: <T>(url: string, body?: unknown) =>
-    request<T>(url, { method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
-  del: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
+    mutationRequest<T>(url, { method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
+  del: <T>(url: string) => mutationRequest<T>(url, { method: 'DELETE' }),
   upload: <T>(url: string, formData: FormData) =>
-    request<T>(url, { method: 'POST', body: formData }),
+    mutationRequest<T>(url, { method: 'POST', body: formData }),
   raw: async (url: string, options: RequestInit = {}) => {
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),

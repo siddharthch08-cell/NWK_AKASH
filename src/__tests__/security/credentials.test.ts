@@ -19,8 +19,11 @@ describe('No Default Credentials', () => {
     // Should require SEED_MODE env var
     expect(seed).toContain('SEED_MODE')
     expect(seed).toContain('process.exit(1)')
-    // Should generate random passwords
-    expect(seed).toContain('generateRandomPassword')
+    // Seed credentials must be supplied out of band and never printed
+    expect(seed).toContain('SEED_ADMIN_PASSWORD')
+    expect(seed).toContain('SEED_STUDENT_PASSWORD')
+    expect(seed).not.toContain('Admin login:')
+    expect(seed).not.toContain('Student login (ACTIVE):')
     // Should not contain hardcoded passwords
     expect(seed).not.toContain("'Admin@12345'")
     expect(seed).not.toContain("'Student@12345'")

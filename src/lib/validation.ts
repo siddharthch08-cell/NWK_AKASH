@@ -204,6 +204,7 @@ export const attemptSubmitSchema = z.object({
         revision: z.number().int().min(0).optional(),
       })
     )
+    .max(20, 'A maximum of 20 answers can be submitted at once')
     .default([]),
   submissionType: z.enum(['MANUAL', 'AUTO_TIMEOUT']).default('MANUAL'),
   finalize: z.boolean().optional(),

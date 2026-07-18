@@ -1,6 +1,10 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 
+function writeLine(message) {
+  process.stdout.write(`${message}\n`)
+}
+
 const findings = []
 
 // --- 1. Scan tracked and untracked (non-gitignored) files via git ---
@@ -60,4 +64,4 @@ if (findings.length) {
   console.error(`Secret scan found ${findings.length} issue(s):\n${findings.join('\n')}`)
   process.exit(1)
 }
-console.log(`Secret scan passed for ${tracked.length} tracked/untracked files`)
+writeLine(`Secret scan passed for ${tracked.length} tracked/untracked files`)

@@ -9,32 +9,72 @@ export async function GET(req: NextRequest) {
 
   const now = new Date()
   const userId = ctx.user.id
+  const accessibleTestWhere = {
+    status: 'PUBLISHED' as const,
+    batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
+  }
 
-  const [enrollments, videoProgress, attempts, announcements, recentVideos, upcomingTests] = await Promise.all([
+  const [
+    enrollments,
+    recentVideos,
+    attempts,
+    announcements,
+    upcomingTests,
+    activeTests,
+    upcomingTestsCount,
+    attemptStats,
+  ] = await Promise.all([
     db.batchEnrollment.findMany({
       where: { userId, batch: { status: 'ACTIVE' } },
-      include: {
+      select: {
+        enrolledAt: true,
         batch: {
           select: {
-            id: true, name: true, slug: true, status: true, thumbnail: true,
-            courses: { where: { course: { status: 'PUBLISHED' } }, include: { course: { select: { id: true, title: true, thumbnail: true } } } },
-            tests: { where: { test: { status: 'PUBLISHED' } }, include: { test: { select: { id: true, title: true, startAt: true, endAt: true, status: true } } } },
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            thumbnail: true,
+            courses: {
+              where: { course: { status: 'PUBLISHED' } },
+              select: { course: { select: { id: true, title: true, thumbnail: true } } },
+            },
+            _count: { select: { tests: { where: { test: { status: 'PUBLISHED' } } } } },
           },
         },
       },
       orderBy: { enrolledAt: 'desc' },
     }),
     db.videoProgress.findMany({
-      where: { userId },
-      include: { video: { select: { id: true, title: true, duration: true, topic: { select: { chapter: { select: { course: { select: { id: true, title: true } } } } } } } } },
+      where: { userId, completed: false },
+      select: {
+        percent: true,
+        position: true,
+        video: {
+          select: {
+            id: true,
+            title: true,
+            thumbnail: true,
+            topic: { select: { chapter: { select: { course: { select: { id: true, title: true } } } } } },
+          },
+        },
+      },
       orderBy: { lastWatchedAt: 'desc' },
-      take: 8,
+      take: 4,
     }),
     db.testAttempt.findMany({
       where: { userId, status: 'SUBMITTED', resultPublishedAt: { not: null } },
-      include: { test: { select: { id: true, title: true } } },
+      select: {
+        id: true,
+        attemptNumber: true,
+        percentage: true,
+        score: true,
+        totalMarks: true,
+        submittedAt: true,
+        test: { select: { id: true, title: true } },
+      },
       orderBy: { submittedAt: 'desc' },
-      take: 10,
+      take: 5,
     }),
     db.announcement.findMany({
       where: {
@@ -54,87 +94,78 @@ export async function GET(req: NextRequest) {
       take: 5,
       select: { id: true, title: true, message: true, priority: true, pinned: true, publishAt: true },
     }),
-    db.videoProgress.findMany({
-      where: { userId, completed: false },
-      include: { video: { select: { id: true, title: true, thumbnail: true, topic: { select: { chapter: { select: { course: { select: { id: true, title: true } } } } } } } } },
-      orderBy: { lastWatchedAt: 'desc' },
-      take: 4,
-    }),
     db.test.findMany({
-      where: {
-        status: 'PUBLISHED',
-        batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
-        startAt: { gte: now },
-      },
+      where: { ...accessibleTestWhere, startAt: { gt: now } },
       orderBy: { startAt: 'asc' },
       take: 5,
       select: { id: true, title: true, startAt: true, endAt: true, durationMins: true },
     }),
+    db.test.count({
+      where: {
+        ...accessibleTestWhere,
+        startAt: { lte: now },
+        OR: [{ endAt: null }, { endAt: { gte: now } }],
+      },
+    }),
+    db.test.count({ where: { ...accessibleTestWhere, startAt: { gt: now } } }),
+    db.testAttempt.aggregate({
+      where: { userId, status: 'SUBMITTED', resultPublishedAt: { not: null } },
+      _avg: { percentage: true },
+      _max: { percentage: true },
+      _count: { _all: true },
+    }),
   ])
 
-  // Aggregate stats
-  const videosCompleted = videoProgress.filter((p) => p.completed).length
-  const totalVideos = await db.video.count({
-    where: {
-      status: 'PUBLISHED',
-      archivedAt: null, topic: { archivedAt: null, chapter: { archivedAt: null, course: { status: 'PUBLISHED', batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } } } } },
-    },
-  })
-  // Stats from ALL published attempts (not just the take:10 slice)
-  const allPublishedAttempts = await db.testAttempt.findMany({
-    where: { userId, status: 'SUBMITTED', resultPublishedAt: { not: null } },
-    select: { percentage: true },
-  })
-  const avgScore = allPublishedAttempts.length
-    ? Math.round(allPublishedAttempts.reduce((a, at) => a + at.percentage, 0) / allPublishedAttempts.length)
-    : 0
-  const bestScore = allPublishedAttempts.length ? Math.max(...allPublishedAttempts.map((a) => a.percentage)) : 0
-
-  // Count active tests (available now)
-  const activeTests = await db.test.count({
-    where: {
-      status: 'PUBLISHED',
-      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
-      startAt: { lte: now },
-      OR: [{ endAt: null }, { endAt: { gte: now } }],
-    },
-  })
-
-  // Course progress: compute per unique enrolled course (deduplicate by courseId)
-  const seenCourseIds = new Set<string>()
-  const courseProgressRaw = await Promise.all(
-    enrollments.flatMap((e) =>
-      e.batch.courses.map(async (bc) => {
-        if (seenCourseIds.has(bc.course.id)) return null // deduplicate
-        seenCourseIds.add(bc.course.id)
-        const courseVideos = await db.video.findMany({
-          where: {
-            status: 'PUBLISHED', archivedAt: null,
-            topic: { archivedAt: null, chapter: { courseId: bc.course.id, archivedAt: null } },
-          },
-          select: { id: true },
+  const courseMetadata = new Map<string, { courseTitle: string; thumbnail: string | null; batchName: string }>()
+  for (const enrollment of enrollments) {
+    for (const batchCourse of enrollment.batch.courses) {
+      if (!courseMetadata.has(batchCourse.course.id)) {
+        courseMetadata.set(batchCourse.course.id, {
+          courseTitle: batchCourse.course.title,
+          thumbnail: batchCourse.course.thumbnail,
+          batchName: enrollment.batch.name,
         })
-        const total = courseVideos.length
-        const completed = await db.videoProgress.count({
-          where: {
-            userId,
-            completed: true,
-            videoId: { in: courseVideos.map((v) => v.id) },
-          },
-        })
-        return {
-          courseId: bc.course.id,
-          courseTitle: bc.course.title,
-          thumbnail: bc.course.thumbnail,
-          batchName: e.batch.name,
-          totalVideos: total,
-          completedVideos: completed,
-          progressPct: total ? Math.round((completed / total) * 100) : 0,
-        }
+      }
+    }
+  }
+
+  const courseIds = Array.from(courseMetadata.keys())
+  const courseVideos = courseIds.length === 0
+    ? []
+    : await db.video.findMany({
+        where: {
+          status: 'PUBLISHED',
+          archivedAt: null,
+          topic: { archivedAt: null, chapter: { courseId: { in: courseIds }, archivedAt: null } },
+        },
+        select: {
+          topic: { select: { chapter: { select: { courseId: true } } } },
+          _count: { select: { progress: { where: { userId, completed: true } } } },
+        },
       })
-    )
-  )
-  const courseProgress = courseProgressRaw.filter((c): c is NonNullable<typeof c> => c !== null)
+
+  const progressByCourse = new Map<string, { total: number; completed: number }>()
+  for (const video of courseVideos) {
+    const courseId = video.topic.chapter.courseId
+    const current = progressByCourse.get(courseId) ?? { total: 0, completed: 0 }
+    current.total += 1
+    current.completed += video._count.progress
+    progressByCourse.set(courseId, current)
+  }
+
+  const courseProgress = courseIds.map((courseId) => {
+    const metadata = courseMetadata.get(courseId)
+    if (!metadata) throw new Error('Course metadata invariant failed')
+    const progress = progressByCourse.get(courseId) ?? { total: 0, completed: 0 }
+    return {
+      courseId,
+      ...metadata,
+      totalVideos: progress.total,
+      completedVideos: progress.completed,
+      progressPct: progress.total ? Math.round((progress.completed / progress.total) * 100) : 0,
+    }
+  })
+  const videosCompleted = courseProgress.reduce((total, course) => total + course.completedVideos, 0)
 
   return ok(
     {
@@ -147,35 +178,35 @@ export async function GET(req: NextRequest) {
       stats: {
         enrolledBatches: enrollments.length,
         activeTests,
-        upcomingTests: upcomingTests.length,
+        upcomingTests: upcomingTestsCount,
         videosCompleted,
-        totalVideos,
-        avgScore,
-        bestScore,
-        attemptsCount: attempts.length,
+        totalVideos: courseVideos.length,
+        avgScore: Math.round(attemptStats._avg.percentage ?? 0),
+        bestScore: attemptStats._max.percentage ?? 0,
+        attemptsCount: attemptStats._count._all,
       },
-      enrollments: enrollments.map((e) => ({
-        id: e.batch.id,
-        name: e.batch.name,
-        slug: e.batch.slug,
-        status: e.batch.status,
-        thumbnail: e.batch.thumbnail,
-        courseCount: e.batch.courses.length,
-        testCount: e.batch.tests.length,
-        enrolledAt: e.enrolledAt,
+      enrollments: enrollments.map((enrollment) => ({
+        id: enrollment.batch.id,
+        name: enrollment.batch.name,
+        slug: enrollment.batch.slug,
+        status: enrollment.batch.status,
+        thumbnail: enrollment.batch.thumbnail,
+        courseCount: enrollment.batch.courses.length,
+        testCount: enrollment.batch._count.tests,
+        enrolledAt: enrollment.enrolledAt,
       })),
       courseProgress,
       upcomingTests,
-      recentResults: attempts.slice(0, 5),
+      recentResults: attempts,
       recentAnnouncements: announcements,
-      continueWatching: recentVideos.slice(0, 4).map((p) => ({
-        videoId: p.video.id,
-        title: p.video.title,
-        thumbnail: p.video.thumbnail,
-        courseId: p.video.topic.chapter.course.id,
-        courseTitle: p.video.topic.chapter.course.title,
-        percent: p.percent,
-        position: p.position,
+      continueWatching: recentVideos.map((progress) => ({
+        videoId: progress.video.id,
+        title: progress.video.title,
+        thumbnail: progress.video.thumbnail,
+        courseId: progress.video.topic.chapter.course.id,
+        courseTitle: progress.video.topic.chapter.course.title,
+        percent: progress.percent,
+        position: progress.position,
       })),
     },
     'Student dashboard'

@@ -83,6 +83,7 @@ describe('Admin Approval Workflow', () => {
     expect(user?.status).toBe('APPROVED')
 
     const firstApprovedAt = user?.approvedAt
+    if (!firstApprovedAt) throw new Error('Expected approval timestamp fixture')
 
     const updated = await db.user.update({
       where: { id: pendingUserId },
@@ -94,7 +95,7 @@ describe('Admin Approval Workflow', () => {
     })
 
     expect(updated.status).toBe('APPROVED')
-    expect(updated.approvedAt?.getTime()).toBeGreaterThanOrEqual(firstApprovedAt!.getTime())
+    expect(updated.approvedAt?.getTime()).toBeGreaterThanOrEqual(firstApprovedAt.getTime())
   })
 
   it.skipIf(!dbOk)('batch assignment should not auto-approve account', async () => {

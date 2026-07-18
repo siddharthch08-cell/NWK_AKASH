@@ -1,11 +1,27 @@
 import { NextRequest } from 'next/server'
 import { requireActiveStudent } from '@/lib/auth'
-import { fail, fromZodError, ok, tooMany, unauthorized } from '@/lib/api-response'
+import { fail, fromZodError, ok, serverError, tooMany, unauthorized } from '@/lib/api-response'
 import { attemptSubmitSchema } from '@/lib/validation'
 import { enforceRateLimit } from '@/lib/rate-limit'
 import { DomainError, ResultService, TestAttemptService } from '@/domain'
 
 type Params = { params: Promise<{ id: string }> }
+
+function logUnexpectedAttemptFailure(operation: 'submit' | 'load', requestId: string, error: unknown) {
+  const errorDetails = error instanceof Error
+    ? {
+        errorClass: error.name,
+        ...(('code' in error && typeof error.code === 'string') ? { errorCode: error.code } : {}),
+      }
+    : { errorClass: 'UnknownError' }
+
+  console.error('[student-attempt] unexpected failure', {
+    route: '/api/student/attempts/[id]',
+    operation,
+    requestId,
+    ...errorDetails,
+  })
+}
 
 export async function POST(req: NextRequest, { params }: Params) {
   const ctx = await requireActiveStudent(req)
@@ -40,7 +56,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     )
   } catch (error) {
     if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields, ctx.requestId)
-    throw error
+    logUnexpectedAttemptFailure('submit', ctx.requestId, error)
+    return serverError('Unable to submit the test. Please try again.', ctx.requestId)
   }
 }
 
@@ -77,6 +94,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     }, 'Active attempt')
   } catch (error) {
     if (error instanceof DomainError) return fail(error.code, error.message, error.status, error.fields, ctx.requestId)
-    throw error
+    logUnexpectedAttemptFailure('load', ctx.requestId, error)
+    return serverError('Unable to load the test attempt. Please try again.', ctx.requestId)
   }
 }

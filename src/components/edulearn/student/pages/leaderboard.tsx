@@ -5,10 +5,11 @@ import { useApi, PageHeader, EmptyState } from '../../shared/admin-helpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Trophy } from 'lucide-react'
+import type { LeaderboardEntry } from '@/domain/types'
 
 export function StudentLeaderboard() {
   const { user } = useApp()
-  const { data, loading } = useApi<{ leaderboard: any[]; myRank: number | null }>('/api/student/leaderboard')
+  const { data, loading } = useApi<{ leaderboard: LeaderboardEntry[]; myRank: number | null }>('/api/student/leaderboard')
 
   if (loading) return <div className="text-center py-12 text-slate-500">Loading…</div>
   if (!data || data.leaderboard.length === 0) return <EmptyState icon={Trophy} title="No rankings yet" message="The leaderboard will populate once students submit test attempts." />

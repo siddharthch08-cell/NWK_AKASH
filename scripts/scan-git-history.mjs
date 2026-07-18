@@ -1,5 +1,9 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 
+function writeLine(message) {
+  process.stdout.write(`${message}\n`)
+}
+
 // Search Git objects directly instead of spawning `git show` for every file
 // in every commit. Historical demo passwords are not secrets; current-tree
 // scanning separately prevents those credentials from being reintroduced.
@@ -36,4 +40,4 @@ if (findings.length) {
   console.error(`Historical secret scan found ${findings.length} location(s):\n${findings.join('\n')}`)
   process.exit(1)
 }
-console.log(`Historical secret scan passed across ${commits.length} commit(s)`)
+writeLine(`Historical secret scan passed across ${commits.length} commit(s)`)

@@ -14,8 +14,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { View } from '@/stores/app-store'
+import type { LucideIcon } from 'lucide-react'
 
-interface NavItem { label: string; view: View; icon: any }
+interface NavItem { label: string; view: View; icon: LucideIcon }
 const NAV: NavItem[] = [
   { label: 'Dashboard', view: { name: 'student/dashboard' }, icon: LayoutDashboard },
   { label: 'My Batches', view: { name: 'student/batches' }, icon: GraduationCap },

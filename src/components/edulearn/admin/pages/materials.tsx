@@ -42,7 +42,7 @@ export function AdminMaterials() {
     if (search) params.set('search', search)
     api.get<ListResp>(`/api/admin/materials?${params}`).then(setData).catch((e) => toastAction.error(e)).finally(() => setLoading(false))
   }
-  useEffect(load, [page, search])
+  useEffect(load, [page, search, toastAction])
 
   const archive = async (id: string) => {
     if (!confirm('Archive this resource? Students will no longer see it.')) return
@@ -112,17 +112,17 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
   const [chapterId, setChapterId] = useState('')
   const [topicId, setTopicId] = useState('')
 
-  const [batches, setBatches] = useState<any[]>([])
-  const [courses, setCourses] = useState<any[]>([])
-  const [chapters, setChapters] = useState<any[]>([])
-  const [topics, setTopics] = useState<any[]>([])
+  const [batches, setBatches] = useState<{ id: string; name: string }[]>([])
+  const [courses, setCourses] = useState<{ id: string; title: string }[]>([])
+  const [chapters, setChapters] = useState<{ id: string; title: string }[]>([])
+  const [topics, setTopics] = useState<{ id: string; title: string }[]>([])
   const [saving, setSaving] = useState(false)
 
   // Materials are course-owned. Batch is optional eligibility context only.
   useEffect(() => {
     if (open) {
-      api.get<{ items: any[] }>('/api/admin/batches?status=ACTIVE&pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
-      api.get<{ items: any[] }>('/api/admin/courses?status=PUBLISHED&pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
+      api.get<{ items: { id: string; name: string }[] }>('/api/admin/batches?status=ACTIVE&pageSize=100').then((d) => setBatches(d.items)).catch(() => {})
+      api.get<{ items: { id: string; title: string }[] }>('/api/admin/courses?status=PUBLISHED&pageSize=100').then((d) => setCourses(d.items)).catch(() => {})
       // Reset form
       setForm({ title: '', description: '', platform: 'TELEGRAM', externalUrl: '', materialType: 'PDF', published: true })
       setBatchId(''); setCourseId(''); setChapterId(''); setTopicId('')
@@ -134,14 +134,14 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
   useEffect(() => {
     if (!courseId) { setChapters([]); setChapterId(''); return }
     setChapterId(''); setTopicId(''); setTopics([])
-    api.get<{ chapters: any[] }>(`/api/admin/courses/${courseId}/chapters`).then((d) => setChapters(d.chapters)).catch(() => {})
+    api.get<{ chapters: { id: string; title: string }[] }>(`/api/admin/courses/${courseId}/chapters`).then((d) => setChapters(d.chapters)).catch(() => {})
   }, [courseId])
 
   // When chapter changes, load topics
   useEffect(() => {
     if (!chapterId) { setTopics([]); setTopicId(''); return }
     setTopicId('')
-    api.get<{ topics: any[] }>(`/api/admin/chapters/${chapterId}/topics`).then((d) => setTopics(d.topics)).catch(() => {})
+    api.get<{ topics: { id: string; title: string }[] }>(`/api/admin/chapters/${chapterId}/topics`).then((d) => setTopics(d.topics)).catch(() => {})
   }, [chapterId])
 
   const submit = async () => {
@@ -271,7 +271,7 @@ function AddMaterialDialog({ open, onClose, onCreated }: { open: boolean; onClos
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !batchId || !courseId || !chapterId || !form.title || !form.externalUrl} className="bg-blue-700 hover:bg-blue-800">
+          <Button onClick={submit} disabled={saving || !courseId || !chapterId || !form.title || !form.externalUrl} className="bg-blue-700 hover:bg-blue-800">
             {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
             Add Resource
           </Button>

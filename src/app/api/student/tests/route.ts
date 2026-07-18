@@ -3,6 +3,31 @@ import { db } from '@/lib/db'
 import { requireActiveStudent } from '@/lib/auth'
 import { ok, unauthorized } from '@/lib/api-response'
 
+type StudentTestEntry = {
+  id: string
+  title: string
+  description: string | null
+  durationMins: number
+  maxAttempts: number
+  startAt: Date | null
+  endAt: Date | null
+  passingPct: number | null
+  questionCount: number
+  batches: string[]
+  attemptsUsed: number
+  attemptsRemaining: number
+  inProgressAttempt: { id: string; startedAt: Date; expiresAt: Date } | null
+  lastAttempt: {
+    id: string
+    attemptNumber: number
+    status: string
+    startedAt: Date
+    expiresAt: Date
+    submittedAt: Date | null
+    percentage: number
+  } | null
+}
+
 export async function GET(req: NextRequest) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
@@ -29,11 +54,11 @@ export async function GET(req: NextRequest) {
   })
 
   const categorized = {
-    upcoming: [] as any[],
-    active: [] as any[],
-    completed: [] as any[],
-    attemptLimitReached: [] as any[],
-    expired: [] as any[],
+    upcoming: [] as StudentTestEntry[],
+    active: [] as StudentTestEntry[],
+    completed: [] as StudentTestEntry[],
+    attemptLimitReached: [] as StudentTestEntry[],
+    expired: [] as StudentTestEntry[],
   }
 
   for (const t of tests) {

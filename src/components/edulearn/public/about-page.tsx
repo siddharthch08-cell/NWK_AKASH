@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Target, Eye, Users, BookOpen, Award, Clock, ShieldCheck, Sparkles, Scale, Gavel, Heart, Calendar, CheckCircle2, MessageCircle, PlayCircle } from 'lucide-react'
@@ -55,7 +56,7 @@ export function AboutPage({ settings }: { settings: PublicSettings | null }) {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <Card className="mb-8 overflow-hidden">
             <div className="aspect-[16/7] overflow-hidden bg-slate-100">
-              <img src={settings?.heroImage || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1400&q=85'} alt="Law books, notes, and focused legal study" className="h-full w-full object-cover" />
+              <ExternalImage src={settings?.heroImage || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1400&q=85'} alt="Law books, notes, and focused legal study" className="h-full w-full object-cover" />
             </div>
             <CardContent className="pt-6">
               <p className="text-slate-700 leading-relaxed text-lg">

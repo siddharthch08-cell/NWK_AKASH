@@ -7,50 +7,57 @@ export async function GET(req: NextRequest) {
   const ctx = await requireActiveStudent(req)
   if (!ctx) return unauthorized()
 
-  // Courses from batches the student is enrolled in
+  const userId = ctx.user.id
   const courses = await db.course.findMany({
     where: {
       status: 'PUBLISHED',
-      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId: ctx.user.id } } } } },
+      batches: { some: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } } },
     },
     orderBy: { createdAt: 'desc' },
     include: {
       _count: { select: { chapters: { where: { archivedAt: null } } } },
       batches: {
-        where: { batch: { status: 'ACTIVE', enrollments: { some: { userId: ctx.user.id } } } },
+        where: { batch: { status: 'ACTIVE', enrollments: { some: { userId } } } },
         include: { batch: { select: { id: true, name: true } } },
       },
     },
   })
 
-  // Compute per-course progress
-  const result = await Promise.all(
-    courses.map(async (c) => {
-      const videos = await db.video.findMany({
+  const courseIds = courses.map((course) => course.id)
+  const videos = courseIds.length === 0
+    ? []
+    : await db.video.findMany({
         where: {
-          status: 'PUBLISHED', archivedAt: null,
-          topic: { archivedAt: null, chapter: { courseId: c.id, archivedAt: null } },
+          status: 'PUBLISHED',
+          archivedAt: null,
+          topic: { archivedAt: null, chapter: { courseId: { in: courseIds }, archivedAt: null } },
         },
-        select: { id: true },
-      })
-      const totalVideos = videos.length
-      const completed = await db.videoProgress.count({
-        where: {
-          userId: ctx.user.id,
-          completed: true,
-          videoId: { in: videos.map((v) => v.id) },
+        select: {
+          topic: { select: { chapter: { select: { courseId: true } } } },
+          _count: { select: { progress: { where: { userId, completed: true } } } },
         },
       })
-      return {
-        ...c,
-        chapterCount: c._count.chapters,
-        _count: undefined,
-        totalVideos,
-        completedVideos: completed,
-        progressPct: totalVideos ? Math.round((completed / totalVideos) * 100) : 0,
-      }
-    })
-  )
+
+  const progressByCourse = new Map<string, { total: number; completed: number }>()
+  for (const video of videos) {
+    const courseId = video.topic.chapter.courseId
+    const progress = progressByCourse.get(courseId) ?? { total: 0, completed: 0 }
+    progress.total += 1
+    progress.completed += video._count.progress
+    progressByCourse.set(courseId, progress)
+  }
+
+  const result = courses.map((course) => {
+    const progress = progressByCourse.get(course.id) ?? { total: 0, completed: 0 }
+    const { _count, ...courseData } = course
+    return {
+      ...courseData,
+      chapterCount: _count.chapters,
+      totalVideos: progress.total,
+      completedVideos: progress.completed,
+      progressPct: progress.total ? Math.round((progress.completed / progress.total) * 100) : 0,
+    }
+  })
 
   return ok({ courses: result }, 'My courses')
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import { useApp } from '@/stores/app-store'
@@ -56,7 +57,7 @@ export function CoursesPage() {
                 <Card key={b.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
                   <div className="aspect-video bg-slate-100 overflow-hidden">
                     {b.thumbnail ? (
-                      <img src={b.thumbnail} alt={b.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                      <ExternalImage src={b.thumbnail} alt={b.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-400">
                         <BookOpen className="w-10 h-10" />

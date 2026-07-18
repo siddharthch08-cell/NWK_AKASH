@@ -8,7 +8,7 @@ describe('Result Visibility Security', () => {
   const resultsListRoute = fs.readFileSync(path.join(__dirname, '../../app/api/student/results/route.ts'), 'utf-8')
 
   it('hidden detail DTO omits all score fields', () => {
-    const hiddenBranch = resultService.slice(resultService.indexOf('if (!published)'), resultService.indexOf('const showResult'))
+    const hiddenBranch = resultService.slice(resultService.indexOf('if (!published)'), resultService.indexOf('const showKey'))
     expect(hiddenBranch).toContain('resultPublished: false')
     expect(hiddenBranch).toContain('questions: []')
     expect(hiddenBranch).not.toContain('score:')

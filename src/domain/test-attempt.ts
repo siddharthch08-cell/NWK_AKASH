@@ -99,40 +99,61 @@ export async function startAttempt(testId: string, userId: string) {
 export async function saveAnswers(attemptId: string, userId: string, answers: AnswerInput[]) {
   const ownership = await canAccessAttempt(userId, attemptId)
   if (!ownership.allowed) throw new ForbiddenError(ownership.reason)
+  if (answers.length > 20) throw new ValidationError('A maximum of 20 answers can be saved at once')
+
   const uniqueAnswers = new Map<string, AnswerInput>()
   for (const answer of answers) {
     const current = uniqueAnswers.get(answer.questionId)
     if (!current || (answer.revision ?? 0) >= (current.revision ?? 0)) uniqueAnswers.set(answer.questionId, answer)
   }
+
   return db.$transaction(async tx => {
     await tx.$executeRaw`UPDATE "TestAttempt" SET "score" = "score" WHERE "id" = ${attemptId}`
     const attempt = await tx.testAttempt.findUnique({ where: { id: attemptId } })
     if (!attempt) throw new NotFoundError(attemptId, 'Attempt')
     if (attempt.status !== 'IN_PROGRESS') return { saved: false, alreadySubmitted: true }
     if (attempt.expiresAt <= new Date()) throw new ValidationError('Attempt has expired; server-persisted answers will be finalized')
+
     const allowedQuestions: string[] = attempt.questionOrder ? JSON.parse(attempt.questionOrder) : []
     const questions = await tx.question.findMany({
       where: { testId: attempt.testId, ...(allowedQuestions.length ? { id: { in: allowedQuestions } } : {}) },
       select: { id: true, options: { select: { id: true } } },
     })
     const valid = new Map(questions.map(question => [question.id, new Set(question.options.map(option => option.id))]))
+
     for (const answer of uniqueAnswers.values()) {
       const options = valid.get(answer.questionId)
       if (!options) throw new ValidationError(`Unknown questionId: ${answer.questionId}`)
-      if (answer.selectedOptionId && !options.has(answer.selectedOptionId)) throw new ValidationError(`Option does not belong to question ${answer.questionId}`)
-      const existingAnswer = await tx.attemptAnswer.findUnique({ where: { attemptId_questionId: { attemptId, questionId: answer.questionId } }, select: { revision: true } })
+      if (answer.selectedOptionId && !options.has(answer.selectedOptionId)) {
+        throw new ValidationError(`Option does not belong to question ${answer.questionId}`)
+      }
+    }
+
+    const questionIds = Array.from(uniqueAnswers.keys())
+    const existingAnswers = questionIds.length === 0
+      ? []
+      : await tx.attemptAnswer.findMany({
+          where: { attemptId, questionId: { in: questionIds } },
+          select: { questionId: true, revision: true },
+        })
+    const existingRevision = new Map(existingAnswers.map(answer => [answer.questionId, answer.revision]))
+    const answersToSave = Array.from(uniqueAnswers.values()).filter((answer) => {
       const revision = answer.revision ?? 0
-      if (existingAnswer && revision < existingAnswer.revision) continue
+      const currentRevision = existingRevision.get(answer.questionId)
+      return currentRevision === undefined || revision >= currentRevision
+    })
+
+    for (const answer of answersToSave) {
+      const revision = answer.revision ?? 0
       await tx.attemptAnswer.upsert({
         where: { attemptId_questionId: { attemptId, questionId: answer.questionId } },
         create: { attemptId, questionId: answer.questionId, selectedOptionId: answer.selectedOptionId, revision },
         update: { selectedOptionId: answer.selectedOptionId, revision, isCorrect: false, marksAwarded: 0 },
       })
     }
-    return { saved: true, savedCount: uniqueAnswers.size }
+    return { saved: true, savedCount: answersToSave.length }
   })
 }
-
 export async function submitAttempt(attemptId: string, userId: string, answers: AnswerInput[], submissionType: 'MANUAL' | 'AUTO_TIMEOUT' = 'MANUAL') {
   const attempt = await db.testAttempt.findUnique({ where: { id: attemptId } })
   if (!attempt) throw new NotFoundError(attemptId, 'Attempt')

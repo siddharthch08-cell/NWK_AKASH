@@ -27,11 +27,10 @@ export async function PATCH(req: NextRequest) {
   if (!parsed.success) return fromZodError(parsed.error)
 
   const existing = await db.instituteSetting.findUnique({ where: { id: 'singleton' } })
-  if (!existing) return fail('NOT_FOUND', 'Settings row not found', 404)
-
-  const updated = await db.instituteSetting.update({
+  const updated = await db.instituteSetting.upsert({
     where: { id: 'singleton' },
-    data: { ...parsed.data, updatedBy: ctx.user.id },
+    update: { ...parsed.data, updatedBy: ctx.user.id },
+    create: { id: 'singleton', ...parsed.data, updatedBy: ctx.user.id },
   })
   await audit({ ctx, action: 'SETTING_UPDATED', entityType: 'SETTINGS', entityId: 'singleton', before: existing, after: updated })
 

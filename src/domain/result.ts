@@ -35,7 +35,18 @@ export async function isResultVisible(attemptId: string, userId: string): Promis
 export async function getStudentResult(attemptId: string, userId: string) {
   const attempt = await db.testAttempt.findUnique({
     where: { id: attemptId },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      attemptNumber: true,
+      submittedAt: true,
+      resultPublishedAt: true,
+      questionOrder: true,
+      score: true,
+      totalMarks: true,
+      percentage: true,
+      timeTakenSecs: true,
+      submissionType: true,
       test: {
         select: {
           id: true,
@@ -43,13 +54,8 @@ export async function getStudentResult(attemptId: string, userId: string) {
           passingPct: true,
           showAnswerKey: true,
           showResultImmediately: true,
-          questions: {
-            orderBy: { order: 'asc' },
-            include: { options: { orderBy: { order: 'asc' } } },
-          },
         },
       },
-      answers: true,
     },
   })
   if (!attempt) throw new NotFoundError(attemptId, 'Attempt')
@@ -66,35 +72,102 @@ export async function getStudentResult(attemptId: string, userId: string) {
       },
       test: { id: attempt.test.id, title: attempt.test.title },
       questions: [],
-      hidden: true,
+      hidden: true as const,
     }
   }
 
-  const showResult = published
+  const questionOrder: string[] | null = attempt.questionOrder ? JSON.parse(attempt.questionOrder) : null
+  const questionWhere = {
+    testId: attempt.test.id,
+    ...(questionOrder?.length ? { id: { in: questionOrder } } : {}),
+  }
   const showKey = attempt.test.showAnswerKey
 
-  const questions = showResult
-    ? attempt.test.questions.map(q => {
-        const ans = attempt.answers.find(a => a.questionId === q.id)
-        const base: any = {
-          id: q.id,
-          text: q.text,
-          explanation: showKey ? q.explanation : undefined,
-          marks: q.marks,
-          selectedOptionId: ans?.selectedOptionId || null,
-          answered: !!ans?.selectedOptionId,
-        }
-        if (showResult) {
-          base.isCorrect = ans?.isCorrect
-          base.marksAwarded = ans?.marksAwarded
-          if (showKey) {
-            base.correctOptionId = q.options.find(o => o.isCorrect)?.id || null
-            base.options = q.options.map(o => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
-          }
-        }
-        return base
-      })
-    : []
+  let questions: Array<{
+    id: string
+    text: string
+    explanation?: string | null
+    marks: number
+    selectedOptionId: string | null
+    answered: boolean
+    isCorrect?: boolean
+    marksAwarded?: number
+    correctOptionId?: string | null
+    options?: Array<{ id: string; text: string; isCorrect: boolean }>
+  }>
+
+  if (showKey) {
+    const [testQuestions, answers] = await Promise.all([
+      db.question.findMany({
+        where: questionWhere,
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          text: true,
+          explanation: true,
+          marks: true,
+          options: { orderBy: { order: 'asc' }, select: { id: true, text: true, isCorrect: true } },
+        },
+      }),
+      db.attemptAnswer.findMany({
+        where: { attemptId },
+        select: { questionId: true, selectedOptionId: true, isCorrect: true, marksAwarded: true },
+      }),
+    ])
+    const answerByQuestion = new Map(answers.map((answer) => [answer.questionId, answer]))
+    const questionById = new Map(testQuestions.map((question) => [question.id, question]))
+    const orderedQuestions = questionOrder
+      ? questionOrder.flatMap((id) => {
+          const question = questionById.get(id)
+          return question ? [question] : []
+        })
+      : testQuestions
+    questions = orderedQuestions.map((question) => {
+      const answer = answerByQuestion.get(question.id)
+      return {
+        id: question.id,
+        text: question.text,
+        explanation: question.explanation,
+        marks: question.marks,
+        selectedOptionId: answer?.selectedOptionId || null,
+        answered: !!answer?.selectedOptionId,
+        isCorrect: answer?.isCorrect,
+        marksAwarded: answer?.marksAwarded,
+        correctOptionId: question.options.find((option) => option.isCorrect)?.id || null,
+        options: question.options.map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect })),
+      }
+    })
+  } else {
+    const [testQuestions, answers] = await Promise.all([
+      db.question.findMany({
+        where: questionWhere,
+        orderBy: { order: 'asc' },
+        select: { id: true, text: true, marks: true },
+      }),
+      db.attemptAnswer.findMany({
+        where: { attemptId },
+        select: { questionId: true, selectedOptionId: true },
+      }),
+    ])
+    const answerByQuestion = new Map(answers.map((answer) => [answer.questionId, answer]))
+    const questionById = new Map(testQuestions.map((question) => [question.id, question]))
+    const orderedQuestions = questionOrder
+      ? questionOrder.flatMap((id) => {
+          const question = questionById.get(id)
+          return question ? [question] : []
+        })
+      : testQuestions
+    questions = orderedQuestions.map((question) => {
+      const answer = answerByQuestion.get(question.id)
+      return {
+        id: question.id,
+        text: question.text,
+        marks: question.marks,
+        selectedOptionId: answer?.selectedOptionId || null,
+        answered: !!answer?.selectedOptionId,
+      }
+    })
+  }
 
   const passed = attempt.test.passingPct != null
     ? attempt.percentage >= attempt.test.passingPct
@@ -121,10 +194,9 @@ export async function getStudentResult(attemptId: string, userId: string) {
       passingPct: attempt.test.passingPct,
     },
     questions,
-    hidden: false,
+    hidden: false as const,
   }
 }
-
 export async function getStudentResults(userId: string) {
   const attempts = await db.testAttempt.findMany({
     where: { userId, status: 'SUBMITTED' },

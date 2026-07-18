@@ -1,7 +1,44 @@
+import type { InstituteSetting } from '@prisma/client'
 import { db } from './db'
 
-export async function getSettings() {
-  return db.instituteSetting.upsert({ where: { id: 'singleton' }, update: {}, create: { id: 'singleton' } })
+const DEFAULT_SETTINGS: InstituteSetting = {
+  id: 'singleton',
+  instituteName: 'Naya Wallah Kanoon',
+  tagline: 'New Law, New Way',
+  logo: null,
+  favicon: null,
+  primaryEmail: null,
+  primaryPhone: null,
+  address: null,
+  mapsEmbedUrl: null,
+  heroTitle: 'Naya Wallah Kanoon — New Law, New Way',
+  heroSubtitle: 'Industry-leading courses, expert faculty, and a learning experience designed for your success.',
+  heroImage: null,
+  aboutMission: null,
+  aboutVision: null,
+  aboutText: null,
+  statStudents: 0,
+  statCourses: 0,
+  statPassRate: 0,
+  statExperience: 0,
+  socialFacebook: null,
+  socialTwitter: null,
+  socialLinkedin: null,
+  socialYoutube: null,
+  socialInstagram: null,
+  socialWhatsApp: null,
+  videoCompletionThreshold: 90,
+  defaultMaxAttempts: 2,
+  maxUploadMb: 20,
+  maintenanceMode: false,
+  revenueEnabled: false,
+  certificatesEnabled: false,
+  updatedBy: null,
+  updatedAt: new Date(0),
+}
+
+export async function getSettings(): Promise<InstituteSetting> {
+  return (await db.instituteSetting.findUnique({ where: { id: 'singleton' } })) ?? DEFAULT_SETTINGS
 }
 
 export async function getPublicSettings() {

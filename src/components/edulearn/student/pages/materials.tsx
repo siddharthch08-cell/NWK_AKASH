@@ -8,8 +8,21 @@ import { FolderOpen, ExternalLink, FileText } from 'lucide-react'
 import { fmtDate } from '@/lib/format'
 import { getPlatformLabel, getPlatformColor } from '@/lib/material-url'
 
+interface StudentMaterial {
+  id: string
+  title: string
+  description: string | null
+  platform: string
+  externalUrl: string
+  materialType: string
+  createdAt: string
+  course: { id: string; title: string }
+  chapter: { id: string; title: string }
+  topic: { id: string; title: string } | null
+}
+
 export function StudentMaterials() {
-  const { data, loading } = useApi<{ materials: any[] }>('/api/student/materials')
+  const { data, loading } = useApi<{ materials: StudentMaterial[] }>('/api/student/materials')
 
   if (loading) return <div className="text-center py-12 text-slate-500">Loading…</div>
 

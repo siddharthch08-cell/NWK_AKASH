@@ -66,7 +66,11 @@ export async function audit(input: AuditInput): Promise<void> {
     })
   } catch (e) {
     // Audit failures must NOT corrupt primary operations
-    console.error('[audit] failed to write log', e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: 'Unknown audit error' })
+    const metadata = e && typeof e === 'object' ? e as { name?: unknown; code?: unknown } : null
+    console.error('[audit] failed to write log', {
+      name: typeof metadata?.name === 'string' ? metadata.name : 'UnknownError',
+      code: typeof metadata?.code === 'string' ? metadata.code : undefined,
+    })
   }
 }
 

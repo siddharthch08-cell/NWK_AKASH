@@ -25,7 +25,7 @@ export function AdminFeedback() {
   const [totalPages, setTotalPages] = useState(1)
 
   const load = () => { setLoading(true); api.get<{ items: Feedback[]; totalPages: number }>(`/api/admin/feedback?page=${page}&pageSize=20`).then((d) => { setData(d.items); setTotalPages(d.totalPages) }).catch((e) => toastAction.error(e)).finally(() => setLoading(false)) }
-  useEffect(load, [page])
+  useEffect(load, [page, toastAction])
 
   const update = async (id: string, status: string, notes?: string) => {
     try { await api.patch(`/api/admin/feedback/${id}`, { status, notes }); toast.success('Updated'); load() } catch (e) { toastAction.error(e) }
@@ -44,7 +44,7 @@ export function AdminFeedback() {
                     <h3 className="font-semibold">{f.subject}</h3>
                     <Badge variant="outline" className="text-xs">{f.category}</Badge>
                     <Badge variant="outline" className={statusColor(f.status)}>{f.status}</Badge>
-                    {f.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3 h-3 ${i < f.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}
+                    {f.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3 h-3 ${i < (f.rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}
                   </div>
                   <p className="text-sm text-slate-600 mt-1 line-clamp-2">{f.message}</p>
                   <div className="text-xs text-slate-400 mt-1">From {f.user.name} ({f.user.email}) · {fmtDateTime(f.createdAt)}</div>
@@ -80,7 +80,7 @@ function FeedbackDialog({ feedback, onClose, onUpdate }: { feedback: Feedback | 
         <DialogHeader><DialogTitle>{feedback.subject}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="text-sm"><strong>From:</strong> {feedback.user.name} ({feedback.user.email})</div>
-          {feedback.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-4 h-4 ${i < feedback.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}
+          {feedback.rating && <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-4 h-4 ${i < (feedback.rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />)}</div>}
           <div className="bg-slate-50 p-3 rounded text-sm whitespace-pre-wrap">{feedback.message}</div>
           <div><label className="text-sm font-medium">Status</label>
             <Select value={status} onValueChange={setStatus}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NEW">New</SelectItem><SelectItem value="REVIEWING">Reviewing</SelectItem><SelectItem value="RESOLVED">Resolved</SelectItem><SelectItem value="CLOSED">Closed</SelectItem></SelectContent></Select>

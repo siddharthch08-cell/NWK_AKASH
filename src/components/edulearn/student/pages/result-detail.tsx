@@ -8,12 +8,45 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { fmtDateTime } from '@/lib/format'
 
+interface ResultQuestion {
+  id: string
+  text: string
+  explanation?: string | null
+  marks: number
+  selectedOptionId: string | null
+  isCorrect?: boolean
+  marksAwarded?: number
+  options?: Array<{ id: string; text: string; isCorrect: boolean }>
+}
+
+type StudentResultDetailData =
+  | {
+      hidden: true
+      attempt: { id: string; attemptNumber: number; submittedAt: string | null; resultPublished: false }
+      test: { id: string; title: string }
+      questions: []
+    }
+  | {
+      hidden: false
+      attempt: { id: string; score: number; totalMarks: number; percentage: number; timeTakenSecs: number; submittedAt: string; passed: boolean | null }
+      test: { id: string; title: string; showAnswerKey: boolean }
+      questions: ResultQuestion[]
+    }
+
 export function StudentResultDetail({ id }: { id: string }) {
   const { setView } = useApp()
-  const { data, loading } = useApi<any>(`/api/student/results/${id}`)
+  const { data, loading } = useApi<StudentResultDetailData>(`/api/student/results/${id}`)
 
   if (loading) return <div className="text-center py-12 text-slate-500">Loading…</div>
   if (!data) return null
+  if (data.hidden) {
+    return (
+      <div>
+        <Button variant="ghost" size="sm" onClick={() => setView({ name: 'student/results' })} className="mb-3"><ArrowLeft className="w-4 h-4 mr-1" /> Back to Results</Button>
+        <Card><CardContent className="pt-6 text-center"><Clock className="w-10 h-10 mx-auto text-blue-600 mb-3" /><h1 className="text-xl font-bold">Result awaiting publication</h1><p className="text-sm text-slate-600 mt-1">Your submission was recorded. Scores will appear after the administrator publishes this result.</p></CardContent></Card>
+      </div>
+    )
+  }
   const a = data.attempt
   const showKey = data.test.showAnswerKey
 
@@ -41,7 +74,7 @@ export function StudentResultDetail({ id }: { id: string }) {
         <div>
           <h2 className="text-lg font-semibold mb-3">Answer Review</h2>
           <div className="space-y-3">
-            {data.questions.map((q: any, i: number) => (
+            {data.questions.map((q, i) => (
               <Card key={q.id} className={q.isCorrect === false ? 'border-rose-200' : 'border-emerald-200'}>
                 <CardContent className="pt-4">
                   <div className="flex items-start gap-2 mb-2">
@@ -49,7 +82,7 @@ export function StudentResultDetail({ id }: { id: string }) {
                     <div className="flex-1"><div className="font-medium">{q.text}</div><div className="text-xs text-slate-400">{q.marks} mark(s) · {q.isCorrect ? `+${q.marksAwarded}` : '0'} awarded</div></div>
                     {q.isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <XCircle className="w-5 h-5 text-rose-600" />}
                   </div>
-                  {q.options && q.options.map((o: any, idx: number) => {
+                  {q.options && q.options.map((o, idx) => {
                     const isSelected = q.selectedOptionId === o.id
                     const isCorrect = o.isCorrect
                     return (

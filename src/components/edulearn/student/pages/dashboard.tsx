@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalImage } from '@/components/ui/external-image'
 import { useApp } from '@/stores/app-store'
 import { useApi, PageHeader } from '../../shared/admin-helpers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,7 +53,7 @@ export function StudentDashboard() {
                 {data.continueWatching.map((v) => (
                   <button key={v.videoId} onClick={() => setView({ name: 'student/videos', id: v.videoId })} className="flex gap-3 p-2 rounded-lg hover:bg-slate-50 text-left">
                     <div className="w-20 h-14 rounded bg-slate-100 overflow-hidden shrink-0 relative">
-                      {v.thumbnail ? <img src={v.thumbnail} alt="" className="w-full h-full object-cover" /> : <PlayCircle className="w-6 h-6 m-auto text-slate-400 mt-4" />}
+                      {v.thumbnail ? <ExternalImage src={v.thumbnail} alt="" className="w-full h-full object-cover" /> : <PlayCircle className="w-6 h-6 m-auto text-slate-400 mt-4" />}
                       <div className="absolute inset-0 flex items-center justify-center"><PlayCircle className="w-6 h-6 text-white drop-shadow" /></div>
                     </div>
                     <div className="flex-1 min-w-0">

@@ -1,9 +1,13 @@
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs'
 import { basename, extname, resolve, relative } from 'node:path'
 
+function writeLine(message) {
+  process.stdout.write(`${message}\n`)
+}
+
 const root = resolve(process.argv[2] || '.next/standalone')
 if (!existsSync(root)) {
-  console.log(`Artifact directory not found: ${root} — skipping inspection (build first)`)
+  writeLine(`Artifact directory not found: ${root} — skipping inspection (build first)`)
   process.exit(0)
 }
 
@@ -79,4 +83,4 @@ if (findings.length) {
   console.error(`Artifact inspection failed with ${findings.length} issue(s):\n${findings.join('\n')}`)
   process.exit(1)
 }
-console.log(`Artifact inspection passed: ${root} (${fileCount} files)`)
+writeLine(`Artifact inspection passed: ${root} (${fileCount} files)`)

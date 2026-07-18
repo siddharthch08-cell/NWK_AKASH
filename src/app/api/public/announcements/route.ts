@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { ok } from '@/lib/api-response'
+import { ok, PUBLIC_CACHE_HEADERS } from '@/lib/api-response'
 
 export async function GET(_req: NextRequest) {
   const now = new Date()
@@ -22,5 +22,5 @@ export async function GET(_req: NextRequest) {
       publishAt: true,
     },
   })
-  return ok({ announcements }, 'Public announcements')
+  return ok({ announcements }, 'Public announcements', undefined, 200, PUBLIC_CACHE_HEADERS)
 }

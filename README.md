@@ -6,7 +6,7 @@ Naya Wallah Kanoon is a Next.js learning-management application for student appr
 
 - Node.js 22 LTS
 - npm 10 or 11 (`npm@11.12.1` is pinned in `package.json`)
-- Prisma 6 with SQLite
+- Prisma 6 with PostgreSQL (Neon-compatible)
 - Redis 7.4 for production rate limiting
 - Docker 29+ and Compose for the documented container deployment
 
@@ -36,7 +36,7 @@ Use the first two outputs for `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. Use 
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | SQLite URL, for example `file:./data/custom.db` relative to `prisma/schema.prisma` |
+| `DATABASE_URL` | PostgreSQL runtime URL; use the provider pooled endpoint in deployed environments |
 | `JWT_ACCESS_SECRET` | Unique random value of at least 32 characters |
 | `JWT_REFRESH_SECRET` | Different random value of at least 32 characters |
 | `REDIS_URL` | Required in production; shared rate-limit store |
@@ -65,7 +65,7 @@ For Docker Compose, bootstrap directly against the persistent database volume:
 ADMIN_EMAIL=owner@example.invalid ADMIN_NAME=Owner ADMIN_INITIAL_PASSWORD='<strong-generated-value>' docker compose --profile tools run --rm bootstrap-admin
 ```
 
-Demo data is development-only and requires `ALLOW_DEMO_SEED=true`. The seed command aborts in production and generates random local passwords. Never use demo data for a deployed environment.
+Demo data is development-only and requires `ALLOW_DEMO_SEED=true`, `SEED_MODE`, `SEED_ADMIN_PASSWORD`, and `SEED_STUDENT_PASSWORD`. The seed command aborts in production and never prints either password. Never use demo data for a deployed environment.
 
 ## Academic workflow
 
