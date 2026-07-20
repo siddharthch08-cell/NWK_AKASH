@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = localFont({
   src: "../../public/fonts/geist-sans/Geist-Variable.woff2",
@@ -72,6 +73,7 @@ export default function RootLayout({
           <Toaster />
           <SonnerToaster richColors position="top-right" />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
